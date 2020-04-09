@@ -245,7 +245,7 @@ std::size_t DescriptorAddendum::SizeInBytes() const {
 
 void DescriptorAddendum::Dump(FILE *f) const {
   std::fprintf(
-      f, "  derivedType @ %p\n", reinterpret_cast<const void *>(derivedType_));
+      f, "  derivedType @ %p\n", reinterpret_cast<const void *>(derivedType()));
   std::fprintf(f, "  flags 0x%jx\n", static_cast<std::intmax_t>(flags_));
   // TODO: LEN parameter values
 }

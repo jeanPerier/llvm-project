@@ -18,6 +18,7 @@
 // User C code is welcome to depend on that ISO_Fortran_binding.h file,
 // but should never reference this internal header.
 
+#include "blob.h"
 #include "derived-type.h"
 #include "memory.h"
 #include "type-code.h"
@@ -65,19 +66,27 @@ public:
 
   explicit DescriptorAddendum(
       const DerivedType *dt = nullptr, std::uint64_t flags = 0)
-      : derivedType_{dt}, flags_{flags} {}
+      : flags_{flags} {
+    if (dt) {
+      derivedType_.Set(*this, *dt);
+    }
+  }
 
-  const DerivedType *derivedType() const { return derivedType_; }
+  const DerivedType *derivedType() const { return derivedType_.Get(*this); }
   DescriptorAddendum &set_derivedType(const DerivedType *dt) {
-    derivedType_ = dt;
+    if (dt) {
+      derivedType_.Set(*this, *dt);
+    } else {
+      derivedType_.Nullify();
+    }
     return *this;
   }
   std::uint64_t &flags() { return flags_; }
   const std::uint64_t &flags() const { return flags_; }
 
   std::size_t LenParameters() const {
-    if (derivedType_) {
-      return derivedType_->lenParameters();
+    if (const auto *type{derivedType()}) {
+      return type->lenParameters();
     }
     return 0;
   }
@@ -96,7 +105,7 @@ public:
   void Dump(FILE * = stdout) const;
 
 private:
-  const DerivedType *derivedType_{nullptr};
+  RelativePointer<DerivedType> derivedType_;
   std::uint64_t flags_{0};
   TypeParameterValue len_[1]; // must be the last component
   // The LEN type parameter values can also include captured values of
