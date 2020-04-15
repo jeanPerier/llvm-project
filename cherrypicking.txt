@@ -8,6 +8,8 @@ cd $DIRECTORY
 git remote add llvm-project https://github.com/llvm/llvm-project.git
 git fetch llvm-project
 git checkout $BRANCH
+# If you want to see which files have diverged, do:
+git diff --name-status refs/remotes/llvm-project/master HEAD -- flang
 # Look for new flang commits since the latest (top) entry in the log below.
 git log llvm-project/master -- flang >log.tmp
 $EDITOR log.tmp
