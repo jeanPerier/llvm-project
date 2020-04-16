@@ -1,0 +1,109 @@
+How to cherry-pick commits from llvm-project:
+
+# Create a branch $BRANCH of f18-stage on gitlab
+# Clone f18-stage from gitlab
+git clone ssh://git@gitlab-master.nvidia.com:12051/fortran/f18-stage.git $DIRECTORY
+cd $DIRECTORY
+# Add llvm/llvm-project as a remote repository
+git remote add llvm-project https://github.com/llvm/llvm-project.git
+git fetch llvm-project
+git checkout $BRANCH
+# If you want to see which files have diverged, do:
+git diff --name-status refs/remotes/llvm-project/master HEAD -- flang
+# Look for new flang commits since the latest (top) entry in the log below.
+git log llvm-project/master -- flang >log.tmp
+$EDITOR log.tmp
+# Add them to the log below, marking them as NOT PICKED YET or
+# NOT PICKED (if you think it should not be).
+# For each commit that you want to pick,
+git cherry-pick -x $COMMIT
+# Build and test.  If successful, mark the newly picked commits
+# as PICKED in the log below.
+# Merge your branch as usual.
+
+Log of commits cherry-picked (or not) from llvm-project:
+
+commit 29e71ceaee1a7a27d194100f0d94eb4d49496529 PICKED
+Author: David Truby <david.truby@arm.com>
+Date:   Wed Apr 15 12:55:42 2020 +0100
+
+    [flang] Add return statement to Logical opeator=.
+    
+    This removes the current undefined behavior where the function has a return type
+    but no return statement.
+    
+    Fixes: https://bugs.llvm.org/show_bug.cgi?id=45530
+
+commit ebf190fcda0b8b4e9de405ba13ddbc679550644b NOT PICKED YET
+Author: River Riddle <riddleriver@gmail.com>
+Date:   Tue Apr 14 14:53:50 2020 -0700
+
+    [llvm][ADT] Move TypeSwitch class from MLIR to LLVM
+    
+    This class implements a switch-like dispatch statement for a value of 'T' using dyn_cast functionality. Each `Case<T>` takes a callable to be invoked if the root value isa<T>, the callable is invoked with the result of dyn_cast<T>() as a parameter.
+    
+    Differential Revision: https://reviews.llvm.org/D78070
+
+commit 2f21a579665d44330b964cb47eece8bb9ab5a90c NOT PICKED YET
+Author: River Riddle <riddleriver@gmail.com>
+Date:   Tue Apr 14 14:53:28 2020 -0700
+
+    [llvm][STLExtras] Move the algorithm `interleave*` methods from MLIR to LLVM
+    
+    These have proved incredibly useful for interleaving values between a range w.r.t to streams. After this revision, the mlir/Support/STLExtras.h is empty. A followup revision will remove it from the tree.
+    
+    Differential Revision: https://reviews.llvm.org/D78067
+
+commit d58a405de656e53424086aa4ab97db56d43deb36 PICKED
+Author: Eric Schweitz <eschweitz@nvidia.com>
+Date:   Tue Apr 14 09:50:50 2020 -0700
+
+    [flang] Upstream patch to enable the fir-ops test. bug 45487
+    
+    Differential revision: https://reviews.llvm.org/D77834
+
+commit ed6c452edc8121e18ec977a4ac93ab43d95fe78d PICKED
+Author: Mehdi Amini <joker.eph@gmail.com>
+Date:   Mon Apr 13 17:03:12 2020 +0000
+
+    Add missing dependencies on the flang test target
+    
+    Without this, the LLVM utilities (FileCheck) aren't built when running
+    `ninja check-flang` and it fails with:
+    
+    llvm-project/llvm/utils/lit/lit/llvm/subst.py:134: fatal: Did not find FileCheck in...
+    
+    Also the modules aren't built without depending on `module_files`, which
+    makes multiple tests failing.
+    
+    Differential Revision: https://reviews.llvm.org/D78036
+
+commit 413467f9ec3d2e10585ddd171cb54114f97d01c8 PICKED
+Author: David Truby <david.truby@arm.com>
+Date:   Thu Apr 9 21:12:54 2020 +0100
+
+    [flang] [NFC] Adjust README.md for upstreaming.
+    
+    This changes the references and build instructions for Flang so that
+    they are correct now that F18 has been rechristened Flang and merged
+    with LLVM.
+    
+    Reviewed at: https://github.com/flang-compiler/f18/pull/909
+
+commit 89c7d9633b3f2255ed711522f29751566a6f5d70 NOT PICKED
+Author: David Truby <david.truby@arm.com>
+Date:   Thu Apr 9 18:35:49 2020 +0100
+
+    [flang] Temporarily XFAIL failing test Fir/fir-ops.fir
+
+commit a1726e65bc1fdbd2800839e48e68cb4a68cc7092 NOT PICKED
+Author: David Truby <david.truby@arm.com>
+Date:   Thu Apr 9 16:39:18 2020 +0100
+
+    [flang] Add dependency on libSemantics to libEvaluate.
+    
+    When building flang with LLVM HEAD, the unittests fail to link with ld.bfd or
+    ld.gold due to a linker ordering issue. Adding libSemantics as a dependency to
+    libEvaluate seems to fix that issue.
+    
+    Reviewed at: https://github.com/flang-compiler/f18/pull/1104
