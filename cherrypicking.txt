@@ -16,12 +16,46 @@ $EDITOR log.tmp
 # Add them to the log below, marking them as NOT PICKED YET or
 # NOT PICKED (if you think it should not be).
 # For each commit that you want to pick,
+$EDITOR cherrypicking.txt
 git cherry-pick -x $COMMIT
 # Build and test.  If successful, mark the newly picked commits
 # as PICKED in the log below.
-# Merge your branch as usual.
+$EDITOR cherrypicking.txt
+git add cherrypicking.txt
+git commit -m '...'
+git push
+# Create a merge request for your branch.
 
 Log of commits cherry-picked (or not) from llvm-project:
+
+commit c1c01212c49a0792c0594662db84be271e29cba6 PICKED
+Author: Anchu Rajendran <asudhaku@amd.com>
+Date:   Sat Apr 18 11:39:34 2020 +0530
+
+    [flang]Implemented Semantic Checkes for 5 data constraints
+    
+    Summary:
+     C874, C875, C878, C880 and C881 checks are implemented.
+    
+    Differential Revision: https://reviews.llvm.org/D78008
+
+commit 2d6b9dbfef55364fc762682cd8ab93045582944a PICKED
+Author: Mehdi Chinoune <chinoune.mehdi@hotmail.com>
+Date:   Thu Apr 16 13:34:17 2020 +0100
+
+    [flang] Use the Flang cmake-functions to add targets.
+    
+    Summary: It also removes the cycle-dependency between FortranSemantics and FortranEvaluate.
+    
+    Reviewers: #flang, jdoerfert, sscalpone
+    
+    Reviewed By: #flang, sscalpone
+    
+    Subscribers: DavidTruby, schweitz, tskeith, mgorny, aartbik, llvm-commits
+    
+    Tags: #flang, #llvm
+    
+    Differential Revision: https://reviews.llvm.org/D78215
 
 commit 29e71ceaee1a7a27d194100f0d94eb4d49496529 PICKED
 Author: David Truby <david.truby@arm.com>
