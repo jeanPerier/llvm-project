@@ -292,6 +292,9 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Scope &scope) {
   if (auto *symbol{scope.symbol()}) {
     os << *symbol << ' ';
   }
+  if (scope.derivedTypeSpec_) {
+    os << "instantiation of " << *scope.derivedTypeSpec_ << ' ';
+  }
   os << scope.children_.size() << " children\n";
   for (const auto &pair : scope.symbols_) {
     const Symbol &symbol{*pair.second};

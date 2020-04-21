@@ -113,7 +113,6 @@ public:
     return symbols_.find(name);
   }
   size_type erase(const SourceName &);
-  size_type size() const { return symbols_.size(); }
   bool empty() const { return symbols_.empty(); }
 
   // Look for symbol by name in this scope and host (depending on imports).
@@ -182,6 +181,11 @@ public:
   // that are referenced by SourceName objects.
   void set_chars(parser::CookedSource &);
 
+  std::size_t size() const { return size_; }
+  void set_size(std::size_t size) { size_ = size; }
+  std::size_t align() const { return align_; }
+  void set_align(std::size_t align) { align_ = align; }
+
   ImportKind GetImportKind() const;
   // Names appearing in IMPORT statements in this scope
   std::set<SourceName> importNames() const { return importNames_; }
@@ -217,6 +221,8 @@ public:
 private:
   Scope &parent_; // this is enclosing scope, not extended derived type base
   const Kind kind_;
+  std::size_t size_{0}; // size in bytes
+  std::size_t align_{0}; // required alignment in bytes
   parser::CharBlock sourceRange_;
   Symbol *const symbol_; // if not null, symbol_->scope() == this
   std::list<Scope> children_;
