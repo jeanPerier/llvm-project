@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "io-error.h"
-#include "config.h"
 #include "magic-numbers.h"
 #include "tools.h"
 #include <cerrno>
