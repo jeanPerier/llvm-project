@@ -60,6 +60,25 @@ Scope &Scope::MakeScope(Kind kind, Symbol *symbol) {
   return children_.emplace_back(*this, kind, symbol);
 }
 
+template <typename T>
+static std::vector<common::Reference<T>> GetSortedSymbols(
+    std::map<SourceName, common::Reference<Symbol>> symbols) {
+  std::vector<common::Reference<T>> result;
+  result.reserve(symbols.size());
+  for (auto &pair : symbols) {
+    result.push_back(*pair.second);
+  }
+  std::sort(result.begin(), result.end());
+  return result;
+}
+
+std::vector<common::Reference<Symbol>> Scope::GetSymbols() {
+  return GetSortedSymbols<Symbol>(symbols_);
+}
+SymbolVector Scope::GetSymbols() const {
+  return GetSortedSymbols<const Symbol>(symbols_);
+}
+
 Scope::iterator Scope::find(const SourceName &name) {
   return symbols_.find(name);
 }
