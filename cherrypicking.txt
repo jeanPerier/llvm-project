@@ -28,6 +28,115 @@ git push
 
 Log of commits cherry-picked (or not) from llvm-project:
 
+commit 4ced7a48e68a89257ee3c58a460d1bcdbf1e9447
+Author: Tim Keith <tkeith@nvidia.com>
+Date:   Thu Apr 23 09:14:58 2020 -0700
+
+    [flang] Remove unused variable
+    
+    Reviewers: sscalpone, jdoerfert, DavidTruby
+    
+    Reviewed By: sscalpone
+    
+    Subscribers: llvm-commits
+    
+    Tags: #flang, #llvm
+    
+    Differential Revision: https://reviews.llvm.org/D78725
+
+commit 9623003e9380e649bff0ebee3f11903ccf75af12
+Author: Tim Keith <tkeith@nvidia.com>
+Date:   Wed Apr 22 15:26:29 2020 -0700
+
+    [flang][NFC] Refactor derived type instantiation
+    
+    Summary:
+    Move InstantiateComponent and InstantiateIntrinsicType from symbol.cpp
+    to type.cpp as that is where they are called.
+    
+    Put both in InstantiateHelper class to better isolate them.
+    Add CreateDerivedTypeSpec in InstantiateHelper.
+    
+    Add non-const forms for AsIntrinsic and AsDerived to avoid const_cast.
+    
+    No functional changes.
+    
+    Reviewers: DavidTruby, klausler, PeteSteinfeld, jdoerfert
+    
+    Reviewed By: klausler
+    
+    Subscribers: llvm-commits
+    
+    Tags: #flang, #llvm
+    
+    Differential Revision: https://reviews.llvm.org/D78678
+
+commit 026d8807f439754d0ac8e600c1c40538b1a16f02
+Author: Tim Keith <tkeith@nvidia.com>
+Date:   Wed Apr 22 16:19:38 2020 -0700
+
+    [flang] Add missing check for unresolved name
+    
+    Summary:
+    The name in an InputItem isn't necessarily resolved if an error occurred,
+    so it needs to be checked.
+    
+    Fixes https://bugs.llvm.org/show_bug.cgi?id=45477
+    
+    Reviewers: klausler, PeteSteinfeld, DavidTruby, jdoerfert, sscalpone
+    
+    Reviewed By: klausler, sscalpone
+    
+    Subscribers: llvm-commits
+    
+    Tags: #llvm, #flang
+    
+    Differential Revision: https://reviews.llvm.org/D78685
+
+commit a6c1692cb30e62c94513c2c6262cd76df92ef892
+Author: Valentin Clement <clementv@ornl.gov>
+Date:   Tue Apr 21 20:27:35 2020 +0100
+
+    [Flang] fix dependency issues after D78215
+    
+    Patch D78215 changes various dependencies in the CMakeLists.txt. This
+    results in error while compiling. This patch fixes the issue.
+    
+    Reviewers: DavidTruby
+    
+    Differential Revision: https://reviews.llvm.org/D78340
+
+commit 0535fab2375ef71302bc0cf8e5d2ee3280b81f7d
+Author: Rainer Orth <ro@CeBiTec.Uni-Bielefeld.DE>
+Date:   Tue Apr 21 14:32:57 2020 +0200
+
+    [Flang][test] Don't set PATH in flang/test/Semantics/common.sh
+    
+    Currently, many `Flang :: Semantics` tests FAIL on Solaris.  The failure
+    mode is always the same:
+    
+      actual at 67: Name in ALLOCATE statement must be a variable name
+      expect at 67: ERROR: Name in ALLOCATE statement must be a variable name
+    
+    It turns out the issue is twofold here:
+    
+    - The awk script embedded in `flang/test/Semantics/common.sh` uses a string
+      value for `FS`, which isn't supported by traditional awk as documented in
+      the GNU autoconf manual.
+    
+    - Even though /usr/gnu/bin (with gawk installed as awk) is in my build
+      environment's `PATH`, still /bin/awk is used
+    
+    Although the proper fix would probably be to avoid the unportability, it's
+    easy to work around it for now.  `common.sh` above is the only script in
+    the whole tree that for unknown reasons overrides `PATH` to
+    `/usr/bin:/bin`, unnecessarily creating this mess in the first place.  Just
+    removing that setting easily avoids the issue.
+    
+    Tested on `amd64-pc-solaris2.11` and `sparcv9-sun-solaris2.11`.
+    
+    Differential Revision: https://reviews.llvm.org/D78550
+
 commit c1c01212c49a0792c0594662db84be271e29cba6 PICKED
 Author: Anchu Rajendran <asudhaku@amd.com>
 Date:   Sat Apr 18 11:39:34 2020 +0530
@@ -68,7 +177,7 @@ Date:   Wed Apr 15 12:55:42 2020 +0100
     
     Fixes: https://bugs.llvm.org/show_bug.cgi?id=45530
 
-commit ebf190fcda0b8b4e9de405ba13ddbc679550644b NOT PICKED YET
+commit ebf190fcda0b8b4e9de405ba13ddbc679550644b PICKED
 Author: River Riddle <riddleriver@gmail.com>
 Date:   Tue Apr 14 14:53:50 2020 -0700
 
@@ -78,7 +187,7 @@ Date:   Tue Apr 14 14:53:50 2020 -0700
     
     Differential Revision: https://reviews.llvm.org/D78070
 
-commit 2f21a579665d44330b964cb47eece8bb9ab5a90c NOT PICKED YET
+commit 2f21a579665d44330b964cb47eece8bb9ab5a90c PICKED
 Author: River Riddle <riddleriver@gmail.com>
 Date:   Tue Apr 14 14:53:28 2020 -0700
 
