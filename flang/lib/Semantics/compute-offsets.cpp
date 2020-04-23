@@ -65,21 +65,12 @@ void ComputeOffsetsHelper::DoScope(Scope &scope) {
   if (scope.symbol() && scope.IsParameterizedDerivedType()) {
     return; // only process instantiations of parameterized derived types
   }
-  std::vector<Symbol *> sorted;
-  sorted.reserve(scope.size());
-  for (auto &pair : scope) {
-    Symbol &symbol{*pair.second};
-    if (!symbol.has<TypeParamDetails>() && !symbol.has<SubprogramDetails>()) {
-      sorted.push_back(&symbol);
-    }
-  }
-  // NOTE: these must be sorted in the same order as in .mod files
-  std::sort(sorted.begin(), sorted.end(),
-      [](Symbol *x, Symbol *y) { return *x < *y; });
   offset_ = 0;
   align_ = 0;
-  for (auto *symbol : sorted) {
-    DoSymbol(*symbol);
+  for (auto symbol : scope.GetSymbols()) {
+    if (!symbol->has<TypeParamDetails>() && !symbol->has<SubprogramDetails>()) {
+      DoSymbol(*symbol);
+    }
   }
   scope.set_size(offset_);
   scope.set_align(align_);

@@ -108,6 +108,10 @@ public:
   const_iterator cbegin() const { return symbols_.cbegin(); }
   const_iterator cend() const { return symbols_.cend(); }
 
+  // Return symbols in declaration order (the iterators above are in name order)
+  SymbolVector GetSymbols() const;
+  std::vector<common::Reference<Symbol>> GetSymbols();
+
   iterator find(const SourceName &name);
   const_iterator find(const SourceName &name) const {
     return symbols_.find(name);

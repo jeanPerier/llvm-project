@@ -736,6 +736,10 @@ inline bool ProcEntityDetails::HasExplicitInterface() const {
 }
 
 inline bool operator<(SymbolRef x, SymbolRef y) { return *x < *y; }
+inline bool operator<(
+    common::Reference<Symbol> x, common::Reference<Symbol> y) {
+  return *x < *y;
+}
 using SymbolSet = std::set<SymbolRef>;
 
 } // namespace Fortran::semantics
