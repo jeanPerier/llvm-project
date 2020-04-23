@@ -28,7 +28,7 @@ git push
 
 Log of commits cherry-picked (or not) from llvm-project:
 
-commit 4ced7a48e68a89257ee3c58a460d1bcdbf1e9447
+commit 4ced7a48e68a89257ee3c58a460d1bcdbf1e9447 PICKED
 Author: Tim Keith <tkeith@nvidia.com>
 Date:   Thu Apr 23 09:14:58 2020 -0700
 
@@ -44,7 +44,7 @@ Date:   Thu Apr 23 09:14:58 2020 -0700
     
     Differential Revision: https://reviews.llvm.org/D78725
 
-commit 9623003e9380e649bff0ebee3f11903ccf75af12
+commit 9623003e9380e649bff0ebee3f11903ccf75af12 PICKED
 Author: Tim Keith <tkeith@nvidia.com>
 Date:   Wed Apr 22 15:26:29 2020 -0700
 
@@ -71,7 +71,7 @@ Date:   Wed Apr 22 15:26:29 2020 -0700
     
     Differential Revision: https://reviews.llvm.org/D78678
 
-commit 026d8807f439754d0ac8e600c1c40538b1a16f02
+commit 026d8807f439754d0ac8e600c1c40538b1a16f02 PICKED
 Author: Tim Keith <tkeith@nvidia.com>
 Date:   Wed Apr 22 16:19:38 2020 -0700
 
@@ -93,7 +93,7 @@ Date:   Wed Apr 22 16:19:38 2020 -0700
     
     Differential Revision: https://reviews.llvm.org/D78685
 
-commit a6c1692cb30e62c94513c2c6262cd76df92ef892
+commit a6c1692cb30e62c94513c2c6262cd76df92ef892 PICKED
 Author: Valentin Clement <clementv@ornl.gov>
 Date:   Tue Apr 21 20:27:35 2020 +0100
 
@@ -106,7 +106,7 @@ Date:   Tue Apr 21 20:27:35 2020 +0100
     
     Differential Revision: https://reviews.llvm.org/D78340
 
-commit 0535fab2375ef71302bc0cf8e5d2ee3280b81f7d
+commit 0535fab2375ef71302bc0cf8e5d2ee3280b81f7d PICKED
 Author: Rainer Orth <ro@CeBiTec.Uni-Bielefeld.DE>
 Date:   Tue Apr 21 14:32:57 2020 +0200
 
