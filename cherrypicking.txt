@@ -28,6 +28,39 @@ git push
 
 Log of commits cherry-picked (or not) from llvm-project:
 
+commit c353ebbfa4cb30a823fd850de97cb1ef559a05cc PICKED
+Author: Tim Keith <tkeith@nvidia.com>
+Date:   Wed Apr 22 15:39:24 2020 -0700
+
+    [flang] Compute sizes and offsets for symbols
+    
+    Summary:
+    Add size and offset properties to symbols, representing their byte size
+    and offset within their enclosing scope.
+    
+    Add size and align properties to scopes so that they are available for
+    scopes representing derived types.
+    
+    Add ComputeOffsets pass over the symbol table to fill in those fields.
+    
+    Compute descriptor size based on rank and length parameters. Extract
+    DerivedTypeSpec::NumLengthParameters from DynamicType::RequiresDescriptor
+    to share the code.
+    
+    Add Scope::GetSymbols to get symbols in canonical order.
+    compute-offsets.cpp and mod-file.cpp both need to process symbols in the
+    order in which they are declared. Move the collecting of those symbols
+    into Scope so that it can be shared.
+    
+    Add symbol size and offset to output of `-fdebug-dump-symbols` and use
+    that in some tests.
+    
+    Still to do:
+    - make size and alignment rules configurable based on target
+    - use offsets to check EQUIVALENCE statements
+    
+    Differential Revision: https://reviews.llvm.org/D78680
+
 commit 4ced7a48e68a89257ee3c58a460d1bcdbf1e9447 PICKED
 Author: Tim Keith <tkeith@nvidia.com>
 Date:   Thu Apr 23 09:14:58 2020 -0700
