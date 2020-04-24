@@ -63,3 +63,15 @@ target_link_libraries(character-test
 )
 
 add_test(NAME CharacterTest COMMAND character-test)
+
+add_executable(blob-test
+  blob.cpp
+)
+
+target_link_libraries(blob-test
+  RuntimeTesting
+  FortranRuntime
+  LLVMSupport
+)
+
+add_test(NAME BlobTest COMMAND blob-test)

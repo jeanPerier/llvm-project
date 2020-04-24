@@ -29,6 +29,8 @@ configure_file(config.h.cmake config.h)
 add_flang_library(FortranRuntime
   ISO_Fortran_binding.cpp
   allocatable.cpp
+  blob.cpp
+  blob-builder.cpp
   buffer.cpp
   character.cpp
   connection.cpp
