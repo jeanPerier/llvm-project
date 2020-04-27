@@ -1,0 +1,62 @@
+How to cherry-pick commits from llvm-project into f18-stage
+
+Do once:
+  git clone ssh://git@gitlab-master.nvidia.com:12051/fortran/f18-stage.git $DIRECTORY
+  cd $DIRECTORY
+  git remote add llvm-project https://github.com/llvm/llvm-project.git
+  git fetch llvm-project
+  git checkout $BRANCH
+
+If you want to see which files have diverged:
+  git diff --name-status refs/remotes/llvm-project/master HEAD -- flang
+
+To look for changes to merge from LLVM to NVIDIA:
+  git log llvm-project/master -- flang >log.tmp
+  $EDITOR log.tmp llvm-to-nvidia.txt
+# Look for new flang commits since the latest (top) entry in the log below.
+# Add them to the "Commits to be cherry-picked" list below
+# (or "Not cherry-picked" if you think they should not be).
+
+For each commit that you want to pick,
+  $EDITOR llvm-to-nvidia.txt
+  git cherry-pick -x $COMMIT
+# Build and test.  If successful, move the newly picked commits
+# to the "Log of cherry-picked commits" list below.
+  $EDITOR llvm-to-nvidia.txt
+  git add llvm-to-nvidia.txt
+  git commit -m '...'
+  git push
+# Create a merge request for your branch.
+
+To see a description of a commit without its diff:
+  git show -s $COMMIT
+
+Commits to be cherry-picked:
+
+Log of cherry-picked commits in reverse order (latest first):
+
+52492e6c430aa47836d28d7811961a1eb377ec49
+75c31057a76228dea73aff100e7403c0e9a00c30
+b547e1a4d163721b2dc3be869a3f06c6203217dc
+807fe05d3531cae47d0c770b2d919f861bfe9235
+3a1afd8c3d4bb5ded8262697c1aaebfd96e2a319
+5339029ff79c0b6a501ef6bb7baeb07cb099f0b7
+fc0262419a8647c44fe8712ee8e2d4de077f2bde
+c353ebbfa4cb30a823fd850de97cb1ef559a05cc
+4ced7a48e68a89257ee3c58a460d1bcdbf1e9447
+9623003e9380e649bff0ebee3f11903ccf75af12
+026d8807f439754d0ac8e600c1c40538b1a16f02
+a6c1692cb30e62c94513c2c6262cd76df92ef892
+0535fab2375ef71302bc0cf8e5d2ee3280b81f7d
+c1c01212c49a0792c0594662db84be271e29cba6
+2d6b9dbfef55364fc762682cd8ab93045582944a
+29e71ceaee1a7a27d194100f0d94eb4d49496529
+ebf190fcda0b8b4e9de405ba13ddbc679550644b
+2f21a579665d44330b964cb47eece8bb9ab5a90c
+d58a405de656e53424086aa4ab97db56d43deb36
+ed6c452edc8121e18ec977a4ac93ab43d95fe78d
+413467f9ec3d2e10585ddd171cb54114f97d01c8
+
+Not cherry-picked:
+89c7d9633b3f2255ed711522f29751566a6f5d70
+a1726e65bc1fdbd2800839e48e68cb4a68cc7092
