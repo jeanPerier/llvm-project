@@ -1,0 +1,54 @@
+How to cherry-pick commits from f18-stage to llvm-project
+
+Do once:
+  git clone https://github.com/llvm/llvm-project.git $DIRECTORY
+  cd $DIRECTORY
+  git remote add f18-stage ssh://git@gitlab-master.nvidia.com:12051/fortran/f18-stage.git
+
+To look for changes to merge from NVIDIA to LLVM:
+  git fetch f18-stage # or --all
+  git log f18-stage >log.tmp
+  $EDITOR log.tmp nvidia-to-llvm.txt
+# look for new commits, add to log below
+
+For each change to merge:
+  git checkout master
+  git checkout -b $BRANCH
+  git -c merge.renameLimit=1 cherry-pick -n $COMMIT
+  git commit -m '...'
+  arc diff
+# set Subscribers: flang-commits and Tags: #flang
+# get it approved in phabricator
+  arc land --preview $BRANCH # for reassurance
+  arc land --hold $BRANCH 2>&1 | cat   # remove color
+  git commit --amend
+# clean up the commit message
+  git push ... # copy and paste command from arc above
+  git checkout master
+  git branch -d $BRANCH
+
+Ignore merge commits and changes to cherrypicking.txt.
+
+To do (oldest last):
+3216cf630345f4378783115b86cf89f68989091d Typed blobs
+
+In review:
+
+Done:
+baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
+ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
+(net no-ops)
+4fc2ed5fe48221d54ca44f94c2ab46ef12f7f7dc
+43343bab79157980f78d2076528e15ef1a075126
+7f953092ee80e69afc585f6d7a8502a62b69d16d
+ff6cdae2e7280a0d3879c905909c2405f9636efa
+f79a499fcb62d419c7615c30a78cf582c786db59
+a4665057a6c10ed361a9dbff9b1451a203867c1b
+a27448a9486c6ffa346280b1e222e536555faead
+0f016bd7a7ad084ac0294768d92cdb082199773b
+f022ef1705ceccb5281a0605abe03c23ec6df19b
+040d7335a8fa5a774d46306be34703b647c8db09
+b8e4c75353eb97aee38841666116004d30f204f4
+093f146f2cd28bf6071d078dd5acecbd043bf3cc
+399c235f17564008701f5d5e1e513378fee909e4
+8e1f089d246fae29e5d7b2c9e43c230262b173dd
