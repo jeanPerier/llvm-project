@@ -13,34 +13,35 @@ If you want to see which files have diverged:
 To look for changes to merge from LLVM to NVIDIA:
   git log ${LATEST_CHERRYPICK_COMMIT}..llvm-project/master -- flang >log.tmp
   $EDITOR log.tmp llvm-to-nvidia.txt
-# Look for new flang commits since the latest (top) entry in the log below.
-# Add them to the "Commits to be cherry-picked" list below
-# (or "Not cherry-picked" if you think they should not be).
 
-For each commit that you want to pick,
+Look for new flang commits since the latest (top) entry in the log below.
+Add them to the "Commits to be cherry-picked" list below
+(or "Not cherry-picked" if you think they should not be).
+
+For each commit that you want to pick:
   $EDITOR llvm-to-nvidia.txt
   git cherry-pick -x $COMMIT
-# Build and test.  If successful, move the newly picked commits
-# to the "Log of cherry-picked commits" list below.
+
+Build and test.  If successful, move the newly picked commits
+to the "Log of cherry-picked commits" list below.
   $EDITOR llvm-to-nvidia.txt
   git add llvm-to-nvidia.txt
   git commit -m '...'
   git push
-# Create a merge request for your branch.
+
+Create a merge request for your branch.
 
 To see a description of a commit without its diff:
   git show -s $COMMIT
 
-Commits to be cherry-picked:
-3119bdb5d6955e85ddb45e9319608fa8a5915330
-(these probably need concomitant fir-dev work)
-bb1d976febf25e272a9f7ae51974207232481e3e
-7c221a7d4fbce512656d9df202972230eb088f37
-ed5363a6747b7e7914efa216b82438124587c862
+Commits yet to be cherry-picked:
 
 Log of cherry-picked commits in reverse order (latest first):
+bb1d976febf25e272a9f7ae51974207232481e3e
 bc0342383dde329ab2bb07085900a533f0c053db
-
+7c221a7d4fbce512656d9df202972230eb088f37
+ed5363a6747b7e7914efa216b82438124587c862
+3119bdb5d6955e85ddb45e9319608fa8a5915330
 52492e6c430aa47836d28d7811961a1eb377ec49
 75c31057a76228dea73aff100e7403c0e9a00c30
 b547e1a4d163721b2dc3be869a3f06c6203217dc
