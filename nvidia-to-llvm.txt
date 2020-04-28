@@ -7,12 +7,13 @@ Do once:
 
 To look for changes to merge from NVIDIA to LLVM:
   git fetch f18-stage # or --all
-  git log f18-stage >log.tmp
+  git log f18-stage/master >log.tmp
   $EDITOR log.tmp nvidia-to-llvm.txt
 # look for new commits, add to log below
 
 For each change to merge:
   git checkout master
+  git pull
   git checkout -b $BRANCH
   git -c merge.renameLimit=1 cherry-pick -n $COMMIT
   git commit -m '...'
@@ -38,6 +39,7 @@ Done:
 baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
 ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
 (net no-ops)
+f0a1c849c773448fcfa3373af01f219dcf13725f
 4fc2ed5fe48221d54ca44f94c2ab46ef12f7f7dc
 43343bab79157980f78d2076528e15ef1a075126
 7f953092ee80e69afc585f6d7a8502a62b69d16d
