@@ -435,8 +435,8 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Details &details) {
           },
           [&](const CommonBlockDetails &x) {
             os << ':';
-            for (const Symbol &object : x.objects()) {
-              os << ' ' << object.name();
+            for (const auto &object : x.objects()) {
+              os << ' ' << object->name();
             }
           },
           [&](const FinalProcDetails &) {},
