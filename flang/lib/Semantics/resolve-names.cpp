@@ -4340,9 +4340,8 @@ void DeclarationVisitor::CheckSaveStmts() {
               " common block name '%s'"_err_en_US);
         }
       } else {
-        for (const Symbol &object :
-            symbol->get<CommonBlockDetails>().objects()) {
-          SetSaveAttr(*const_cast<Symbol *>(&object));
+        for (auto &object : symbol->get<CommonBlockDetails>().objects()) {
+          SetSaveAttr(*object);
         }
       }
     }
@@ -6656,11 +6655,9 @@ void OmpAttributeVisitor::ResolveOmpObject(
               // 2.15.3 When a named common block appears in a list, it has the
               // same meaning as if every explicit member of the common block
               // appeared in the list
-              for (const Symbol &object :
-                  symbol->get<CommonBlockDetails>().objects()) {
-                Symbol &mutableObject{const_cast<Symbol &>(object)};
+              for (auto &object : symbol->get<CommonBlockDetails>().objects()) {
                 if (auto *resolvedObject{
-                        ResolveOmp(mutableObject, ompFlag, currScope())}) {
+                        ResolveOmp(*object, ompFlag, currScope())}) {
                   AddToContextObjectWithDSA(*resolvedObject, ompFlag);
                 }
               }
