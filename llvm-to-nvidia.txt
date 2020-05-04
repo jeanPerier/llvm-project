@@ -35,12 +35,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 Commits yet to be cherry-picked:
+1165a35a7312ccd723bbe3e5fe95cd3a3109ec66
   (empty)
 
 The out-of-tree build & test of these changes was conducted
 with llvm-project 32c3224612d84ee7e65907795eaba505f5c90e7c.
 
 Log of cherry-picked commits in reverse order (latest first):
+b6f1bad630faa86104703f40c33a7653668e6a4a
 d93ae65253e07fd8e96224620840e1ed144dc81f
 7875362986fcdb40230b8a142e8288eeb6d547eb
 0752d98ccf8771b41718170d46d11f4020b62818
