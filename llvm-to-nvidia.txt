@@ -4,7 +4,9 @@ Do once:
   git clone ssh://git@gitlab-master.nvidia.com:12051/fortran/f18-stage.git $DIRECTORY
   cd $DIRECTORY
   git remote add llvm-project https://github.com/llvm/llvm-project.git
-  git fetch llvm-project
+
+For each round of cherry-picking:
+  git fetch llvm-project # or git fetch --all
   git checkout $BRANCH
 
 If you want to see which files have diverged:
@@ -21,6 +23,9 @@ Add them to the "Commits to be cherry-picked" list below
 For each commit that you want to pick:
   $EDITOR llvm-to-nvidia.txt
   git cherry-pick -x $COMMIT
+  # If the commit modifies files outside f18 (e.g., llvm/* & mlir/*),
+  # the cherry-pick will fail.  Use "git rm -r -f llvm" or "mlir"
+  # to clean up, then "git cherry-pick --continue".
 
 Build and test.  If successful, move the newly picked commits
 to the "Log of cherry-picked commits" list below.
@@ -35,13 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 Commits yet to be cherry-picked:
-1165a35a7312ccd723bbe3e5fe95cd3a3109ec66
-  (empty)
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 32c3224612d84ee7e65907795eaba505f5c90e7c.
+with llvm-project 4e3c005554f9fd886e838b0cdc533f43ab819867.
 
 Log of cherry-picked commits in reverse order (latest first):
+0195b3a9098eba9349f4291606581669b2bef548 Tim fixes testing in standalone build
+8d0c3c05f2f4b9e827eff98b7a375d174a163570 C741-C750
+f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
+1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
+6fec2c4402ce34edc5c27202422007b12bb25797 no-op
 b6f1bad630faa86104703f40c33a7653668e6a4a
 d93ae65253e07fd8e96224620840e1ed144dc81f
 7875362986fcdb40230b8a142e8288eeb6d547eb

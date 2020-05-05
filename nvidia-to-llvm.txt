@@ -16,7 +16,8 @@ For each change to merge:
   git pull
   git checkout -b $BRANCH
   git -c merge.renameLimit=1 cherry-pick -n $COMMIT
-  git commit -m '...'
+  git commit
+# attempt to build
   arc diff
 # set Subscribers: flang-commits and Tags: #flang
 # get it approved in phabricator
@@ -26,7 +27,7 @@ For each change to merge:
 # clean up the commit message
   git push ... # copy and paste command from arc above
   git checkout master
-  git branch -d $BRANCH
+  git branch -D $BRANCH
 
 Ignore merge commits and changes to cherrypicking.txt.
 
@@ -34,11 +35,16 @@ To do (oldest last):
 3216cf630345f4378783115b86cf89f68989091d Typed blobs
 
 In review:
+cd2ce94f9c59d887ce84092d1eb970ade5fc32c4 Fix to IsDescriptor()
+266e4b21f17b91d1a844ffa734af478df96d9038 Equivalence & common offsets
+f5989ad96f2290e4d276a12c75591bb53be55b6c Add equivalence & common accessors
 
-Done:
+Done (oldest last):
+91585b69a235cc9cfe6bd7820544d2ea0b9b93a7 Fix x87 binary->decimal
 baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
 ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
 (net no-ops)
+67a51828a06cff94ec31361025bd0eb594261d42 Pete's crash fix
 f0a1c849c773448fcfa3373af01f219dcf13725f
 4fc2ed5fe48221d54ca44f94c2ab46ef12f7f7dc
 43343bab79157980f78d2076528e15ef1a075126
