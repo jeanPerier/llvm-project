@@ -138,12 +138,20 @@ public:
 
   ~Descriptor();
 
+  static constexpr std::size_t BytesFor(TypeCategory category, int kind) {
+    return category == TypeCategory::Complex ? kind * 2 : kind;
+  }
+
   void Establish(TypeCode t, std::size_t elementBytes, void *p = nullptr,
       int rank = maxRank, const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other,
       bool addendum = false);
   void Establish(TypeCategory, int kind, void *p = nullptr, int rank = maxRank,
       const SubscriptValue *extent = nullptr,
+      ISO::CFI_attribute_t attribute = CFI_attribute_other,
+      bool addendum = false);
+  void Establish(int characterKind, std::size_t characters, void *p = nullptr,
+      int rank = maxRank, const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other,
       bool addendum = false);
   void Establish(const DerivedType &dt, void *p = nullptr, int rank = maxRank,
@@ -153,9 +161,14 @@ public:
   static OwningPtr<Descriptor> Create(TypeCode t, std::size_t elementBytes,
       void *p = nullptr, int rank = maxRank,
       const SubscriptValue *extent = nullptr,
-      ISO::CFI_attribute_t attribute = CFI_attribute_other);
+      ISO::CFI_attribute_t attribute = CFI_attribute_other,
+      int derivedTypeLenParameters = 0);
   static OwningPtr<Descriptor> Create(TypeCategory, int kind, void *p = nullptr,
       int rank = maxRank, const SubscriptValue *extent = nullptr,
+      ISO::CFI_attribute_t attribute = CFI_attribute_other);
+  static OwningPtr<Descriptor> Create(int characterKind,
+      SubscriptValue characters, void *p = nullptr, int rank = maxRank,
+      const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other);
   static OwningPtr<Descriptor> Create(const DerivedType &dt, void *p = nullptr,
       int rank = maxRank, const SubscriptValue *extent = nullptr,
@@ -191,7 +204,7 @@ public:
     return (subscriptValue - dimension.LowerBound()) * dimension.ByteStride();
   }
 
-  std::size_t SubscriptsToByteOffset(const SubscriptValue *subscript) const {
+  std::size_t SubscriptsToByteOffset(const SubscriptValue subscript[]) const {
     std::size_t offset{0};
     for (int j{0}; j < raw_.rank; ++j) {
       offset += SubscriptByteOffset(j, subscript[j]);
@@ -199,12 +212,12 @@ public:
     return offset;
   }
 
-  template <typename A> A *OffsetElement(std::size_t offset) const {
+  template <typename A = char> A *OffsetElement(std::size_t offset = 0) const {
     return reinterpret_cast<A *>(
         reinterpret_cast<char *>(raw_.base_addr) + offset);
   }
 
-  template <typename A> A *Element(const SubscriptValue *subscript) const {
+  template <typename A> A *Element(const SubscriptValue subscript[]) const {
     return OffsetElement<A>(SubscriptsToByteOffset(subscript));
   }
 
@@ -216,7 +229,7 @@ public:
     return nullptr;
   }
 
-  void GetLowerBounds(SubscriptValue *subscript) const {
+  void GetLowerBounds(SubscriptValue subscript[]) const {
     for (int j{0}; j < raw_.rank; ++j) {
       subscript[j] = GetDimension(j).LowerBound();
     }
@@ -226,9 +239,9 @@ public:
   // subscripts of the array, these wrap the subscripts around to
   // their first (or last) values and return false.
   bool IncrementSubscripts(
-      SubscriptValue *, const int *permutation = nullptr) const;
+      SubscriptValue[], const int *permutation = nullptr) const;
   bool DecrementSubscripts(
-      SubscriptValue *, const int *permutation = nullptr) const;
+      SubscriptValue[], const int *permutation = nullptr) const;
   // False when out of range.
   bool SubscriptsForZeroBasedElementNumber(SubscriptValue *,
       std::size_t elementNumber, const int *permutation = nullptr) const;
@@ -265,8 +278,8 @@ public:
 
   std::size_t Elements() const;
 
-  int Allocate(const SubscriptValue lb[], const SubscriptValue ub[],
-      std::size_t charLen = 0); // TODO: SOURCE= and MOLD=
+  // TODO: SOURCE= and MOLD=
+  int Allocate(const SubscriptValue lb[], const SubscriptValue ub[]);
   int Deallocate(bool finalize = true);
   void Destroy(char *data, bool finalize = true) const;
 
