@@ -45,8 +45,11 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project 4e3c005554f9fd886e838b0cdc533f43ab819867.
 
 Log of cherry-picked commits in reverse order (latest first):
+cfce9b67609f4d2c91ac9c6ab51931769903a560 Pete: message edited
+d5c05ced82ff698fad3da0537cf9b7cdb38dce85 no-op: Tim accessors
+237d0e3c0416abf9919406bcc92874cfd15f5e0c no-op: Tim size/offset
 0195b3a9098eba9349f4291606581669b2bef548 Tim fixes testing in standalone build
-8d0c3c05f2f4b9e827eff98b7a375d174a163570 C741-C750
+8d0c3c05f2f4b9e827eff98b7a375d174a163570 Pete: C741-C750
 f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 6fec2c4402ce34edc5c27202422007b12bb25797 no-op
