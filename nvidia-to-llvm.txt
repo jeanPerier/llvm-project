@@ -36,10 +36,10 @@ To do (oldest last):
 
 In review:
 cd2ce94f9c59d887ce84092d1eb970ade5fc32c4 Fix to IsDescriptor()
-266e4b21f17b91d1a844ffa734af478df96d9038 Equivalence & common offsets
-f5989ad96f2290e4d276a12c75591bb53be55b6c Add equivalence & common accessors
 
 Done (oldest last):
+266e4b21f17b91d1a844ffa734af478df96d9038 Equivalence & common offsets
+f5989ad96f2290e4d276a12c75591bb53be55b6c Add equivalence & common accessors
 91585b69a235cc9cfe6bd7820544d2ea0b9b93a7 Fix x87 binary->decimal
 baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
 ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
