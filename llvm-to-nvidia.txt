@@ -45,6 +45,8 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project 4e3c005554f9fd886e838b0cdc533f43ab819867.
 
 Log of cherry-picked commits in reverse order (latest first):
+54b35c066417d4856e9d53313f7e98b354274584 Tim: align -> alignment
+07b69dcf66776a6a340c5b1b49ca8a36e712026d Pete: message edited again
 cfce9b67609f4d2c91ac9c6ab51931769903a560 Pete: message edited
 d5c05ced82ff698fad3da0537cf9b7cdb38dce85 no-op: Tim accessors
 237d0e3c0416abf9919406bcc92874cfd15f5e0c no-op: Tim size/offset
