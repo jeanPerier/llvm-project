@@ -42,9 +42,10 @@ To see a description of a commit without its diff:
 Commits yet to be cherry-picked:
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 4e3c005554f9fd886e838b0cdc533f43ab819867.
+with llvm-project 8615ce246d1c3424cd5958592ba2779aa7d37535.
 
 Log of cherry-picked commits in reverse order (latest first):
+7ccc7e56724974a27c8ada44f3cf0be0b5b1f4c2 Tim: fix IsDescriptor
 54b35c066417d4856e9d53313f7e98b354274584 Tim: align -> alignment
 07b69dcf66776a6a340c5b1b49ca8a36e712026d Pete: message edited again
 cfce9b67609f4d2c91ac9c6ab51931769903a560 Pete: message edited
