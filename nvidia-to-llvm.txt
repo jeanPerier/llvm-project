@@ -32,12 +32,16 @@ For each change to merge:
 Ignore merge commits and changes to cherrypicking.txt.
 
 To do (oldest last):
+fcfe52de7ed68abc0943a0d60a095aaec850b03a explicit conversions on assignment
+323eab9606e7df3344ff3115f5103a6279d7850a rm flatten.cpp
+21ea58e02d5aea966f5d393025d44d9ff56b0a95 fix build problems
+049e7e5b79b357f3a4a24fbfdf2ce5d263f74ef2 + more CHARACTER runtime
 3216cf630345f4378783115b86cf89f68989091d Typed blobs
 
 In review:
-cd2ce94f9c59d887ce84092d1eb970ade5fc32c4 Fix to IsDescriptor()
 
 Done (oldest last):
+cd2ce94f9c59d887ce84092d1eb970ade5fc32c4 Fix to IsDescriptor()
 266e4b21f17b91d1a844ffa734af478df96d9038 Equivalence & common offsets
 f5989ad96f2290e4d276a12c75591bb53be55b6c Add equivalence & common accessors
 91585b69a235cc9cfe6bd7820544d2ea0b9b93a7 Fix x87 binary->decimal
