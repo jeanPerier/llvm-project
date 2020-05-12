@@ -42,9 +42,16 @@ To see a description of a commit without its diff:
 Commits yet to be cherry-picked:
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 8615ce246d1c3424cd5958592ba2779aa7d37535.
+with llvm-project 288c9e81781e5468cf6db5c4f6e579f39cfe72ba
 
 Log of cherry-picked commits in reverse order (latest first):
+6f300105d21e1f3bf7f0f92c2564c29f0cab8fb9 Tim: Fix IMPORT bug D/79737
+99aa87a5b5371b3c06480e3ff99dcc4f2adf2c2a Tim: testing scripts D/79634
+63a4fdda8c33174dc9fc80fed385df759abbf14f Fix build D/79723
+b05c8c5756e473e9ec51ed65869f6ed42c552404 Tim: ass't conversions D/79637
+332e6aea37a2777c06eb7d0960edf33b5869b0de sameeran: SELECT RANK D/78623
+5eae715a3115be2640d0fd37d0bd4771abf2ab9b mlir D/79463
+cc4768f2ec7ca1e6421c18afeface61376e9fab7 sameeran: documentation
 7ccc7e56724974a27c8ada44f3cf0be0b5b1f4c2 Tim: fix IsDescriptor
 54b35c066417d4856e9d53313f7e98b354274584 Tim: align -> alignment
 07b69dcf66776a6a340c5b1b49ca8a36e712026d Pete: message edited again
