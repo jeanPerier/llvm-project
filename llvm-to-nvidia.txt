@@ -39,12 +39,13 @@ Create a merge request for your branch.
 To see a description of a commit without its diff:
   git show -s $COMMIT
 
-Commits yet to be cherry-picked:
-
 The out-of-tree build & test of these changes was conducted
-with llvm-project 288c9e81781e5468cf6db5c4f6e579f39cfe72ba
+with llvm-project 04c89c7fcab4bb3fcdb1e75daa10fd0d8206e320
 
 Log of cherry-picked commits in reverse order (latest first):
+4ead2cf76c4a1df260e7dff0fa767074bae6e2b8 mlir D/69940
+85725a67c745cb833174a7eae2aa53e74753bcb1 clementval: openmp D/77821
+661b234cbcfb0195fb998b86815e89895b38b88a mlir D/79517
 6f300105d21e1f3bf7f0f92c2564c29f0cab8fb9 Tim: Fix IMPORT bug D/79737
 99aa87a5b5371b3c06480e3ff99dcc4f2adf2c2a Tim: testing scripts D/79634
 63a4fdda8c33174dc9fc80fed385df759abbf14f Fix build D/79723
