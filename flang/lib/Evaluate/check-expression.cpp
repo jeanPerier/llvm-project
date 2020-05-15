@@ -209,7 +209,7 @@ public:
         specExprContext_ == SpecificationExprContext::BOUND) { // C750
       return "derived type component not allowed to reference variable '"s +
           symbol.name().ToString() + "'";
-    } else if (symbol.IsDummy()) {
+    } else if (IsDummy(symbol)) {
       if (symbol.attrs().test(semantics::Attr::OPTIONAL)) {
         return "reference to OPTIONAL dummy argument '"s +
             symbol.name().ToString() + "'";
