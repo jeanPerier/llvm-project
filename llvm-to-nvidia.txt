@@ -40,9 +40,11 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 04c89c7fcab4bb3fcdb1e75daa10fd0d8206e320
+with llvm-project 1870e787af961d1b409e18a18ddf297f02333a78
 
 Log of cherry-picked commits in reverse order (latest first):
+38095549c6a12a75794595464fa9b95f5c6dcf35 Pete: C751-C760 D/79798
+b1ae13b4e9798ecfe8803513490b9034bda2e693 mlir build fix
 4ead2cf76c4a1df260e7dff0fa767074bae6e2b8 mlir D/69940
 85725a67c745cb833174a7eae2aa53e74753bcb1 clementval: openmp D/77821
 661b234cbcfb0195fb998b86815e89895b38b88a mlir D/79517
