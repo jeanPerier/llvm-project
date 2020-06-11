@@ -423,6 +423,9 @@ Expr<Type<TypeCategory::Integer, KIND>> FoldIntrinsicFunction(
         }));
   } else if (name == "max") {
     return FoldMINorMAX(context, std::move(funcRef), Ordering::Greater);
+  } else if (name == "max1" || name == "min1" || name == "max0" ||
+      name == "min0") {
+    return RewriteSpecificMINorMAX(context, std::move(funcRef));
   } else if (name == "maxexponent") {
     if (auto *sx{UnwrapExpr<Expr<SomeReal>>(args[0])}) {
       return std::visit(
