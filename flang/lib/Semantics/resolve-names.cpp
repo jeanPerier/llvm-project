@@ -5045,9 +5045,8 @@ bool ConstructVisitor::Pre(const parser::DataStmtValue &x) {
       if (const Symbol * symbol{FindSymbol(*name)}) {
         if (const Symbol * ultimate{GetAssociationRoot(*symbol)}) {
           if (ultimate->has<DerivedTypeDetails>()) {
-            mutableData.u = parser::Constant<parser::StructureConstructor>{
-                elem->ConvertToStructureConstructor(
-                    DerivedTypeSpec{name->source, *ultimate})};
+            mutableData.u = elem->ConvertToStructureConstructor(
+                DerivedTypeSpec{name->source, *ultimate});
           }
         }
       }
