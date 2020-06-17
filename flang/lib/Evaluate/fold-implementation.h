@@ -698,6 +698,9 @@ Expr<T> RewriteSpecificMINorMAX(
         resultType = type;
       }
     } else if (resultType.category() == TypeCategory::Integer) {
+      // Handle mixed real/integer arguments: all the previous arguments were
+      // integers and this one is real. The type of the MAX/MIN result will
+      // be the one of the real argument.
       resultTypeArg = &args[j];
       resultType = type;
     }
