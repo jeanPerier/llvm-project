@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 01e64c971260f6999d3365ac163f33da02c63534
+with llvm-project c8b082a3abe44138fff4ef824300270dd6e8bc77
 
 Log of cherry-picked commits in reverse order (latest first):
+30db1776935ef921314937313fe9ec9dac48b693 Eric: Mangler module
+93f602b339f62e058ce2c212c86f9f0ca3b20126 sameeran: google unittests
+4741835e031b559f2effcad70f59e35c32c1eece Eric: fir.do_loop helper class
+bb2f6f66c7f3189a3f9d2ea22ed9be6a3b8f5458 Pete: test for spec exprs
+a0226f9bffa4c879ec7f8183738205661978cc39 no-op pmk: dodge bogus g++ 10.1 warning
+70ad73b6b76838bd7c72123922102b175e5d478a sameeran: select type
 8bba0bca721d66a63709d427ff1e3b48cf7c2cad Eric: complex expr helper class
 a27d3852095a461b739da534ddc9abfb625f2e06 Tim: Type def'n name res. bug fix
 bb73d1b278eb478ca8e56153cf1469bf7eb13a3f Isuru: Fix missing config.h
@@ -114,5 +120,6 @@ ed6c452edc8121e18ec977a4ac93ab43d95fe78d
 413467f9ec3d2e10585ddd171cb54114f97d01c8
 
 Not cherry-picked:
+9362698450d1843e7fde98d8012a7308244c2d79 Truby: change DIE to llvm_unreachable
 89c7d9633b3f2255ed711522f29751566a6f5d70
 a1726e65bc1fdbd2800839e48e68cb4a68cc7092
