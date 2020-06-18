@@ -16,13 +16,13 @@ For each change to merge:
   git pull
   git checkout -b $BRANCH
   git -c merge.renameLimit=1 cherry-pick -n $COMMIT
-  git commit
 # attempt to build
+  git commit
   arc diff
 # set Subscribers: flang-commits and Tags: #flang
 # get it approved in phabricator
   arc land --preview $BRANCH # for reassurance
-  arc land --hold $BRANCH 2>&1 | cat   # remove color
+  arc land --hold $BRANCH 2>&1 | cat # no color
   git commit --amend
 # clean up the commit message
   git push ... # copy and paste command from arc above
@@ -32,15 +32,20 @@ For each change to merge:
 Ignore merge commits and changes to cherrypicking.txt.
 
 To do (oldest last):
-fcfe52de7ed68abc0943a0d60a095aaec850b03a explicit conversions on assignment
-323eab9606e7df3344ff3115f5103a6279d7850a rm flatten.cpp
-21ea58e02d5aea966f5d393025d44d9ff56b0a95 fix build problems
-049e7e5b79b357f3a4a24fbfdf2ce5d263f74ef2 + more CHARACTER runtime
+dab72aa39d4c403adf4da5c819b32e4e9860c687 shape analysis of MATMUL
+9ed81c9450a108357e21a0e82adca7070d6ddad1 fix F5.3 formatting of 0.025
+831c6f18c405147ef36115e4239ce928ca78a165 DATA: processing & conversion to inits
+008bd342b28bd46960b2214b58977f1bd4b473a0 DATA: remaining prep work
 3216cf630345f4378783115b86cf89f68989091d Typed blobs
 
 In review:
+de3188d0c93ccf6850c0c9c0f7d21284ab30baeb DATA: initial images
+7d8047a25f8bb2a07ba639d4d90caa11bb64bf42 DATA: designator folding
 
 Done (oldest last):
+082c73c3467d7c02471fca9ec93167345c1856f0 roll-up small runtime fixes
+21ea58e02d5aea966f5d393025d44d9ff56b0a95 fix osx build problems
+049e7e5b79b357f3a4a24fbfdf2ce5d263f74ef2 + more CHARACTER runtime
 cd2ce94f9c59d887ce84092d1eb970ade5fc32c4 Fix to IsDescriptor()
 266e4b21f17b91d1a844ffa734af478df96d9038 Equivalence & common offsets
 f5989ad96f2290e4d276a12c75591bb53be55b6c Add equivalence & common accessors
@@ -48,6 +53,10 @@ f5989ad96f2290e4d276a12c75591bb53be55b6c Add equivalence & common accessors
 baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
 ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
 (net no-ops)
+d86bacc76410a04b2299a21d0db999f4be898e94 dodge bogus g++ 10.1 warnings
+f5ffea1f8b93831f920f1826d5d6845836982502 Tim: remove link-time dependency
+fcfe52de7ed68abc0943a0d60a095aaec850b03a explicit conversions on assignment
+323eab9606e7df3344ff3115f5103a6279d7850a rm flatten.cpp
 67a51828a06cff94ec31361025bd0eb594261d42 Pete's crash fix
 f0a1c849c773448fcfa3373af01f219dcf13725f
 4fc2ed5fe48221d54ca44f94c2ab46ef12f7f7dc
@@ -64,3 +73,6 @@ b8e4c75353eb97aee38841666116004d30f204f4
 093f146f2cd28bf6071d078dd5acecbd043bf3cc
 399c235f17564008701f5d5e1e513378fee909e4
 8e1f089d246fae29e5d7b2c9e43c230262b173dd
+
+Not forwarded to LLVM:
+ab2dac0035620cf281871116cb5adeda49a26b52 fix build breakage

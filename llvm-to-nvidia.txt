@@ -43,6 +43,13 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project c8b082a3abe44138fff4ef824300270dd6e8bc77
 
 Log of cherry-picked commits in reverse order (latest first):
+27505565515ee8b680cfca3ca32211b2564a6a66 no-op: roll up runtime fixes
+3aee64a9e038814a6d4c64d37d35e5ccf27e4934 no-op: fix osx build
+3ed2909feb34e5b68c6272def7d445a7ca4c5c6f Pete: fix crash alternate returns
+f1fa3b7f6ee958ec4dfb7104bd0ae64ec0061551 Jean: AMAX0 &c. rewrite
+3d627d6ff9be386ed32b3858a901773221f55761 no-op: more CHARACTER runtime
+b46e2548b67de40acf33b5dde95077698995576f Eric: fix build
+f392b75fd8539e07b1bc9ba16a0fe34b18b789e8 Tim: fix build
 30db1776935ef921314937313fe9ec9dac48b693 Eric: Mangler module
 93f602b339f62e058ce2c212c86f9f0ca3b20126 sameeran: google unittests
 4741835e031b559f2effcad70f59e35c32c1eece Eric: fir.do_loop helper class
