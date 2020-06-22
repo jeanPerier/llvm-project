@@ -40,9 +40,20 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project c8b082a3abe44138fff4ef824300270dd6e8bc77
+with llvm-project 16d24e45430c930e8f5f0aedc99b262fcdf35d26
 
 Log of cherry-picked commits in reverse order (latest first):
+663860f63e73518fc09e55a4a68b03f8027eafc8 Tim: fix SAVE checking
+16d24e45430c930e8f5f0aedc99b262fcdf35d26 no-op: shape analysis for MATMUL
+3a84d84adcd59e62f37792b1f2c6859fb84971cd Eric: finish AbstractConverter
+fa5d416efdcbdba766c0c9bd0797bd4b8bbe0273 sameeran: fix lit testing
+b938eaec55b0d724de5a7d123364968df60c9c1f Eric: add BoxValue
+0df6f8fe8ed09d52af293b1d548a73f0672ece70 no-op: fix F5.3 formatting
+b5d51c24488b5955700f29e40cfb4c5fb4241f76 Eric: add SymbolMap
+a20d48d7d39892ed2af2b0e6dd7f9703a3fef031 no-op: DATA 4/4
+4171f80d5416eccbeebe8864410d576d7dc61eaa no-op: DATA 3/4
+286d7a21593f48ef72d4205036017d326281e3b8 no-op: DATA 2/4
+d1862eb8457f517ef5f4c5667bbf15053ab933f8 no-op: DATA 1/4
 27505565515ee8b680cfca3ca32211b2564a6a66 no-op: roll up runtime fixes
 3aee64a9e038814a6d4c64d37d35e5ccf27e4934 no-op: fix osx build
 3ed2909feb34e5b68c6272def7d445a7ca4c5c6f Pete: fix crash alternate returns
@@ -127,6 +138,8 @@ ed6c452edc8121e18ec977a4ac93ab43d95fe78d
 413467f9ec3d2e10585ddd171cb54114f97d01c8
 
 Not cherry-picked:
+64b04e4754bfe7bf718e5140fe1fd0ca50373c28 reversion of...
+b32401464f4c9c9d43a3ddcb351cb6c7c713fdb4 Kiran: OMP 5.0 flush construct
 9362698450d1843e7fde98d8012a7308244c2d79 Truby: change DIE to llvm_unreachable
 89c7d9633b3f2255ed711522f29751566a6f5d70
 a1726e65bc1fdbd2800839e48e68cb4a68cc7092
