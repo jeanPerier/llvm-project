@@ -38,7 +38,6 @@
 #include "memory.h"
 #include "terminator.h"
 #include "flang/Common/template.h"
-#include "llvm/Support/raw_ostream.h"
 #include <cstddef>
 #include <cstring>
 #include <memory>
