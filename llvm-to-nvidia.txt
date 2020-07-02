@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 16d24e45430c930e8f5f0aedc99b262fcdf35d26
+with llvm-project 8119a374bc3aa7ee7f135038a7c772762711d135
 
 Log of cherry-picked commits in reverse order (latest first):
+5c02a2421b951a14d1294598d0082b32659c7082 Eric: inliner
+ffa1f8198e6e8be6ca1044975a67e646188210da Eric: tablegen
+2ddba3082ca79080b14f372ebe4b5bdbc5f694ed Val C. use llvm/Frontend OMP stuff
+05756e6937d58c357b0b7e37ff3e9a8f7dd0d485 Tim: alt returns
+dd904082625b4fd83f90647952dabee93ef5e990 Tim: formatting
+5a580bbb818737dcbfcfc2089532c38b670ef204 Eric: Runtime.h
+f625f5231ab8e76b1367f70aeed56b6389d83471 mlir thing
+98202edacbad2370105b8a5b837ad35569d7a387 Tim: clang-tidy silencing
+bd2c3014e120949c4acc1d107ac71c4091f00a3d Eric: coarray hooks
+b537c81b5fde154062ecf7521d41902b130dffe6 Barton: testing churn
+ae74252341a0e985a3b637c9b6c30aed9b6f033b Barton: testing churn
+bf57fc1c8ea3d8eaf2e9974691012767ac71a73e Barton: testing churn
+66c26d93b7be0e1cbd5e1c7615a0f591c975fd27 Barton: testing churn
+9c98ed9cd41fc6662a5e90037f25cb3a80658b74 Barton: testing churn
+4198874630be5c6126d78944f8a2d89dea90c7c4 LLVM_ATTRIBUTE_UNUSED
+c3477c51e5995983b9f837c1cd9e7528a5b1bdb2 Eric: CHARACTER work
+84f380580531d4f44fb3e4a2d17b5033e1e9bb0b Eric: add RTBuilder.h
+a9c478acd090bfdb162573af09e777571f8ae1d7 Eric: MLIR .clang-tidy
+
 663860f63e73518fc09e55a4a68b03f8027eafc8 Tim: fix SAVE checking
 16d24e45430c930e8f5f0aedc99b262fcdf35d26 no-op: shape analysis for MATMUL
 3a84d84adcd59e62f37792b1f2c6859fb84971cd Eric: finish AbstractConverter
@@ -138,6 +157,8 @@ ed6c452edc8121e18ec977a4ac93ab43d95fe78d
 413467f9ec3d2e10585ddd171cb54114f97d01c8
 
 Not cherry-picked:
+5c37b2a5eee49df2545a6455eec64fb4b105df40 revert 7f1e776...
+7f1e7767952233d1b6af1feef1371d127de5fa50 Val C.: OMP thing
 64b04e4754bfe7bf718e5140fe1fd0ca50373c28 reversion of...
 b32401464f4c9c9d43a3ddcb351cb6c7c713fdb4 Kiran: OMP 5.0 flush construct
 9362698450d1843e7fde98d8012a7308244c2d79 Truby: change DIE to llvm_unreachable
