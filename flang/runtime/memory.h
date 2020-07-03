@@ -53,7 +53,7 @@ private:
 
 template <typename A> struct New : public SizedNew<A> {
   using SizedNew<A>::SizedNew;
-  template <typename... X>[[nodiscard]] OwningPtr<A> operator()(X &&... x) {
+  template <typename... X> [[nodiscard]] OwningPtr<A> operator()(X &&... x) {
     return SizedNew<A>::operator()(sizeof(A), std::forward<X>(x)...);
   }
 };
