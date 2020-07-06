@@ -70,7 +70,8 @@ void TestSequentialFixedUnformatted() {
   // OPEN(NEWUNIT=unit,ACCESS='SEQUENTIAL',ACTION='READWRITE',&
   //   FORM='UNFORMATTED',RECL=8,STATUS='SCRATCH')
   auto io{IONAME(BeginOpenNewUnit)(__FILE__, __LINE__)};
-  IONAME(SetAccess)(io, "SEQUENTIAL", 10) || (Fail() << "SetAccess(SEQUENTIAL)", 0);
+  IONAME(SetAccess)
+      (io, "SEQUENTIAL", 10) || (Fail() << "SetAccess(SEQUENTIAL)", 0);
   IONAME(SetAction)
   (io, "READWRITE", 9) || (Fail() << "SetAction(READWRITE)", 0);
   IONAME(SetForm)
@@ -317,7 +318,7 @@ void TestSequentialVariableFormatted() {
         fmt, std::strlen(fmt), unit, __FILE__, __LINE__);
     for (int k{0}; k < j; ++k) {
       IONAME(OutputInteger64)
-          (io, buffer[k]) || (Fail() << "OutputInteger64()", 0);
+      (io, buffer[k]) || (Fail() << "OutputInteger64()", 0);
     }
     IONAME(EndIoStatement)
     (io) == IostatOk || (Fail() << "EndIoStatement() for OutputInteger64", 0);

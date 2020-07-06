@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 8119a374bc3aa7ee7f135038a7c772762711d135
+with llvm-project a39e9cf6bec4e7c8e2e947972421c1d5a6f473d6
 
 Log of cherry-picked commits in reverse order (latest first):
+a39e9cf6bec4e7c8e2e947972421c1d5a6f473d6 tidying ext. I/O change
+98d576c78f88b6d7191335c9774313c191ef7539 tidying ext. I/O change
+35808ab8e18cea0a668ea91786a3d916618e986e Eric: FIRBuilder.cpp
+eb305631bec6bf6765c44dcfbb7ec9e8eca41be4 Jean: pgmath
+70f2bcc197ebc8d1c77c5efd5b822a9c9ccdccc4 Tim: alt return fix
 5c02a2421b951a14d1294598d0082b32659c7082 Eric: inliner
 ffa1f8198e6e8be6ca1044975a67e646188210da Eric: tablegen
 2ddba3082ca79080b14f372ebe4b5bdbc5f694ed Val C. use llvm/Frontend OMP stuff
@@ -61,7 +66,6 @@ bf57fc1c8ea3d8eaf2e9974691012767ac71a73e Barton: testing churn
 c3477c51e5995983b9f837c1cd9e7528a5b1bdb2 Eric: CHARACTER work
 84f380580531d4f44fb3e4a2d17b5033e1e9bb0b Eric: add RTBuilder.h
 a9c478acd090bfdb162573af09e777571f8ae1d7 Eric: MLIR .clang-tidy
-
 663860f63e73518fc09e55a4a68b03f8027eafc8 Tim: fix SAVE checking
 16d24e45430c930e8f5f0aedc99b262fcdf35d26 no-op: shape analysis for MATMUL
 3a84d84adcd59e62f37792b1f2c6859fb84971cd Eric: finish AbstractConverter
