@@ -34,7 +34,6 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-3216cf630345f4378783115b86cf89f68989091d Typed blobs
 
 In review:
 
@@ -56,4 +55,5 @@ baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
 ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
 
 Not forwarded to LLVM:
+3216cf630345f4378783115b86cf89f68989091d Typed blobs
 ab2dac0035620cf281871116cb5adeda49a26b52 fix build breakage
