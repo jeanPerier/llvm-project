@@ -338,7 +338,7 @@ bool EditLogicalInput(IoStatementState &io, const DataEdit &edit, bool &x) {
   if (remaining) { // ignore the rest of the field
     io.HandleRelativePosition(*remaining);
   } else if (edit.descriptor == DataEdit::ListDirected) {
-    while (io.NextInField(remaining)) {  // discard rest of field
+    while (io.NextInField(remaining)) { // discard rest of field
     }
   }
   return true;
