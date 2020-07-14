@@ -5,6 +5,7 @@ Do once:
   cd $DIRECTORY
   git remote add f18-stage ssh://git@gitlab-master.nvidia.com:12051/fortran/f18-stage.git
 
+
 To look for changes to merge from NVIDIA to LLVM:
   git fetch f18-stage # or --all
   git log f18-stage/master >log.tmp
@@ -34,10 +35,20 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+499fdc0bfcd6d429ced29d629b09b9d08ea1f783 Anonymous external I/O units (fm401)
+0917928b904cd7e63fc862901860dc3ce2d6971a Fix CR handling (fix)
+e25472e0d6bbe641a562927f53ef29c73c9d3673 Fix CR handling
+eb74a903396ff81dc23dcbd9c5dbc06dca528e86 Speed up real binary->dec
 
 In review:
 
 Done (oldest last, omitting no-ops):
+a52fdfdd9aebbefc61d3e664565ecc77322a47ac fix shared lib build
+d95b91d77e1f40edfe7bf89eaea58fbe0744a39f fix unit number hash
+60c58f58ba6048d0c1c5b1324d4b5bedc6dc9f73 Fix lowering bug #230
+446c41b0c944fd9dff1d872c5c4459e8e9cbe53d Clean up runtime binary deps
+9b8b332822221a409cc2e81b6fc3bd51a91cdb03 EQUIVALENCE fixes
+acba890a16e6d2b26db1aefb5c17c9822f7ba26a Defer stmt func body analysis
 dab72aa39d4c403adf4da5c819b32e4e9860c687 shape analysis of MATMUL
 9ed81c9450a108357e21a0e82adca7070d6ddad1 fix F5.3 formatting of 0.025
 831c6f18c405147ef36115e4239ce928ca78a165 DATA: processing & conversion to inits

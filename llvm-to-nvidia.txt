@@ -40,9 +40,30 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project a39e9cf6bec4e7c8e2e947972421c1d5a6f473d6
+with llvm-project 65049d16100af360674659fb56e8f9bec96a0836
 
 Log of cherry-picked commits in reverse order (latest first):
+3d0b76022df60a8ceaa2198012d67eab3ec3a2d9 Sourabh @ AMD: OpenMP lowering
+f06ad9134722cf090bc301ac8bf41a2a381f137e reversion of OpenAcc 3.0
+65049d16100af360674659fb56e8f9bec96a0836 Val C.: OpenACC 3.0
+f630b8590f0c541ccc8133d84f9464c2b469dda3 Alexis driver changes
+3780d3eb1001fd25d4b4cf953ae621a0f3b30ee5 Tim: octal escapes in modules
+4121172239779ea509908a2a57278a3d2206ad92 Truby add header
+6e42a417bacbfd5a1f58b0ccb7c9b34ff9e54523 Val C.: clause checking OpenMP
+9263e08251ae7ab6feaa6cda37d70fbd6971cfc4 Eric warning fix
+85d9745c83a105692a8784b8c8a83482696b4900 Pete crash fix generics
+7cd1b0ff347d7aa4864624501efbe2ac609e67d7 Eric partial revert
+9520b6c8ab63061e1734deef8614eaa60f704dc9 Pete crash fix
+c54a013e5a8206645e2611974ff83d19d74accbe Eric partial revert
+24b62f28c5daa293a2602712e1eba82cb59f3a6f Eric intrinsic call lowering
+15fa287b64d0ef845201339994cdf6eb3e4d51e1 Pete: image selectors
+2ebf4b6e4c35c93c97da9ed14db7b38757c0d7f9 Isuru: mxcsr fix
+4b9b64d561e952e64288cdec3bae1952269c1bcf Zach I/O runtime
+c6a23df691fbfb1330d1fef71a4ac8b453b62a87 Kate R. num_images()
+216a54a04b9b25fe6d1bcf7f516befd87bc0d976 Eric I/O lowering
+cd503166fb74baf91c55f5f959ed9cd016cbd9f7 Kiran@AMD OpenMP flush
+1b183918184ecbcd03898badf8d1789ea0f4ffe4 Tim missing include
+f9e24a563c36fc98860f4b282af5f6d034b2863c Pete fix
 a39e9cf6bec4e7c8e2e947972421c1d5a6f473d6 tidying ext. I/O change
 98d576c78f88b6d7191335c9774313c191ef7539 tidying ext. I/O change
 35808ab8e18cea0a668ea91786a3d916618e986e Eric: FIRBuilder.cpp
@@ -67,28 +88,17 @@ c3477c51e5995983b9f837c1cd9e7528a5b1bdb2 Eric: CHARACTER work
 84f380580531d4f44fb3e4a2d17b5033e1e9bb0b Eric: add RTBuilder.h
 a9c478acd090bfdb162573af09e777571f8ae1d7 Eric: MLIR .clang-tidy
 663860f63e73518fc09e55a4a68b03f8027eafc8 Tim: fix SAVE checking
-16d24e45430c930e8f5f0aedc99b262fcdf35d26 no-op: shape analysis for MATMUL
 3a84d84adcd59e62f37792b1f2c6859fb84971cd Eric: finish AbstractConverter
 fa5d416efdcbdba766c0c9bd0797bd4b8bbe0273 sameeran: fix lit testing
 b938eaec55b0d724de5a7d123364968df60c9c1f Eric: add BoxValue
-0df6f8fe8ed09d52af293b1d548a73f0672ece70 no-op: fix F5.3 formatting
 b5d51c24488b5955700f29e40cfb4c5fb4241f76 Eric: add SymbolMap
-a20d48d7d39892ed2af2b0e6dd7f9703a3fef031 no-op: DATA 4/4
-4171f80d5416eccbeebe8864410d576d7dc61eaa no-op: DATA 3/4
-286d7a21593f48ef72d4205036017d326281e3b8 no-op: DATA 2/4
-d1862eb8457f517ef5f4c5667bbf15053ab933f8 no-op: DATA 1/4
-27505565515ee8b680cfca3ca32211b2564a6a66 no-op: roll up runtime fixes
-3aee64a9e038814a6d4c64d37d35e5ccf27e4934 no-op: fix osx build
 3ed2909feb34e5b68c6272def7d445a7ca4c5c6f Pete: fix crash alternate returns
 f1fa3b7f6ee958ec4dfb7104bd0ae64ec0061551 Jean: AMAX0 &c. rewrite
-3d627d6ff9be386ed32b3858a901773221f55761 no-op: more CHARACTER runtime
 b46e2548b67de40acf33b5dde95077698995576f Eric: fix build
-f392b75fd8539e07b1bc9ba16a0fe34b18b789e8 no-op: fix build
 30db1776935ef921314937313fe9ec9dac48b693 Eric: Mangler module
 93f602b339f62e058ce2c212c86f9f0ca3b20126 sameeran: google unittests
 4741835e031b559f2effcad70f59e35c32c1eece Eric: fir.do_loop helper class
 bb2f6f66c7f3189a3f9d2ea22ed9be6a3b8f5458 Pete: test for spec exprs
-a0226f9bffa4c879ec7f8183738205661978cc39 no-op pmk: dodge bogus g++ 10.1 warning
 70ad73b6b76838bd7c72123922102b175e5d478a sameeran: select type
 8bba0bca721d66a63709d427ff1e3b48cf7c2cad Eric: complex expr helper class
 a27d3852095a461b739da534ddc9abfb625f2e06 Tim: Type def'n name res. bug fix
@@ -103,7 +113,6 @@ baa12ddb6fa6840c1125f0aa11cd0e05fe82385d Eric: type conversions
 70f1b4b4122088c1bd7324b519bc449dbfeaf298 Anchu: DATA statements
 81bf1e29aae5992db318803ba4722a585ad64638 Truby: release build flags
 ae6e499d258c24fde433d02793c327367c402d50 Eric: OpenMP lowering stubs
-14f49599ccafc7e318fac609387c4dd68430925f no-op Tim: reduce dependencies
 fbac9ce226d7a27e418fdeac72a0b3c9f2c48742 Eric: PFT
 c4dbe59ae8253d73b63e5fcce0bc8bc44b4d07b5 Pete: declaring procedure entities
 38095549c6a12a75794595464fa9b95f5c6dcf35 Pete: C751-C760 D/79798
@@ -122,49 +131,12 @@ cc4768f2ec7ca1e6421c18afeface61376e9fab7 sameeran: documentation
 54b35c066417d4856e9d53313f7e98b354274584 Tim: align -> alignment
 07b69dcf66776a6a340c5b1b49ca8a36e712026d Pete: message edited again
 cfce9b67609f4d2c91ac9c6ab51931769903a560 Pete: message edited
-d5c05ced82ff698fad3da0537cf9b7cdb38dce85 no-op: Tim accessors
-237d0e3c0416abf9919406bcc92874cfd15f5e0c no-op: Tim size/offset
 0195b3a9098eba9349f4291606581669b2bef548 Tim fixes testing in standalone build
 8d0c3c05f2f4b9e827eff98b7a375d174a163570 Pete: C741-C750
 f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
-6fec2c4402ce34edc5c27202422007b12bb25797 no-op
-b6f1bad630faa86104703f40c33a7653668e6a4a
-d93ae65253e07fd8e96224620840e1ed144dc81f
-7875362986fcdb40230b8a142e8288eeb6d547eb
-0752d98ccf8771b41718170d46d11f4020b62818
-bb1d976febf25e272a9f7ae51974207232481e3e
-bc0342383dde329ab2bb07085900a533f0c053db
-7c221a7d4fbce512656d9df202972230eb088f37
-ed5363a6747b7e7914efa216b82438124587c862
-3119bdb5d6955e85ddb45e9319608fa8a5915330
-52492e6c430aa47836d28d7811961a1eb377ec49
-75c31057a76228dea73aff100e7403c0e9a00c30
-b547e1a4d163721b2dc3be869a3f06c6203217dc
-807fe05d3531cae47d0c770b2d919f861bfe9235
-3a1afd8c3d4bb5ded8262697c1aaebfd96e2a319
-5339029ff79c0b6a501ef6bb7baeb07cb099f0b7
-fc0262419a8647c44fe8712ee8e2d4de077f2bde
-c353ebbfa4cb30a823fd850de97cb1ef559a05cc
-4ced7a48e68a89257ee3c58a460d1bcdbf1e9447
-9623003e9380e649bff0ebee3f11903ccf75af12
-026d8807f439754d0ac8e600c1c40538b1a16f02
-a6c1692cb30e62c94513c2c6262cd76df92ef892
-0535fab2375ef71302bc0cf8e5d2ee3280b81f7d
-c1c01212c49a0792c0594662db84be271e29cba6
-2d6b9dbfef55364fc762682cd8ab93045582944a
-29e71ceaee1a7a27d194100f0d94eb4d49496529
-ebf190fcda0b8b4e9de405ba13ddbc679550644b
-2f21a579665d44330b964cb47eece8bb9ab5a90c
-d58a405de656e53424086aa4ab97db56d43deb36
-ed6c452edc8121e18ec977a4ac93ab43d95fe78d
-413467f9ec3d2e10585ddd171cb54114f97d01c8
 
-Not cherry-picked:
-5c37b2a5eee49df2545a6455eec64fb4b105df40 revert 7f1e776...
-7f1e7767952233d1b6af1feef1371d127de5fa50 Val C.: OMP thing
-64b04e4754bfe7bf718e5140fe1fd0ca50373c28 reversion of...
-b32401464f4c9c9d43a3ddcb351cb6c7c713fdb4 Kiran: OMP 5.0 flush construct
+Not cherry-picked (omitting no-ops):
 9362698450d1843e7fde98d8012a7308244c2d79 Truby: change DIE to llvm_unreachable
 89c7d9633b3f2255ed711522f29751566a6f5d70
 a1726e65bc1fdbd2800839e48e68cb4a68cc7092
