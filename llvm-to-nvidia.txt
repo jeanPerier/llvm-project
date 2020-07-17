@@ -40,9 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 65049d16100af360674659fb56e8f9bec96a0836
+with llvm-project d19f0666bcd8f7d26aaf4019244c3ed91e47b1b7
 
 Log of cherry-picked commits in reverse order (latest first):
+cf2274b779f5ffee476cfe40994e6963a51c6428 me: pp dir comments (test)
+079b49b3fb22b9f1f7dfd9b18ab0179d0ad7e158 Sourabh@AMD: OMP taskwait
+2e046be90e51df4978a72fb1665493ed3f57882e Rahul J.: mlir thing
+920e127e02531640204be0944a37bd3bf449f66b Truby: add dependence
+1c93671e594d075cb0008dc4f33d863611af9ab9 Truby: fix shared build for Lower
+d4b1a14f0a6f6c330dbd0f1aca281d27034307c2 Kiran@AMD: OpenMP taskwait
+fa5e4482e01f7eceae52529edb75e754b601e8d0 Tim: don't USE-associate intrinsics
+b297563a751ec390d895c6ac4430e37c5efbb340 Tim: fix bare SAVE
+9aa3dca80f5cfb67640d53998673ad636ac8b4c9 Val C.: OpenACC 3.0 semantics
+8dbc86adf3e4da2ea284955ede94a0b30acc6d36 formatting
+0c64cb6d08964b576cd95f5532ea4016fcd27943 Pete crash fix w/ array c'tors
+02c3f70b47b81d8055adcf6cacc0456f13fde357 Alexis: F18_FC=gfortran
+0a90ffa77293e8e2c99843f770cc0f2cd1d8947c Val C.: OpenACC 3.0 parsing
 3d0b76022df60a8ceaa2198012d67eab3ec3a2d9 Sourabh @ AMD: OpenMP lowering
 f06ad9134722cf090bc301ac8bf41a2a381f137e reversion of OpenAcc 3.0
 65049d16100af360674659fb56e8f9bec96a0836 Val C.: OpenACC 3.0
@@ -137,6 +150,7 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+9017b9ce1a14b578fc5162897b49c440b3d4fa4c Isuru: cripple -Werror
 9362698450d1843e7fde98d8012a7308244c2d79 Truby: change DIE to llvm_unreachable
 89c7d9633b3f2255ed711522f29751566a6f5d70
 a1726e65bc1fdbd2800839e48e68cb4a68cc7092
