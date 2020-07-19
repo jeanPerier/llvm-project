@@ -234,6 +234,7 @@ int FormatControl<CONTEXT>::CueUpNextDataEdit(Context &context, bool stop) {
       }
       ch = GetNextChar(context);
     }
+    auto maybeReversionPoint{offset_};
     if (ch == '-' || ch == '+' || (ch >= '0' && ch <= '9')) {
       repeat = GetIntField(context, ch);
       ch = GetNextChar(context);
@@ -265,6 +266,12 @@ int FormatControl<CONTEXT>::CueUpNextDataEdit(Context &context, bool stop) {
       } else {
         stack_[height_].remaining = 0;
       }
+      if (height_ == 1) {
+        // Subtle point (F'2018 13.4 para 9): tha last parenthesized group
+        // at height 1 becomes the restart point after control reaches the
+        // end of the format, including its repeat count.
+        stack_[0].start = maybeReversionPoint - 1;
+      }
       ++height_;
     } else if (height_ == 0) {
       context.SignalError(IostatErrorInFormat, "FORMAT lacks initial '('");
@@ -276,14 +283,15 @@ int FormatControl<CONTEXT>::CueUpNextDataEdit(Context &context, bool stop) {
         }
         context.AdvanceRecord(); // implied / before rightmost )
       }
+      auto restart{stack_[height_ - 1].start + 1};
       if (stack_[height_ - 1].remaining == Iteration::unlimited) {
-        offset_ = stack_[height_ - 1].start + 1;
+        offset_ = restart;
         if (offset_ == unlimitedLoopCheck) {
           context.SignalError(IostatErrorInFormat,
               "Unlimited repetition in FORMAT lacks data edit descriptors");
         }
       } else if (stack_[height_ - 1].remaining-- > 0) {
-        offset_ = stack_[height_ - 1].start + 1;
+        offset_ = restart;
       } else {
         --height_;
       }
