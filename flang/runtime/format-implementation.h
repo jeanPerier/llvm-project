@@ -225,6 +225,7 @@ int FormatControl<CONTEXT>::CueUpNextDataEdit(Context &context, bool stop) {
   while (true) {
     std::optional<int> repeat;
     bool unlimited{false};
+    auto maybeReversionPoint{offset_};
     CharType ch{GetNextChar(context)};
     while (ch == ',' || ch == ':') {
       // Skip commas, and don't complain if they're missing; the format
@@ -234,7 +235,6 @@ int FormatControl<CONTEXT>::CueUpNextDataEdit(Context &context, bool stop) {
       }
       ch = GetNextChar(context);
     }
-    auto maybeReversionPoint{offset_};
     if (ch == '-' || ch == '+' || (ch >= '0' && ch <= '9')) {
       repeat = GetIntField(context, ch);
       ch = GetNextChar(context);
@@ -255,6 +255,7 @@ int FormatControl<CONTEXT>::CueUpNextDataEdit(Context &context, bool stop) {
         return 0;
       }
       stack_[height_].start = offset_ - 1; // the '('
+      RUNTIME_CHECK(context, format_[stack_[height_].start] == '(');
       if (unlimited || height_ == 0) {
         stack_[height_].remaining = Iteration::unlimited;
         unlimitedLoopCheck = offset_ - 1;
@@ -404,7 +405,7 @@ DataEdit FormatControl<CONTEXT>::GetNextDataEdit(
     ++height_;
   }
   edit.repeat = 1;
-  if (height_ > 1) {
+  if (height_ > 1) { // Subtle: stack_[0].start doesn't necessarily point to '('
     int start{stack_[height_ - 1].start};
     if (format_[start] != '(') {
       if (stack_[height_ - 1].remaining > maxRepeat) {
