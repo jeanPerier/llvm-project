@@ -37,10 +37,19 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-476ed2470cd9abd90972a7a7d1099a26ae8c6744 clean up STOP output
-2fdc74ec2fef96dee8fdb3451b6e748da077147c fix Lw formatting
 
 Done (oldest last, omitting no-ops):
+47215cfb52b6e09049029b9d8b5f41b565ae94c6 FORMAT reversion (2) +
+226a109d9635290434e919a21bbe6d436bad480c FORMAT reversion (1)
+fde8f0ea8a030fb509e627df9f97c3620931bb2a source continuation in macro calls
+25d2c39f20e2f43ad156f9e8edcd84b9070a1979 byte-swapped unformatted I/O
+68d420483aded068f6d96c6684aeb82240fd7d54 fix REAL formatted input case
+1fd5e3377b1cfee4251d6321e50f9aec4a02cabd complain about misplaced labels
+476ed2470cd9abd90972a7a7d1099a26ae8c6744 clean up STOP output
+2fdc74ec2fef96dee8fdb3451b6e748da077147c fix Lw formatting
+72461072df569694a33b3f1b41f9724fa16e457c fix bogus runtime error message
+8a6a875d375d332843de6a083ebce423166e94c7 treat \t as ' ' in runtime input
+c03be4e7414fff50d7c6cb7bac432f180f8a40b2 !DIR$ name=value
 8548a3b66207186576883ad405b6cc0b804f92b4 allow comments on pp directives
 63a783e08f79d606aebe510c60f4bab62438f763 rework r/w permissions on OPEN
 16f03d4a4b778d13ebb28ddfb53045269c53a4a3 entries for scalar internal list IO

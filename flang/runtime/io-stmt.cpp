@@ -211,8 +211,8 @@ bool ExternalIoStatementState<DIR>::Emit(
         "ExternalIoStatementState::Emit(char16_t) called for input statement");
   }
   // TODO: UTF-8 encoding
-  return unit().Emit(
-      reinterpret_cast<const char *>(data), chars * sizeof *data, static_cast<int>(sizeof *data), *this);
+  return unit().Emit(reinterpret_cast<const char *>(data), chars * sizeof *data,
+      static_cast<int>(sizeof *data), *this);
 }
 
 template <Direction DIR>
@@ -223,8 +223,8 @@ bool ExternalIoStatementState<DIR>::Emit(
         "ExternalIoStatementState::Emit(char32_t) called for input statement");
   }
   // TODO: UTF-8 encoding
-  return unit().Emit(
-      reinterpret_cast<const char *>(data), chars * sizeof *data, static_cast<int>(sizeof *data), *this);
+  return unit().Emit(reinterpret_cast<const char *>(data), chars * sizeof *data,
+      static_cast<int>(sizeof *data), *this);
 }
 
 template <Direction DIR>
