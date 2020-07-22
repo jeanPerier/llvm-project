@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project d19f0666bcd8f7d26aaf4019244c3ed91e47b1b7
+with llvm-project ff63d6be93dc5958bf35d92919ce6fafcc611e89
 
 Log of cherry-picked commits in reverse order (latest first):
+c6cb726a8c60d97908016fe7fb76cdc88b543db2 format replay (test)
+320389e849f82403049c76ef06d11bfcef7b82e3 continuation in macro call (test)
+8f2c5c4314f2360bf35d54507a54a5b612a41082 formatting difference
+21c0b4c1e8d6a171899b31d072a47dac27258fc5 Logan: testing thing
 cf2274b779f5ffee476cfe40994e6963a51c6428 me: pp dir comments (test)
 079b49b3fb22b9f1f7dfd9b18ab0179d0ad7e158 Sourabh@AMD: OMP taskwait
 2e046be90e51df4978a72fb1665493ed3f57882e Rahul J.: mlir thing
