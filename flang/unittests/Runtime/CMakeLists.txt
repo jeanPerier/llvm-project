@@ -55,11 +55,7 @@ add_flang_nongtest_unittest(character
 
 add_test(NAME CharacterTest COMMAND character-test)
 
-add_executable(blob-test
-  blob.cpp
-)
-
-add_flang_nongtest_unittest(blob-test
+add_flang_nongtest_unittest(blob
   RuntimeTesting
   FortranRuntime
   LLVMSupport
