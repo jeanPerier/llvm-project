@@ -37,8 +37,10 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+64c63fc3bf2b22ea39731844990d342e0aabfe4f Allow no-comma FORMAT(1PE5.2)
 
 Done (oldest last, omitting no-ops):
+a27b0abbeef9c2a4774a0050b6561be4a3624566 Add {Out,In}putComplex{32,64}
 47215cfb52b6e09049029b9d8b5f41b565ae94c6 FORMAT reversion (2) +
 226a109d9635290434e919a21bbe6d436bad480c FORMAT reversion (1)
 fde8f0ea8a030fb509e627df9f97c3620931bb2a source continuation in macro calls
