@@ -156,6 +156,9 @@ public:
   evaluate::FoldingContext &GetFoldingContext() const {
     return context_->foldingContext();
   }
+  bool IsIntrinsic(const SourceName &name) const {
+    return context_->intrinsics().IsIntrinsic(name.ToString());
+  }
 
   // Make a placeholder symbol for a Name that otherwise wouldn't have one.
   // It is not in any scope and always has MiscDetails.
@@ -2032,14 +2035,14 @@ static bool NeedsType(const Symbol &symbol) {
                  },
           symbol.details());
 }
+
 void ScopeHandler::ApplyImplicitRules(Symbol &symbol) {
   if (NeedsType(symbol)) {
     if (const DeclTypeSpec * type{GetImplicitType(symbol)}) {
       symbol.set(Symbol::Flag::Implicit);
       symbol.SetType(*type);
     } else if (symbol.has<ProcEntityDetails>() &&
-        !symbol.attrs().test(Attr::EXTERNAL) &&
-        context().intrinsics().IsIntrinsic(symbol.name().ToString())) {
+        !symbol.attrs().test(Attr::EXTERNAL) && IsIntrinsic(symbol.name())) {
       // type will be determined in expression semantics
       symbol.attrs().set(Attr::INTRINSIC);
     } else if (!context().HasError(symbol)) {
@@ -2048,6 +2051,7 @@ void ScopeHandler::ApplyImplicitRules(Symbol &symbol) {
     }
   }
 }
+
 const DeclTypeSpec *ScopeHandler::GetImplicitType(Symbol &symbol) {
   const DeclTypeSpec *type{implicitRules().GetType(symbol.name().begin()[0])};
   if (type) {
@@ -3270,8 +3274,7 @@ bool DeclarationVisitor::HandleAttributeStmt(
 }
 Symbol &DeclarationVisitor::HandleAttributeStmt(
     Attr attr, const parser::Name &name) {
-  if (attr == Attr::INTRINSIC &&
-      !context().intrinsics().IsIntrinsic(name.source.ToString())) {
+  if (attr == Attr::INTRINSIC && !IsIntrinsic(name.source)) {
     Say(name.source, "'%s' is not a known intrinsic procedure"_err_en_US);
   }
   auto *symbol{FindInScope(currScope(), name)};
@@ -5686,7 +5689,7 @@ void ResolveNamesVisitor::HandleProcedureName(
   CHECK(flag == Symbol::Flag::Function || flag == Symbol::Flag::Subroutine);
   auto *symbol{FindSymbol(NonDerivedTypeScope(), name)};
   if (!symbol) {
-    if (context().intrinsics().IsIntrinsic(name.source.ToString())) {
+    if (IsIntrinsic(name.source)) {
       symbol =
           &MakeSymbol(InclusiveScope(), name.source, Attrs{Attr::INTRINSIC});
     } else {
@@ -5715,7 +5718,11 @@ void ResolveNamesVisitor::HandleProcedureName(
     // error was reported
   } else {
     symbol = &Resolve(name, symbol)->GetUltimate();
-    ConvertToProcEntity(*symbol);
+    if (ConvertToProcEntity(*symbol) && IsIntrinsic(symbol->name())) {
+      symbol->attrs().set(Attr::INTRINSIC);
+      // 8.2(3): ignore type from intrinsic in type-declaration-stmt
+      symbol->get<ProcEntityDetails>().set_interface(ProcInterface{});
+    }
     if (!SetProcFlag(name, *symbol, flag)) {
       return; // reported error
     }
