@@ -40,9 +40,25 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 88ce9f9b441ecbe2798f20c33c67abbfc4863b08
+with llvm-project 93fd8dbdc250330b84eeca3387e895407663d750
 
 Log of cherry-picked commits in reverse order (latest first):
+bf812c145ca2edc4fb76133ec8104267d66f8ee6 Sourabh: OMP lowering
+b752a8ca499b84d46c5b710f7a3b475fdf0d752e sameeran: C781
+8830f1170dae898d7a0d6a95897e1c23e316ec1e sameeran: C7110-C7115
+49660234db94faf54c2d0ffa150841b9b52671c9 sameeran: C7110-C7115
+30e45f339eb0841dc7fe27fad119cc5db0c052f3 Barton: temp driver
+b068d19a151d9d3a73b0265df27836d9fd0ad1e3 Barton: temp driver
+dd5ea5674b86bade4904fab4c66a1156b3df033e Barton: temp driver
+a50cec71ecea5680c15752d211db16d49d5b1f12 Jean: CMPLX folding
+2cf52504bb076d24c23f161e92340828052b69f7 Pete: RESHAPE
+fac84536bcb9fbca2b3517ca83d382329d0e6c55 Pete: fix assert
+38272f45fed3f2233d54ff1495a4433f87215667 Tim: HostAssoc symbols
+67e41df4e03e934b2990cd7f0b7f5d4e0a58e14f Jean: expose intrinsic mapping
+2c662f3d3d957365ad86f35eee0bea05e4cf0188 Tim: intrinsic in type decl stmt
+9500d48de367d969dc944445297ae5bdfaa14079 Tim: name reso rearrangement
+ca0bf440dbf9977340db4a32ba61740930c2be03 Camille: temp driver
+4a4cafabc9067fced5890a245b03ef5897ad988b Alexis: temp driver
 ff25b2da2ab9049e154cc8b9af06a24f79a74209 Val C.: OACC name resolution
 7454acdf3b7d064ebbf6b8027296f42f504b285a Tim: stmt func implicit decls
 4ef2e594d5be2e0e6d4446c8082b15466bc7ffcb Truby lit thing
@@ -165,6 +181,8 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+765b81f6b93f747bbca57e9042bdd3ce9fea5c5b Tim: revert Truby breakage...
+332170356e35ea9cdc2c1d612b61a50ec5ea322e Truby: break OOT builds
 9017b9ce1a14b578fc5162897b49c440b3d4fa4c Isuru: cripple -Werror
 9362698450d1843e7fde98d8012a7308244c2d79 Truby: change DIE to llvm_unreachable
 89c7d9633b3f2255ed711522f29751566a6f5d70
