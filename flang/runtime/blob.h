@@ -86,6 +86,7 @@ public:
   template <typename A> A &Get(std::size_t n = 0) {
     return RawBlob::template Get<A>(n + prefixBytes);
   }
+
 private:
   struct alignas(alignment) Prefix {
     std::size_t contentBytes;
@@ -222,6 +223,7 @@ public:
   template <typename A> TypedBlobValueType<A> get() const {
     return this->template GetElementTypedBlob<A>().Get();
   }
+
 private:
   template <std::size_t... J>
   ValueType GetHelper(std::index_sequence<J...>) const {
