@@ -40,9 +40,11 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 93fd8dbdc250330b84eeca3387e895407663d750
+with llvm-project 31c7a2fd5c9a5b980768bd06354517d99ac8fe87
 
 Log of cherry-picked commits in reverse order (latest first):
+594dec2884a4814dc97ebdfa7c83ef15bdfb379e inderjeet: Fix SELECT TYPE
+2a6c8b2e9581ebca4b05d1e64458f2dccf3db61f River: refactor pass registration
 bf812c145ca2edc4fb76133ec8104267d66f8ee6 Sourabh: OMP lowering
 b752a8ca499b84d46c5b710f7a3b475fdf0d752e sameeran: C781
 8830f1170dae898d7a0d6a95897e1c23e316ec1e sameeran: C7110-C7115
