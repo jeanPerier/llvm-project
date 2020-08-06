@@ -43,6 +43,15 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project 31c7a2fd5c9a5b980768bd06354517d99ac8fe87
 
 Log of cherry-picked commits in reverse order (latest first):
+0fc34520e0783945a872070412c8937852977eeb Michael Kruse: msvc
+72243a25154277afcd475a01c8a77e2da554a0ce Tim: IMPLICIT NONE control options
+7ae718f2437617fbe929248edab3dd6d67a3b606 Irina: OMP allocate clause
+91ca2152b285c3a711b3e4baf1547fa688df90ee Tim: Fix warning
+f837754df738797c90132d6b3c4dce0fffb59374 Valentin: OMP+OACC structure check
+0cdb6b3f945cda44dede008487d81165480e6a6d Andrzej: fix multi-config builds
+0799a6836564bd9bfe5fba2d66542123837abfb5 Rahul: mlir
+6903d21bc5731fb1b4c59e60486e212d602a13d6 me: formatting
+2c0abc125f046602a3f51da0a398a82953f2fa11 Tim: don't set INTRINSIC on dummy
 594dec2884a4814dc97ebdfa7c83ef15bdfb379e inderjeet: Fix SELECT TYPE
 2a6c8b2e9581ebca4b05d1e64458f2dccf3db61f River: refactor pass registration
 bf812c145ca2edc4fb76133ec8104267d66f8ee6 Sourabh: OMP lowering
