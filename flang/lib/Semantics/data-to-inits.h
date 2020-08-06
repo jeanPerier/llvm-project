@@ -16,7 +16,7 @@
 #include <map>
 
 namespace Fortran::parser {
-class DataStmtSet;
+struct DataStmtSet;
 }
 namespace Fortran::evaluate {
 class ExpressionAnalyzer;
