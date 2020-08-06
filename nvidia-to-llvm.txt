@@ -20,11 +20,18 @@ For each change to merge:
   git -c merge.renameLimit=1 cherry-pick -n $COMMIT
   git commit
 # build and test
-  arc diff
+  if arc works
+  then arc diff
+  else git diff master >mydiff
+       # load into phabricator
+       git commit --amend # add "Differential Revision: <url>"
+  fi
 # set Subscribers: flang-commits and Tags: #flang
 # get it approved in phabricator
-  arc land --hold $BRANCH
-  git commit --amend # clean up the commit message
+  if arc works
+  then arc land --hold $BRANCH
+       git commit --amend # clean up the commit message
+  fi
   git show -s # get the new HEAD commit number as $AMENDEDHEAD
   git push -- origin $AMENDEDHEAD:master
   git checkout master
@@ -37,9 +44,16 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-64c63fc3bf2b22ea39731844990d342e0aabfe4f Allow no-comma FORMAT(1PE5.2)
 
 Done (oldest last, omitting no-ops):
+ad833c592eb0fb0b62556b3f046775226a086906 INQUIRE runtime
+8b94d9abdfe47f39747e3c9dd965c35101775c9e defer "next input record" stuff
+a1471e6303d8ef22afe4e81730e03c0e274dc453 file accessibility, size, positions
+cf4f53ebf57e7f8085667f22720862fe1e7b0682 spaces in REAL input
+da12a506b0c50d917cfa0ae75ba34825a3a1c602 remove RoundDefault enumerator
+6cb7031500436edcf71db47499f41306994922ac pp tests (+ next)
+1fd5e3377b1cfee4251d6321e50f9aec4a02cabd ... misplaced label check
+64c63fc3bf2b22ea39731844990d342e0aabfe4f Allow no-comma FORMAT(1PE5.2)
 a27b0abbeef9c2a4774a0050b6561be4a3624566 Add {Out,In}putComplex{32,64}
 47215cfb52b6e09049029b9d8b5f41b565ae94c6 FORMAT reversion (2) +
 226a109d9635290434e919a21bbe6d436bad480c FORMAT reversion (1)
