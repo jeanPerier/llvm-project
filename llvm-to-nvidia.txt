@@ -40,7 +40,7 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 31c7a2fd5c9a5b980768bd06354517d99ac8fe87
+with llvm-project 3162c6aa4587d5161008d2b9729b5f2873b0fff9
 
 Log of cherry-picked commits in reverse order (latest first):
 0fc34520e0783945a872070412c8937852977eeb Michael Kruse: msvc
