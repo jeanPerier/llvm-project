@@ -31,9 +31,10 @@ For each change to merge:
   if arc works
   then arc land --hold $BRANCH
        git commit --amend # clean up the commit message
+       git show -s # get the new HEAD commit number as $AMENDEDHEAD
+       git push -- origin $AMENDEDHEAD:master
+  else git push -- origin $BRANCH:master
   fi
-  git show -s # get the new HEAD commit number as $AMENDEDHEAD
-  git push -- origin $AMENDEDHEAD:master
   git checkout master
   git pull
   git checkout $BRANCH
@@ -46,6 +47,12 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+659ff2a3aac95903b83041f5738d8b902f2de88f Hollerith edge case
+f769a9cd30a14f26e7cd830b3a4ccb018d88c321 Tim: fix warning in...
+2a8050742abcbd4b849ce02c1b509b40d1dfbb07 DATA init with EQUIVALENCE
+0a56419a5297ee1535fc776fe6fb2e31dbc10596 DATA init with Hollerith
+80799e0ac6186955ab39ac98cd672c5990acea5c descriptor-based I/O
+37414493d4e2fe6d191f9e02ab3628e30ca741e1 reformatting with latest clang-format
 ad833c592eb0fb0b62556b3f046775226a086906 INQUIRE runtime
 8b94d9abdfe47f39747e3c9dd965c35101775c9e defer "next input record" stuff
 a1471e6303d8ef22afe4e81730e03c0e274dc453 file accessibility, size, positions
