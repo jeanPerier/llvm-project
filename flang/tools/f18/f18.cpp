@@ -38,7 +38,11 @@
 #include <unistd.h>
 #include <vector>
 
-#include "f18_version.h"
+// #include "f18_version.h"  // broken in out-of-tree builds
+#define __FLANG__ "6.6.6"
+#define __FLANG_MAJOR__ "666"
+#define __FLANG_MINOR__ "666"
+#define __FLANG_PATCHLEVEL__ "666"
 
 static std::list<std::string> argList(int argc, char *const argv[]) {
   std::list<std::string> result;
