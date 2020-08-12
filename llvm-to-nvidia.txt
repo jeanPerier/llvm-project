@@ -40,9 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project 3162c6aa4587d5161008d2b9729b5f2873b0fff9
+with llvm-project f4f3f678f1994d47f745cbfd6a1026f2408425c6
 
 Log of cherry-picked commits in reverse order (latest first):
+f5e4451e1f27e87d30c4eb0c3c99f2f8d07039e1 Tim: intrinsics as arguments
+2fc86ccdd25309b9f77739aaed4a7b06f1c6f111 sameeran: SPHINX
+cf715717aa8cb17d98177af3ce63c7e20e8d25a3 Tim: Allow directives more places
+16c1d251c4ce59f97802ff0c27ed6441f3153ab1 Valentin: use TableGen (take #2)
+a9795b6f639f976e2d6f690066c61f890eed534f Tim: disable -Wmaybe-uninitialized
+3b3dc1dbfffc6a710565bc83a46cee9a1334f32a Valentin: revert...
+bf93edc4758b512e84b70ec6335d15b0cf386a18 Valentin: use TableGen
+7f5928ef5a5743ee7e65c6c9d1e1c9bc6af03063 Tim: cascading error
+89a9db438f85c6d4c0f11ecd0448bb71e1deac24 Camille: version info
+82fd1392016984c81c6037e147ee2dd36cf91f4c River: mlir
+1d6a8deb41221f73c57b57fe9add180da34af77f River: mlir
+cf03bcf92922c483e1ecd4691263e01d14557c3e Tim: remove CMAKE_CXX_FLAGS
+d8713523a2f5847ca69c8ef172578a915c129fe8 Tim: improve error message
 0fc34520e0783945a872070412c8937852977eeb Michael Kruse: msvc
 72243a25154277afcd475a01c8a77e2da554a0ce Tim: IMPLICIT NONE control options
 7ae718f2437617fbe929248edab3dd6d67a3b606 Irina: OMP allocate clause
@@ -192,6 +205,7 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+0057532e3f45508bd9aa2115948afee5859ed70c Barton: revert Camille's 89a9db438f85c6d4c0f11ecd0448bb71e1deac24
 765b81f6b93f747bbca57e9042bdd3ce9fea5c5b Tim: revert Truby breakage...
 332170356e35ea9cdc2c1d612b61a50ec5ea322e Truby: break OOT builds
 9017b9ce1a14b578fc5162897b49c440b3d4fa4c Isuru: cripple -Werror
