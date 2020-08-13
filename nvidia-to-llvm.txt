@@ -47,6 +47,11 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+a956f1d2e09dffc5468b7f68d5cf0898978008cc fix size in descriptor I/O
+7ca7cb9cbbbfa38a2fd6c72b83f9f59bb02a044a shape(TRANSFER)
+db41a84e6b0ddef75e823013174b1ea2be8f4612 fix mixed complex expressions
+6d9cedd7031eddb0f1b04822953a52d5b54fd307 fix predefined macros
+811fcb8af2dc46ca1861edc3f63d8a24c2cff677 PAD='YES' default
 659ff2a3aac95903b83041f5738d8b902f2de88f Hollerith edge case
 f769a9cd30a14f26e7cd830b3a4ccb018d88c321 Tim: fix warning in...
 2a8050742abcbd4b849ce02c1b509b40d1dfbb07 DATA init with EQUIVALENCE
@@ -104,5 +109,6 @@ baeff4139d3b6468790fb5ba999d74469d12f63d DATA statement rework
 ed6d92af6bc65d917cd1243b314989a0017363d4 CHARACTER runtime
 
 Not forwarded to LLVM:
+6aa92cdec11af2369928e2bffda9401d5a1d8775 work around broken oot build
 3216cf630345f4378783115b86cf89f68989091d Typed blobs
 ab2dac0035620cf281871116cb5adeda49a26b52 fix build breakage
