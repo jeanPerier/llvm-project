@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project f4f3f678f1994d47f745cbfd6a1026f2408425c6
+with llvm-project commit fad31d60329b4573a27aaf10cfe3174407d75c3a
 
 Log of cherry-picked commits in reverse order (latest first):
+19d7cc2e83061050923057abf72ab860bdc0a3b5 Pete: char literal substring fix
+8199cd8a550dab8f9b4035d34b7e576892daab09 Michael K.: hack f18-parse-demo
+18e9482e44ed2b59008a8a3b05c6c49ef0243b6d Michael K.: hack f18 driver for msvc
+62ef1cb2079123b86878e4bfed3c14db448f1373 Michael K.: remove default args
+e3d38b7b88989835d11b9d134482c17655b5a65d Michael K.: windows thing
 f5e4451e1f27e87d30c4eb0c3c99f2f8d07039e1 Tim: intrinsics as arguments
 2fc86ccdd25309b9f77739aaed4a7b06f1c6f111 sameeran: SPHINX
 cf715717aa8cb17d98177af3ce63c7e20e8d25a3 Tim: Allow directives more places
