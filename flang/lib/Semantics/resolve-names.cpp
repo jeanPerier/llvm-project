@@ -510,6 +510,7 @@ public:
   Symbol &MakeSymbol(Scope &, const SourceName &, Attrs);
   Symbol &MakeSymbol(const SourceName &, Attrs = Attrs{});
   Symbol &MakeSymbol(const parser::Name &, Attrs = Attrs{});
+  Symbol &MakeHostAssocSymbol(const parser::Name &, const Symbol &);
 
   template <typename D>
   common::IfNoLvalue<Symbol &, D> MakeSymbol(
@@ -1994,6 +1995,14 @@ Symbol &ScopeHandler::MakeSymbol(const SourceName &name, Attrs attrs) {
 Symbol &ScopeHandler::MakeSymbol(const parser::Name &name, Attrs attrs) {
   return Resolve(name, MakeSymbol(name.source, attrs));
 }
+Symbol &ScopeHandler::MakeHostAssocSymbol(
+    const parser::Name &name, const Symbol &hostSymbol) {
+  Symbol &symbol{MakeSymbol(name, HostAssocDetails{hostSymbol})};
+  name.symbol = &symbol;
+  symbol.attrs() = hostSymbol.attrs(); // TODO: except PRIVATE, PUBLIC?
+  symbol.flags() = hostSymbol.flags();
+  return symbol;
+}
 Symbol &ScopeHandler::CopySymbol(const SourceName &name, const Symbol &symbol) {
   CHECK(!FindInScope(currScope(), name));
   return MakeSymbol(currScope(), name, symbol.attrs());
@@ -3290,8 +3299,7 @@ Symbol &DeclarationVisitor::HandleAttributeStmt(
         (currScope().kind() == Scope::Kind::Subprogram ||
             currScope().kind() == Scope::Kind::Block)) {
       if (auto *hostSymbol{FindSymbol(name)}) {
-        name.symbol = nullptr;
-        symbol = &MakeSymbol(name, HostAssocDetails{*hostSymbol});
+        symbol = &MakeHostAssocSymbol(name, *hostSymbol);
       }
     }
   } else if (symbol && symbol->has<UseDetails>()) {
@@ -4566,9 +4574,7 @@ Symbol *DeclarationVisitor::DeclareLocalEntity(const parser::Name &name) {
   if (!PassesLocalityChecks(name, prev)) {
     return nullptr;
   }
-  Symbol &symbol{MakeSymbol(name, HostAssocDetails{prev})};
-  name.symbol = &symbol;
-  return &symbol;
+  return &MakeHostAssocSymbol(name, prev);
 }
 
 Symbol *DeclarationVisitor::DeclareStatementEntity(const parser::Name &name,
@@ -4867,9 +4873,7 @@ bool ConstructVisitor::Pre(const parser::LocalitySpec::Shared &x) {
     }
     Symbol &prev{FindOrDeclareEnclosingEntity(name)};
     if (PassesSharedLocalityChecks(name, prev)) {
-      auto &symbol{MakeSymbol(name, HostAssocDetails{prev})};
-      symbol.set(Symbol::Flag::LocalityShared);
-      name.symbol = &symbol; // override resolution to parent
+      MakeHostAssocSymbol(name, prev).set(Symbol::Flag::LocalityShared);
     }
   }
   return false;
@@ -5405,8 +5409,7 @@ const parser::Name *DeclarationVisitor::ResolveName(const parser::Name &name) {
       return nullptr; // reported an error
     }
     if (IsUplevelReference(*symbol)) {
-      name.symbol = nullptr;
-      MakeSymbol(name, HostAssocDetails{*symbol});
+      MakeHostAssocSymbol(name, *symbol);
     } else if (IsDummy(*symbol) ||
         (!symbol->GetType() && FindCommonBlockContaining(*symbol))) {
       ConvertToObjectEntity(*symbol);
