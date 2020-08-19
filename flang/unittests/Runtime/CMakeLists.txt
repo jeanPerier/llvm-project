@@ -53,9 +53,3 @@ add_flang_nongtest_unittest(character
 )
 
 add_test(NAME CharacterTest COMMAND character-test)
-
-add_flang_nongtest_unittest(blob
-  RuntimeTesting
-  FortranRuntime
-  LLVMSupport
-)
