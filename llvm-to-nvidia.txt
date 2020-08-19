@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit fad31d60329b4573a27aaf10cfe3174407d75c3a
+with llvm-project commit b40a3814b6fd0c784b52622eddac56d7c321d7cc
 
 Log of cherry-picked commits in reverse order (latest first):
+2d83014c469153b4e79bb85d110b026d9f3c5664 Mehdi: fix...
+250f43d3ecc8d6a3780c9aa2e3770c0193a28850 River: mlir
+a3538b83943f640865b92e947da0d5ef5bdc930b Tim: improve error messages
+eaff200429a3dcf36eebfae39d2e859d6815285e Sameeran: documentation/ -> docs/
+3060894bbb34937707d7db4d30485ecc98e62497 Valentin: TableGen
+d66463eedc5035a4ea4c6085e55405465cca6796 Tim: copy host-assoc attributes
+3b338e53e956d239efe2e8319d863838e5fdb857 Truby: add test
+05169af5cea2c3b9aa0f38354d0e81ddf6b7a3d9 Valentin: optional END directive
 19d7cc2e83061050923057abf72ab860bdc0a3b5 Pete: char literal substring fix
 8199cd8a550dab8f9b4035d34b7e576892daab09 Michael K.: hack f18-parse-demo
 18e9482e44ed2b59008a8a3b05c6c49ef0243b6d Michael K.: hack f18 driver for msvc
