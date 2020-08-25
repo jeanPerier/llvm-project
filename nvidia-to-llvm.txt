@@ -43,10 +43,17 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+2a0a8546ab20ae10aaa93d22064a7902fb3176fc Val: I/O vars must be definable
+0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
+9c8a452a959ac8e192f8830e2424b6a6aefcb769 make TypeParamInquiry monomorphic
+b96885a61ac50f28e8d226b68d5d2f72b763402c parse global compiler directives
+bf0c51cda762f9230ae25b9560b09b79422839a8 don't left justify tokenization
+9a0729bef334363f4a3c8656e2c2322a7a3464ad better errors for bad chars
 
 In review:
 
 Done (oldest last, omitting no-ops):
+
 a956f1d2e09dffc5468b7f68d5cf0898978008cc fix size in descriptor I/O
 7ca7cb9cbbbfa38a2fd6c72b83f9f59bb02a044a shape(TRANSFER)
 db41a84e6b0ddef75e823013174b1ea2be8f4612 fix mixed complex expressions

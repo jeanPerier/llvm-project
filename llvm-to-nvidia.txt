@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b40a3814b6fd0c784b52622eddac56d7c321d7cc
+with llvm-project commit 25863cc512a38ae9b1235ee62faa79ff2aa3c226
 
 Log of cherry-picked commits in reverse order (latest first):
+044a71d828cab57b9aefd402105960959a4e2c0e Tim: Fix crash
+b8bfe3586eb892951b79eb70f8af758a318db861 Tim: implicit var in spec expr
+d5557c6e056f41776efbcdf67e0a9629229a4c34 Valentin
+bc9cdfa12bde46c77bcc6450707f2714133e9b2f Sameeran
+86bbf8e6fc2bf6396c1efae556bacda054f90b33 Valentin
+f6615b2ddb3d046cc7a99ec74ee032ea21a1d27a Mehdi
+207d4499dfab050b0535c7361527d3c37cf6488a Kruse: MSVC bug workaround
+2aaa5a546ea016b8e2092ced1bd7147db51d483a Kruse: MSVC bug workaround
+c0c3cafa2bdaaf878a6b544837073d3d92fbb797 Tim: fix assert (bad char kind)
 2d83014c469153b4e79bb85d110b026d9f3c5664 Mehdi: fix...
 250f43d3ecc8d6a3780c9aa2e3770c0193a28850 River: mlir
 a3538b83943f640865b92e947da0d5ef5bdc930b Tim: improve error messages
