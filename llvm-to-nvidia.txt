@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 25863cc512a38ae9b1235ee62faa79ff2aa3c226
+with llvm-project commit a5bb24758d02e1e42b72561d0ddbd682776d1a4d
 
 Log of cherry-picked commits in reverse order (latest first):
+f787c9a90c69f604694b02493404c066ea601b9e Sameeran: strip licenses
+627e9007eaba39624fe92a4d97dceb18bc51f190 Tim: error symbols
+832c8a72988a3d5889a1ae16322df39f0215d5a2 Valentin
+4df2a5f782db1d4e2e11ed1cf64e085e6fce7893 Valentin
+9cb222e749e8392517a138cf6645a7c220d671c8 Pavel: gtest thing
 044a71d828cab57b9aefd402105960959a4e2c0e Tim: Fix crash
 b8bfe3586eb892951b79eb70f8af758a318db861 Tim: implicit var in spec expr
 d5557c6e056f41776efbcdf67e0a9629229a4c34 Valentin
