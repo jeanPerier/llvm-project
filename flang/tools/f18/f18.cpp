@@ -192,9 +192,10 @@ std::string CompileFortran(std::string path, Fortran::parser::Options options,
     DriverOptions &driver,
     const Fortran::common::IntrinsicTypeDefaultKinds &defaultKinds) {
   Fortran::parser::AllSources allSources;
+  Fortran::parser::AllCookedSources allCookedSources{allSources};
   allSources.set_encoding(driver.encoding);
   Fortran::semantics::SemanticsContext semanticsContext{
-      defaultKinds, options.features, allSources};
+      defaultKinds, options.features, allCookedSources};
   semanticsContext.set_moduleDirectory(driver.moduleDirectory)
       .set_moduleFileSuffix(driver.moduleFileSuffix)
       .set_searchDirectories(driver.searchDirectories)
@@ -208,12 +209,12 @@ std::string CompileFortran(std::string path, Fortran::parser::Options options,
     }
   }
   options.searchDirectories = driver.searchDirectories;
-  Fortran::parser::Parsing parsing{semanticsContext.allSources()};
+  Fortran::parser::Parsing parsing{allCookedSources};
   parsing.Prescan(path, options);
   if (!parsing.messages().empty() &&
       (driver.warningsAreErrors || parsing.messages().AnyFatalError())) {
     llvm::errs() << driver.prefix << "could not scan " << path << '\n';
-    parsing.messages().Emit(llvm::errs(), parsing.cooked());
+    parsing.messages().Emit(llvm::errs(), allCookedSources);
     exitStatus = EXIT_FAILURE;
     return {};
   }
@@ -222,7 +223,7 @@ std::string CompileFortran(std::string path, Fortran::parser::Options options,
     return {};
   }
   if (driver.dumpCookedChars) {
-    parsing.messages().Emit(llvm::errs(), parsing.cooked());
+    parsing.messages().Emit(llvm::errs(), allCookedSources);
     parsing.DumpCookedChars(llvm::outs());
     return {};
   }
@@ -232,7 +233,7 @@ std::string CompileFortran(std::string path, Fortran::parser::Options options,
     return {};
   }
   parsing.ClearLog();
-  parsing.messages().Emit(llvm::errs(), parsing.cooked());
+  parsing.messages().Emit(llvm::errs(), allCookedSources);
   if (!parsing.consumedWholeFile()) {
     parsing.EmitMessage(llvm::errs(), parsing.finalRestingPlace(),
         "parser FAIL (final position)");
@@ -278,7 +279,7 @@ std::string CompileFortran(std::string path, Fortran::parser::Options options,
       return {};
     }
     if (driver.getDefinition) {
-      if (auto cb{parsing.cooked().GetCharBlockFromLineAndColumns(
+      if (auto cb{allCookedSources.GetCharBlockFromLineAndColumns(
               driver.getDefinitionArgs.line,
               driver.getDefinitionArgs.startColumn,
               driver.getDefinitionArgs.endColumn)}) {
@@ -287,7 +288,7 @@ std::string CompileFortran(std::string path, Fortran::parser::Options options,
           llvm::errs() << "Found symbol name: " << symbol->name().ToString()
                        << "\n";
           if (auto sourceInfo{
-                  parsing.cooked().GetSourcePositionRange(symbol->name())}) {
+                  allCookedSources.GetSourcePositionRange(symbol->name())}) {
             llvm::outs() << symbol->name().ToString() << ": "
                          << sourceInfo->first.file.path() << ", "
                          << sourceInfo->first.line << ", "
