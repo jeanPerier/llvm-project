@@ -26,15 +26,14 @@ using common::LanguageFeature;
 static constexpr int maxPrescannerNesting{100};
 
 Prescanner::Prescanner(Messages &messages, CookedSource &cooked,
-    AllSources &allSources, Preprocessor &preprocessor,
-    common::LanguageFeatureControl lfc)
-    : messages_{messages}, cooked_{cooked}, allSources_{allSources},
-      preprocessor_{preprocessor}, features_{lfc},
+    Preprocessor &preprocessor, common::LanguageFeatureControl lfc)
+    : messages_{messages}, cooked_{cooked}, preprocessor_{preprocessor},
+      allSources_{preprocessor_.allSources()}, features_{lfc},
       encoding_{allSources_.encoding()} {}
 
 Prescanner::Prescanner(const Prescanner &that)
     : messages_{that.messages_}, cooked_{that.cooked_},
-      allSources_{that.allSources_}, preprocessor_{that.preprocessor_},
+      preprocessor_{that.preprocessor_}, allSources_{that.allSources_},
       features_{that.features_}, inFixedForm_{that.inFixedForm_},
       fixedFormColumnLimit_{that.fixedFormColumnLimit_},
       encoding_{that.encoding_}, prescannerNesting_{that.prescannerNesting_ +
