@@ -48,9 +48,16 @@ In review:
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 
 Done (oldest last, omitting no-ops):
+9104b220740a822b0c3e0c24bfbb42f5a55a8a9d Val CARRIAGECONTROL
+f4bc1435a6994bfaf65add1ed5ec597b81283446 multiple CookedSource instances
+94398b3136e66fc534b6b682954b36b8a9bc1e17 deterministic dump output
+0249414ff3cd1cc56d02614905698a3c6f9eaf60 better CASE integer typing
+9418aedb1060010f0fad700a25dc20dcfacd1752 operand shape conformance checking
+c81775fb03549c3c41feecbba12296f151ffeb93 shape conformance on initializers
+9c8a452a959ac8e192f8830e2424b6a6aefcb769 make TypeParamInquiry monomorphic
+92e34ce6fbd27e6ec6fc8c6b8b14e0f31dc10683 Val: label fix
 2a0a8546ab20ae10aaa93d22064a7902fb3176fc Val: I/O vars must be definable
 9a0729bef334363f4a3c8656e2c2322a7a3464ad better errors for bad chars
-9c8a452a959ac8e192f8830e2424b6a6aefcb769 make TypeParamInquiry monomorphic
 b96885a61ac50f28e8d226b68d5d2f72b763402c parse global compiler directives
 bf0c51cda762f9230ae25b9560b09b79422839a8 don't left justify tokenization
 a956f1d2e09dffc5468b7f68d5cf0898978008cc fix size in descriptor I/O

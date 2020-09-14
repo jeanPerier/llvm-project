@@ -1,18 +1,16 @@
-#===-- docs/OpenMP-4.5-grammar.txt --------------------------------===#
-#
-# Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-# See https://llvm.org/LICENSE.txt for license information.
-# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-#
-#===------------------------------------------------------------------------===#
+# OpenMP 4.5 Grammar
 
-# OpenMP 4.5 Specifications
+Grammar used by Flang to parse OpenMP 4.5.
 
+## OpenMP 4.5 Specifications
+```
 2 omp-directive -> sentinel directive-name [clause[ [,] clause]...]
 2.1.1 sentinel -> !$omp | c$omp | *$omp
 2.1.2 sentinel -> !$omp
+```
 
-# directive-name
+## directive-name
+```
 2.5 parallel -> PARALLEL [parallel-clause[ [,] parallel-clause]...]
     parallel-clause -> if-clause |
                        num-threads-clause |
@@ -344,6 +342,8 @@
                  ATOMIC [seq_cst]
        atomic-clause -> READ | WRITE | UPDATE | CAPTURE
 
+2.13.6 end-atomic -> END ATOMIC
+
 2.13.7 flush -> FLUSH [(variable-name-list)]
 
 2.13.8 ordered -> ORDERED ordered-construct-clause [[[,] ordered-construct-clause]...]
@@ -462,3 +462,4 @@
                      ALLOC | RELEASE | DELETE
 
 2.15.5.2 defaultmap -> DEFAULTMAP (TOFROM:SCALAR)
+```

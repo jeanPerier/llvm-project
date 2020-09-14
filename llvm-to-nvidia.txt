@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a5bb24758d02e1e42b72561d0ddbd682776d1a4d
+with llvm-project commit a3bc0401d436d8c7d2dd5b54e13b81333d53bdff
 
 Log of cherry-picked commits in reverse order (latest first):
+ce6dd973ac556a326c38bd7667b4fb448f215d09 Tim: Fix analyzed type-bound ass't
+ed0abc8ad3f3be99f40c25238ec42065a8ba077f Tim: SELECT CASE overlapping int ranges
+398fcf224b8dd0968f27cdcc7e75bb0bc8ed6d09 Pete: Fix fwd ref type error recovery
+d2c69c2f4947b38832a34cab14fe32c6b94dd4d2 Barton: fix shared lib build
+271a7bb144d3f51d29a465329c3614eaa15a6a3c Barton: docs
+257b29715bb27b7d9f6c3c40c481b6a4af0b37e5 Caroline: add new driver
+b34f116856306d97aa9244a46eb1643a8ddd49a8 Pete: fix assert crash
+932aae77e92b08e63c0225b6eb37dfa80b310313 Sourabh: revert f787c9a90
+82edd428f1856ff386716b4f836194252458d001 Tim: fix generic oprs/asst disting.
+5ec043eae1877add1cde2a7bd6e01ef64549a41d Inderjeet: add error
+d4b88ac1658d681e143482336cac27c6a74b8b24 Diana: absolute module paths
+0fd425af071a9bc5c0891a4db09f4d9a466b7be9 Irina: OpenMP allocate clause checks
+c58dfbdc818275dd0e8f34939a95da546c49cdf6 Kruse: dodge MSVC internal error
+69230e75f120141979248becac30ceaca4ab2e87 Barton: docs
+4536c6acb3809eaadc836f24f091db1b50b82af9 Kiran@amd: OpenMP
+7e5dab5fca4b154f12d3a313a6bdbd507f2314be Barton: docs
+2e1827271cb1c090cced7369282f9edcf9e59183 Barton: docs
+b11c52781635bd871abd6d932cfd5dcd6f311903 Camille: f18 version info
+
 f787c9a90c69f604694b02493404c066ea601b9e Sameeran: strip licenses
 627e9007eaba39624fe92a4d97dceb18bc51f190 Tim: error symbols
 832c8a72988a3d5889a1ae16322df39f0215d5a2 Valentin
