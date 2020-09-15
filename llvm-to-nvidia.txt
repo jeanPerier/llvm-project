@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a3bc0401d436d8c7d2dd5b54e13b81333d53bdff
+with llvm-project commit 609f5e050cea760694a46e126e5aa3f62660cae9
 
 Log of cherry-picked commits in reverse order (latest first):
+fe395aecd9e70b815e6490639098d815385f9932 Sameeran: docs
+7d1ed69c8aad00f3ba1e917da54508489de6d610 Federico L.: namespaces
+cdbfb47998cd37ab0384ad944fa8e4ba1e1b47d0 Pete: fix forward reference to type
 ce6dd973ac556a326c38bd7667b4fb448f215d09 Tim: Fix analyzed type-bound ass't
 ed0abc8ad3f3be99f40c25238ec42065a8ba077f Tim: SELECT CASE overlapping int ranges
 398fcf224b8dd0968f27cdcc7e75bb0bc8ed6d09 Pete: Fix fwd ref type error recovery
@@ -61,7 +64,6 @@ c58dfbdc818275dd0e8f34939a95da546c49cdf6 Kruse: dodge MSVC internal error
 7e5dab5fca4b154f12d3a313a6bdbd507f2314be Barton: docs
 2e1827271cb1c090cced7369282f9edcf9e59183 Barton: docs
 b11c52781635bd871abd6d932cfd5dcd6f311903 Camille: f18 version info
-
 f787c9a90c69f604694b02493404c066ea601b9e Sameeran: strip licenses
 627e9007eaba39624fe92a4d97dceb18bc51f190 Tim: error symbols
 832c8a72988a3d5889a1ae16322df39f0215d5a2 Valentin
