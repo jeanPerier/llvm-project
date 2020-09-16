@@ -488,7 +488,7 @@ bool Prescanner::NextToken(TokenSequence &tokens) {
       // Handles FORMAT(3I9HHOLLERITH) by skipping over the first I so that
       // we don't misrecognize I9HOLLERITH as an identifier in the next case.
       EmitCharAndAdvance(tokens, *at_);
-    } else if (at_[0] == '_' && (at_[1] == '\'' || at_[1] == '"')) { // 4_"..."
+    } else if (at_[0] == '_' && (at_[1] == '\'' || at_[1] == '"')) {
       EmitCharAndAdvance(tokens, *at_);
       QuotedCharacterLiteral(tokens, start);
     }
@@ -506,8 +506,7 @@ bool Prescanner::NextToken(TokenSequence &tokens) {
   } else if (IsLegalInIdentifier(*at_)) {
     do {
     } while (IsLegalInIdentifier(EmitCharAndAdvance(tokens, *at_)));
-    if ((*at_ == '\'' || *at_ == '"') &&
-        tokens.CharAt(tokens.SizeInChars() - 1) == '_') { // kind_"..."
+    if (*at_ == '\'' || *at_ == '"') {
       QuotedCharacterLiteral(tokens, start);
     }
     preventHollerith_ = false;

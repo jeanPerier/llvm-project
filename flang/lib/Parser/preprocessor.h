@@ -75,6 +75,7 @@ public:
 
   std::optional<TokenSequence> MacroReplacement(
       const TokenSequence &, Prescanner &);
+  TokenSequence Stringify(const TokenSequence &, Prescanner &);
 
   // Implements a preprocessor directive.
   void Directive(const TokenSequence &, Prescanner *);
