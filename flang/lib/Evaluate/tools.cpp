@@ -1003,12 +1003,8 @@ bool IsSaved(const Symbol &original) {
       return true;
     } else if (IsDummy(symbol) || IsFunctionResult(symbol)) {
       return false;
-    } else {
-      for (; !scope->IsGlobal(); scope = &scope->parent()) {
-        if (scope->hasSAVE()) {
-          return true;
-        }
-      }
+    } else if (scope->hasSAVE() ) {
+      return true;
     }
   }
   return false;
