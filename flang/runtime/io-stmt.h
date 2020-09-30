@@ -140,7 +140,7 @@ struct IoStatementBase : public DefaultFormatControlCallbacks {
   std::optional<DataEdit> GetNextDataEdit(IoStatementState &, int = 1);
   ExternalFileUnit *GetExternalFileUnit() const { return nullptr; }
   void BeginReadingRecord() {}
-  void FinialReadingRecord() {}
+  void FinishReadingRecord() {}
   bool Inquire(InquiryKeywordHash, char *, std::size_t);
   bool Inquire(InquiryKeywordHash, bool &);
   bool Inquire(InquiryKeywordHash, std::int64_t, bool &);
