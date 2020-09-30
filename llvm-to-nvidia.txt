@@ -43,6 +43,33 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 609f5e050cea760694a46e126e5aa3f62660cae9
 
 Log of cherry-picked commits in reverse order (latest first):
+bcd05599d0e53977a963799d6ee4f6e0bc21331b Kruse: Windows access() args
+b5543063e1bfd6195a2d34d2c892466c0050e08a Kruse: implicit uint128->int64 convert
+d2d7a44facd2dc895d378f19233837147f587b6d Kruse: Avoid templated vector init
+c2921d148e7b4e61794fa5498746ec0840861cf8 Riccardo: SAVE statement fix
+d2f1f530430e9dbdd69c3ed173ced076f4bb933e Sourabh: OMP lowering thing
+6f10998ad80687a85633d8dda84146c57c49ca25 Andrzej: add shared lib dependency
+b9a2837f1617ea94ae4b4be66d984ea9c7e7252c Andrzej: add shared lib dependency
+956a84da0616eb761297b46aa65750d738fb1544 Praveen: OMP lit tests
+10c94d8cf876952edb0dee20219259166c27c21d Andrzej: remove unittest includes
+27da2875070ac00f6cd9f8040c6f994aca915406 Andrzej: fix README.md cmake variable
+2f90e01a963acc1a4db2fbdd1c7fcf1433955744 Andrzej: add cmake dependency
+99edb9b79c46706a41921c4edb1b849c1a618d26 Andrzej: Fix options in new driver
+dfa9065ad778fe830245e627c7fd9e39f2045bc9 Sourabh: rename variable
+be1197c403b22291e35cbc5e96788860ceabd40c Sourabh: Removed OMP lowering tests
+34b08487f04a5a6621d94c17ef49e631cc187f4e Sourabh: lowering of NUM_THREADS
+bd72ed93d22a1579362859e64a0c7f9c68460cf8 Jean: assumed-length char function
+62afc3129dc28638d950c17117347b4e001a613d Kruse: use explicit "this"
+97ca41e1ddfbb6812e2042dcbd2db6e0e7d0bc33 Kruse: MSVC template arg workaround
+2bc589bbb8d7d00f5939e9cd33cbe57e47d61f7e Kruse: MSVC template arg workaround
+b36bdfe5ca0c2b863248f327b03d41516b38dc11 Dave Lee: LLVM_ENABLE_WARNINGS
+2a774411174466010c69a2460c81b8d0d4f7165f Serge: fix undefined behavior
+000eb1f314c1fc194454ad6c128f3c110eb8a34d SuJunda: fix typos in docs
+f0e028f4b32393676b5d3eb36d6598ec5a390180 Valentin: ACC lowering
+d89c5ae8577264f5dd660906f12577c5fdadf49e Shilei: Fix "flang" permissions
+dd3eb3f33239b23a12dd8864ae236390adf79550 Pete: substring fix
+dee4686227842aa0e8380c7925049a5df9c4f781 Kruse: MSVC constexpr work-around
+af56be339f8c9660747794cc6755384154602535 Barton: fix docs
 fe395aecd9e70b815e6490639098d815385f9932 Sameeran: docs
 7d1ed69c8aad00f3ba1e917da54508489de6d610 Federico L.: namespaces
 cdbfb47998cd37ab0384ad944fa8e4ba1e1b47d0 Pete: fix forward reference to type
