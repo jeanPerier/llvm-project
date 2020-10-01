@@ -40,7 +40,8 @@ static constexpr int BitsForBinaryPrecision(int binaryPrecision) {
 }
 
 // Maximum number of significant decimal digits in the fraction of an
-// exact conversion in each type of the greatest subnormal value.
+// exact conversion in each type; computed by converting the value
+// with the minimum exponent (biased to 1) and all fractional bits set.
 static constexpr int MaxDecimalConversionDigits(int binaryPrecision) {
   switch (binaryPrecision) {
   case 8:
