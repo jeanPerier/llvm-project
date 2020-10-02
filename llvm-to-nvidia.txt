@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 609f5e050cea760694a46e126e5aa3f62660cae9
+with llvm-project commit db2a646c5f002cc16d02d6fac0b2d715cdd4a809
 
 Log of cherry-picked commits in reverse order (latest first):
+c1dcb573a861dc45be6e4cfc598b340c9079fc1f Valentin: lowering
+75a5ec1bad18ae1d741830cc46946da00fed6ed9 rework Kruse war
+91b49fc2571c3d0ac33d447629cfb7789a7fde0d Valentin: unparsing
+d4a1db4f3fd7ce701454127465dd0ddbdb7face2 Kruse: msvc war
+b656189e6a602aaf86714ccbf89d94f2ef05b644 Kruse: msvc war
+d4e889f1f5723105dbab12b749503d2462eb1755 Geoffrey: MLIR thing
+e24f0ac7a389fcb5c2f5295e717d9f7d3fcd4cea I/O work (silence clang)
+37b2e2b04cf434b368b1edf29609be21952316f9 FINAL semantics (silence clang)
 bcd05599d0e53977a963799d6ee4f6e0bc21331b Kruse: Windows access() args
 b5543063e1bfd6195a2d34d2c892466c0050e08a Kruse: implicit uint128->int64 convert
 d2d7a44facd2dc895d378f19233837147f587b6d Kruse: Avoid templated vector init
