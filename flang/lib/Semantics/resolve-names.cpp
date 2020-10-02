@@ -4016,7 +4016,7 @@ void DeclarationVisitor::Post(
 void DeclarationVisitor::Post(const parser::FinalProcedureStmt &x) {
   if (currScope().IsDerivedType() && currScope().symbol()) {
     if (auto *details{currScope().symbol()->detailsIf<DerivedTypeDetails>()}) {
-      for (auto &subrName : x.v) {
+      for (const auto &subrName : x.v) {
         if (const auto *name{ResolveName(subrName)}) {
           auto pair{
               details->finals().emplace(name->source, DEREF(name->symbol))};

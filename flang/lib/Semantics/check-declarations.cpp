@@ -841,14 +841,16 @@ void CheckHelper::CheckDerivedType(
                   " type"_err_en_US);
   }
   std::map<SourceName, SymbolRef> previous;
-  for (const auto &[source, ref] : details.finals()) {
-    if (CheckFinal(*ref, source, derivedType) &&
+  for (const auto &pair : details.finals()) {
+    SourceName source{pair.first};
+    const Symbol &ref{*pair.second};
+    if (CheckFinal(ref, source, derivedType) &&
         std::all_of(previous.begin(), previous.end(),
             [&](std::pair<SourceName, SymbolRef> prev) {
               return CheckDistinguishableFinals(
-                  *ref, source, *prev.second, prev.first, derivedType);
+                  ref, source, *prev.second, prev.first, derivedType);
             })) {
-      previous.emplace(source, *ref);
+      previous.emplace(source, ref);
     }
   }
 }

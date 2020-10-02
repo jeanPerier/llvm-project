@@ -45,11 +45,27 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-a498ba8858f00ee962460637601d6342d22ebcd7 + ...
-4bfddefbb43c875dc7dec81fdb74af4f09cc0f34 ... pp fixes
+D88691 930bd6cc9002221b71e6a1a84beb8534025ce85e whole assumed-size array usage
+D88689 d2d626b2ab38d74f6751fc74ea2e6f1085ce987d TypeAndShape CHAR len tracking
+D88688 7b4222f5ef07ed6207e450211d8ca2030cd517ee correct binary->decimal buffer sizes
+D88610 e220d05f3f6bebc75ee266422065199022e2a133 correct kP scaling on F output edit
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 
 Done (oldest last, omitting no-ops):
+f231f308327698042a6ba2daf0d1e66297489f44 PAUSE with stop-code
+554e34506694ae9babe84fe64242b45fc338d143 pad unformatted fixed-sized output
+d479c9a99eaefac16bf54bf4fe47d1e66280a255 fix read->write transition in buffer
+ae69ace3c66a6b71fbabc37717423cb50ebe5dd3 fix Kruse MSVC clang build breakage
+75cf994910e378a7d0b860c9d20b7b246215d5e0 remove custom unsigned int const div
+d235cfa38f1ee3e949c96f428603d00d6f44ebc7 fix WRITE after BACKSPACE
+a8abdb0226b775f148ec7fc89e49b268d623053a fix INQUIRE access/formatting options
+0f0820df3fe804d9bad958023e0ba2a7761e139e add checks (formatted in unf. I/O)
+bc0d6562d878756beb1c4fb9f895743d4b5d55e4 fix Gw.d output edit cases
+5bf42531cc9c84449d292e041b34281d007d4e1f fix / in external sequential READ
+60535ce5082b559c8c2f87d630b2772c6d3daca9 FINAL semantics
+f9c7d504bfb6f1640626e025737846642f8a8ae6 fix list-directed CHAR & LOGICAL array
+4bfddefbb43c875dc7dec81fdb74af4f09cc0f34 + ...
+a498ba8858f00ee962460637601d6342d22ebcd7 + pp fixes
 a3e9d0ae1d5fac9ccc456b6ad21dc18882e45989 BZ mode in exponents
 ef30acce6226d0ea82a9b2ae0289ae03ccc9ace2 #include "" ! comment
 6ec065e18d9721c4016b1a903aea373c0e0f4e28 more CookedSource clean-up

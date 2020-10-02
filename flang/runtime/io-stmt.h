@@ -140,7 +140,7 @@ struct IoStatementBase : public DefaultFormatControlCallbacks {
   std::optional<DataEdit> GetNextDataEdit(IoStatementState &, int = 1);
   ExternalFileUnit *GetExternalFileUnit() const { return nullptr; }
   void BeginReadingRecord() {}
-  void FinialReadingRecord() {}
+  void FinishReadingRecord() {}
   bool Inquire(InquiryKeywordHash, char *, std::size_t);
   bool Inquire(InquiryKeywordHash, bool &);
   bool Inquire(InquiryKeywordHash, std::int64_t, bool &);
@@ -149,10 +149,11 @@ struct IoStatementBase : public DefaultFormatControlCallbacks {
 };
 
 // Common state for list-directed internal & external I/O
-template <Direction> struct ListDirectedStatementState;
+template <Direction> class ListDirectedStatementState;
 template <>
-struct ListDirectedStatementState<Direction::Output>
+class ListDirectedStatementState<Direction::Output>
     : public FormattedIoStatementState {
+public:
   static std::size_t RemainingSpaceInRecord(const ConnectionState &);
   bool NeedAdvance(const ConnectionState &, std::size_t) const;
   bool EmitLeadingSpaceOrAdvance(
