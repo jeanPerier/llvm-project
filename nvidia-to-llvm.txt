@@ -45,13 +45,13 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-D88691 930bd6cc9002221b71e6a1a84beb8534025ce85e whole assumed-size array usage
-D88689 d2d626b2ab38d74f6751fc74ea2e6f1085ce987d TypeAndShape CHAR len tracking
-D88688 7b4222f5ef07ed6207e450211d8ca2030cd517ee correct binary->decimal buffer sizes
-D88610 e220d05f3f6bebc75ee266422065199022e2a133 correct kP scaling on F output edit
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 
 Done (oldest last, omitting no-ops):
+930bd6cc9002221b71e6a1a84beb8534025ce85e whole assumed-size array usage
+d2d626b2ab38d74f6751fc74ea2e6f1085ce987d TypeAndShape CHAR len tracking
+e220d05f3f6bebc75ee266422065199022e2a133 correct kP scaling on F output edit
+7b4222f5ef07ed6207e450211d8ca2030cd517ee correct binary->decimal buffer sizes
 f231f308327698042a6ba2daf0d1e66297489f44 PAUSE with stop-code
 554e34506694ae9babe84fe64242b45fc338d143 pad unformatted fixed-sized output
 d479c9a99eaefac16bf54bf4fe47d1e66280a255 fix read->write transition in buffer
