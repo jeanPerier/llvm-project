@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit db2a646c5f002cc16d02d6fac0b2d715cdd4a809
+with llvm-project commit d56fdc8e95df3431b67d33fe4b03a08406897339
 
 Log of cherry-picked commits in reverse order (latest first):
+d56fdc8e95df3431b67d33fe4b03a08406897339 Avoid long double
+2f40e20613758b3e11a15494c09f4b6973673d6b Valentin: device_num/type fix
+0f8294072fbc75cc4f6d0e1c3e16f9849aae3771 Eric: add Todo.h
+25692b7765e2364896a0136f5b54dde3de2dd563 Andrzej: fix gcc-10 build
+07cb4c013c43721565530f3be077c947804da8a6 fix comment
+8d51d37e0628bde3eb5a3200507ba7135dfc2751 Andrzej: driver stuff
+35a2a042ddd127205455fc26ae516ccc513fd5cf Andrzej: clang-10 build errors
+11622d0fed8c1fb99124ebf4a6aece4bcc83b367 Tim: mismatched struct/class (no-op)
 c1dcb573a861dc45be6e4cfc598b340c9079fc1f Valentin: lowering
 75a5ec1bad18ae1d741830cc46946da00fed6ed9 rework Kruse war
 91b49fc2571c3d0ac33d447629cfb7789a7fde0d Valentin: unparsing
