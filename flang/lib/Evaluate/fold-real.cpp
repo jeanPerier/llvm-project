@@ -7,8 +7,38 @@
 //===----------------------------------------------------------------------===//
 
 #include "fold-implementation.h"
+#include <chrono>
+#include <iostream>
 
 namespace Fortran::evaluate {
+
+class OverallTimer2 {
+public:
+  OverallTimer2() {}
+  ~OverallTimer2() {
+    std::cerr << "spent total of: " << time.count() << " ms in " << nCall
+              << " intrinsic folding\n";
+  }
+  void start() { t1 = std::chrono::high_resolution_clock::now(); }
+  void stop() {
+    t2 = std::chrono::high_resolution_clock::now();
+    time += (t2 - t1);
+    nCall++;
+  }
+
+private:
+  std::chrono::time_point<std::chrono::high_resolution_clock> t1, t2;
+  std::chrono::duration<double, std::milli> time{decltype(time)::zero()};
+  std::uint64_t nCall{0};
+};
+
+static OverallTimer2 timer;
+
+class ScopedTimer {
+public:
+  ScopedTimer() { timer.start(); }
+  ~ScopedTimer() { timer.stop(); }
+};
 
 template <int KIND>
 Expr<Type<TypeCategory::Real, KIND>> FoldIntrinsicFunction(
@@ -28,6 +58,7 @@ Expr<Type<TypeCategory::Real, KIND>> FoldIntrinsicFunction(
       name == "gamma" || name == "log" || name == "log10" ||
       name == "log_gamma" || name == "sin" || name == "sinh" ||
       name == "sqrt" || name == "tan" || name == "tanh") {
+    ScopedTimer scopedTimer{};
     CHECK(args.size() == 1);
     if (auto callable{context.hostIntrinsicsLibrary()
                           .GetHostProcedureWrapper<Scalar, T, T>(name)}) {

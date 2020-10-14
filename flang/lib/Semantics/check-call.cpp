@@ -16,6 +16,8 @@
 #include "flang/Parser/message.h"
 #include "flang/Semantics/scope.h"
 #include "flang/Semantics/tools.h"
+#include <chrono>
+#include <iostream>
 #include <map>
 #include <string>
 
@@ -692,15 +694,38 @@ static void RearrangeArguments(const characteristics::Procedure &proc,
   }
 }
 
+class OverallTimer {
+public:
+  OverallTimer() {}
+  ~OverallTimer() {
+    std::cerr << "spent total of: " << time.count() << " ms in " << nCall
+              << " FoldingContext creation\n";
+  }
+  void start() { t1 = std::chrono::high_resolution_clock::now(); }
+  void stop() {
+    t2 = std::chrono::high_resolution_clock::now();
+    time += (t2 - t1);
+    nCall++;
+  }
+
+private:
+  std::chrono::time_point<std::chrono::high_resolution_clock> t1, t2;
+  std::chrono::duration<double, std::milli> time{decltype(time)::zero()};
+  std::uint64_t nCall{0};
+};
+
 static parser::Messages CheckExplicitInterface(
     const characteristics::Procedure &proc, evaluate::ActualArguments &actuals,
     const evaluate::FoldingContext &context, const Scope *scope) {
+  static OverallTimer timer;
   parser::Messages buffer;
   parser::ContextualMessages messages{context.messages().at(), &buffer};
   RearrangeArguments(proc, actuals, messages);
   if (buffer.empty()) {
     int index{0};
+    timer.start();
     evaluate::FoldingContext localContext{context, messages};
+    timer.stop();
     for (auto &actual : actuals) {
       const auto &dummy{proc.dummyArguments.at(index++)};
       if (actual) {
