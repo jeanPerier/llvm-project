@@ -1389,16 +1389,20 @@ private:
       resultType = resultTypes[0];
 
     llvm::SmallVector<fir::ExtendedValue, 2> operands;
+    const auto &interface = intrinsic.characteristics.value().dummyArguments;
     // Lower arguments
     // For now, logical arguments for intrinsic are lowered to `fir.logical`
     // so that TRANSFER can work. For some arguments, it could lead to useless
     // conversions (e.g scalar MASK of MERGE will be converted to `i1`), but
     // the generated code is at least correct. To improve this, the intrinsic
     // lowering facility should control argument lowering.
-    for (const auto &arg : procRef.arguments()) {
+    for (const auto &[arg, iface] : llvm::zip(procRef.arguments(), interface)) {
       if (auto *expr = Fortran::evaluate::UnwrapExpr<
               Fortran::evaluate::Expr<Fortran::evaluate::SomeType>>(arg))
-        operands.emplace_back(genval(*expr));
+        if (iface.HasIntent(Fortran::common::Intent::In))
+          operands.emplace_back(genExtValue(*expr));
+        else
+          operands.emplace_back(genExtAddr(*expr));
       else
         operands.emplace_back(fir::UnboxedValue{}); // absent optional
     }
