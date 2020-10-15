@@ -444,6 +444,28 @@ void DummyArgument::SetOptional(bool value) {
       u);
 }
 
+void DummyArgument::SetIntent(common::Intent intent) {
+  std::visit(common::visitors{
+                 [intent](DummyDataObject &data) { data.intent = intent; },
+                 [intent](DummyProcedure &proc) { proc.intent = intent; },
+                 [](AlternateReturn &) { DIE("cannot set intent"); },
+             },
+      u);
+}
+
+bool DummyArgument::HasIntent(common::Intent intent) const {
+  return std::visit(common::visitors{
+                        [intent](const DummyDataObject &data) {
+                          return data.intent == intent;
+                        },
+                        [intent](const DummyProcedure &proc) {
+                          return proc.intent == intent;
+                        },
+                        [](const AlternateReturn &) { return false; },
+                    },
+      u);
+}
+
 bool DummyArgument::CanBePassedViaImplicitInterface() const {
   if (const auto *object{std::get_if<DummyDataObject>(&u)}) {
     return object->CanBePassedViaImplicitInterface();

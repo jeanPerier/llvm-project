@@ -2147,8 +2147,9 @@ std::optional<characteristics::Procedure> ExpressionAnalyzer::CheckCall(
           "References to the procedure '%s' require an explicit interface"_en_US,
           DEREF(proc.GetSymbol()).name());
     }
+    bool isIntrinsicCall{proc.GetSpecificIntrinsic() != nullptr};
     semantics::CheckArguments(*chars, arguments, GetFoldingContext(),
-        context_.FindScope(callSite), treatExternalAsImplicit);
+        context_.FindScope(callSite), treatExternalAsImplicit, isIntrinsicCall);
     const Symbol *procSymbol{proc.GetSymbol()};
     if (procSymbol && !IsPureProcedure(*procSymbol)) {
       if (const semantics::Scope *
