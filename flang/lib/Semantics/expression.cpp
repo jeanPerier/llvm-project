@@ -2148,7 +2148,8 @@ std::optional<characteristics::Procedure> ExpressionAnalyzer::CheckCall(
           DEREF(proc.GetSymbol()).name());
     }
     semantics::CheckArguments(*chars, arguments, GetFoldingContext(),
-        context_.FindScope(callSite), treatExternalAsImplicit);
+        context_.FindScope(callSite), treatExternalAsImplicit,
+        proc.GetSpecificIntrinsic());
     const Symbol *procSymbol{proc.GetSymbol()};
     if (procSymbol && !IsPureProcedure(*procSymbol)) {
       if (const semantics::Scope *
