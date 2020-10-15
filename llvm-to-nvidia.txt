@@ -40,9 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit d56fdc8e95df3431b67d33fe4b03a08406897339
+with llvm-project commit 2aad6a0884e3372fef8176902cf984d2f385d938
 
 Log of cherry-picked commits in reverse order (latest first):
+2aad6a0884e3372fef8176902cf984d2f385d938 avoid reinterpret cast
+50df5f24dc333e912f6eb8500ef84e648d43af93 Serge: shared library thing
+42e89ab2a668c80449a13210f07a50fe0370e99d Andrzej: cmake bug fix
+65b9b9aa5014ed40afec2beaefcbe73392d16e30 Irina: allocate clause
+94d9a4fd886d6760a95fff89ad5c00264e18de4f Jean: host runtime folding
+cde06f783ce9811ed5e6d4c9a4e803b76842eccc Serge: build thing
+3291041641febf73ba98f074a946fe92331de90b Sameeran: OMP
+d95d3d2a42cb43fca956efe60ab5965d84b0efd5 Sameeran: OMP atomic parsing
+388d373294e1f7386e1bc14338bd985189f47604 Valentin
+f09587c64ccb713af1e83d4f01a6aea3cb682c94 update .txt links to .md in README.md
+e944455eaf1ed3b3bfe9876c5478ce18e9975eea Valentin
+726a6e84be1892e90e2f3572a36480c0fe616119 Valentin
+16580d791f3bf4fba8164054a04e4f85a1bd299b Mehdi
 d56fdc8e95df3431b67d33fe4b03a08406897339 Avoid long double
 2f40e20613758b3e11a15494c09f4b6973673d6b Valentin: device_num/type fix
 0f8294072fbc75cc4f6d0e1c3e16f9849aae3771 Eric: add Todo.h
