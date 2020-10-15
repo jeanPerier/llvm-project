@@ -48,6 +48,7 @@ In review:
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 
 Done (oldest last, omitting no-ops):
+86d91c271f790cca252cbd473993e261681752c0 allow "name:value" in !DIR$
 930bd6cc9002221b71e6a1a84beb8534025ce85e whole assumed-size array usage
 d2d626b2ab38d74f6751fc74ea2e6f1085ce987d TypeAndShape CHAR len tracking
 e220d05f3f6bebc75ee266422065199022e2a133 correct kP scaling on F output edit
