@@ -83,3 +83,12 @@ module m2
     end subroutine
   end subroutine
 end module
+
+! Case that elicited bad errors
+SUBROUTINE KEEL
+  INTEGER NODES
+ CONTAINS
+  SUBROUTINE SGEOM
+    REAL :: RADIUS(nodes)
+  END SUBROUTINE
+END SUBROUTINE KEEL

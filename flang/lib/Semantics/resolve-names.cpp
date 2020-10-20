@@ -596,9 +596,6 @@ protected:
   void NotePossibleBadForwardRef(const parser::Name &);
   std::optional<SourceName> HadForwardRef(const Symbol &) const;
   bool CheckPossibleBadForwardRef(const Symbol &);
-  // True if check-declarations is going to emit an error for a host
-  // association to an object created by the reference and implicit typing.
-  bool IsBadHostAssociationToImplicit(const Symbol &);
 
   bool inExecutionPart_{false};
   bool inSpecificationPart_{false};
@@ -2204,17 +2201,6 @@ bool ScopeHandler::CheckPossibleBadForwardRef(const Symbol &symbol) {
           .Attach(symbol.name(), "Later declaration of '%s'"_en_US, *fwdRef);
       context().SetError(symbol);
       return true;
-    }
-  }
-  return false;
-}
-
-bool ScopeHandler::IsBadHostAssociationToImplicit(const Symbol &symbol) {
-  if (const auto *details{symbol.detailsIf<HostAssocDetails>()}) {
-    const Symbol &hostSymbol{details->symbol()};
-    if (hostSymbol.test(Symbol::Flag::ImplicitOrError)) {
-      return details->implicitOrSpecExprError ||
-          details->implicitOrExplicitTypeError;
     }
   }
   return false;
@@ -6129,7 +6115,7 @@ void ResolveNamesVisitor::FinishSpecificationPart(
       symbol.set(
           symbol.GetType() ? Symbol::Flag::Function : Symbol::Flag::Subroutine);
     }
-    if (!IsBadHostAssociationToImplicit(symbol)) {
+    if (!symbol.has<HostAssocDetails>()) {
       CheckPossibleBadForwardRef(symbol);
     }
   }
