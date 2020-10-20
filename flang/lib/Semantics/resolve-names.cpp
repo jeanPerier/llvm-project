@@ -3081,7 +3081,8 @@ Symbol *SubprogramVisitor::GetSpecificFromGeneric(const parser::Name &name) {
         details->set_specific(Resolve(name, *specific));
       } else if (isGeneric()) {
         SayAlreadyDeclared(name, *specific);
-      } else if (!specific->has<SubprogramDetails>()) {
+      }
+      if (!specific->has<SubprogramDetails>()) {
         specific->set_details(SubprogramDetails{});
       }
       return specific;
