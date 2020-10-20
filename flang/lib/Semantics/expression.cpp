@@ -2241,7 +2241,8 @@ std::optional<characteristics::Procedure> ExpressionAnalyzer::CheckCall(
     }
     if (!procIsAssociated) {
       semantics::CheckArguments(*chars, arguments, GetFoldingContext(),
-          context_.FindScope(callSite), treatExternalAsImplicit);
+          context_.FindScope(callSite), treatExternalAsImplicit,
+          proc.GetSpecificIntrinsic());
       const Symbol *procSymbol{proc.GetSymbol()};
       if (procSymbol && !IsPureProcedure(*procSymbol)) {
         if (const semantics::Scope *
