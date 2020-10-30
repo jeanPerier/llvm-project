@@ -40,9 +40,32 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 2aad6a0884e3372fef8176902cf984d2f385d938
+with llvm-project commit 940d0a310dca31ae97080b068cef92eadfee6367
 
 Log of cherry-picked commits in reverse order (latest first):
+b7d1271a01b72a079ea016a9d4e31a73091d5f0e Andrezj: clean up after sameeran
+61f11f807cfc359b38b9e22d005456f924464c30 sameeran: enforce exit from region
+75ba29ac5654b622107653a0fd33f84846b4e39f Valentin: Enforce data/exit data rules
+990222931ba2c87803f8b0381a2088b0e2969848 Valentin: Fix self clause parsing
+3fa20baf009d72b0c78fdaf5be758400d5ba8918 yhegde: OpenMP default semantic check
+878b526409acb04b11f0a6b83c561bfee3521e57 Jean: intrinsic name resolution
+cbb7f1420b747aae09a7f728c186bb0c2702eb02 Andrezj: fix lit config python
+4c5906cffd04202387d2f6b50a47d39c0e4f2c0e Concatto: driver
+d590c854303959bcaa78746a62b9a8f81583c111 Kruse: IntrinsicProcTable unique_ptr
+0b671a44ad2d606647aa14d5782425b39aed9271 Kruse: work around msvc lambda bug
+b57937861f68305068d8a35154811b4303ce52e5 Kruse: path separator
+b6b589ca84841f7ef4ac8c67570ec1e43b29aa76 Pete: fix failing CHECK
+e7d37742a2a584fef9002778b33f9453647ab43c Sourabh: lowering Flush construct
+1d328446bf92f76f1861d0e5f84d67732d76c8fd Sourabh: lower ParallelOp clauses
+676ff75d60792d98161f95460e7f982664f39603 Valentin: fix wait/atomic semantics
+6b66f1cd9ba4533904a733329890e911ae0f5f6f Pete: ASSOCIATED(TARGET=) validation
+29d838310d4521fbd98741267b0a28cee5b56a36 Pete: Fix failing CHECK
+29d1a494477d78f9c86564b851891702456ddffb Jean: intrinsic arg intents
+340181f29afece5abdf98aa61855b9826726d4df Valentin: use Todo.h
+4a51691a85a1c048b9028d409b744a6235c55933 sameeran: OpenACC branching
+0047f6aed37c4643bc9b3f3c897110447459c8db Pete: interface name checking
+f2897b8f45c1df944e45f849757d2a2507e96805 Pete: disallow pointer constants
+c757418869c01f5ee08f05661debabbba92edcf9 Pete: ASSOCIATED(NULL)
 2aad6a0884e3372fef8176902cf984d2f385d938 avoid reinterpret cast
 50df5f24dc333e912f6eb8500ef84e648d43af93 Serge: shared library thing
 42e89ab2a668c80449a13210f07a50fe0370e99d Andrzej: cmake bug fix
