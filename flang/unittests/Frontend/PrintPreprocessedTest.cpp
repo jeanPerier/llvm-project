@@ -1,4 +1,4 @@
-//===- unittests/Frontend/OutputStreamTest.cpp --- FrontendAction tests --===//
+//===- unittests/Frontend/PrintPreprocessedTest.cpp  FrontendAction tests--===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -8,7 +8,6 @@
 
 #include "gtest/gtest.h"
 #include "flang/Frontend/CompilerInstance.h"
-#include "flang/Frontend/CompilerInvocation.h"
 #include "flang/Frontend/FrontendOptions.h"
 #include "flang/FrontendTool/Utils.h"
 #include "llvm/Support/FileSystem.h"
@@ -18,8 +17,8 @@ using namespace Fortran::frontend;
 
 namespace {
 
-TEST(FrontendAction, TestInputOutputTestAction) {
-  std::string inputFile = "io-file-test.f";
+TEST(FrontendAction, PrintPreprocessedInput) {
+  std::string inputFile = "test-file.f";
   std::error_code ec;
 
   // 1. Create the input file for the file manager
@@ -28,10 +27,15 @@ TEST(FrontendAction, TestInputOutputTestAction) {
   std::unique_ptr<llvm::raw_fd_ostream> os{
       new llvm::raw_fd_ostream(inputFile, ec, llvm::sys::fs::OF_None)};
   if (ec)
-    FAIL() << "Failed to create the input file";
+    FAIL() << "Fail to create the file need by the test";
 
   // Populate the input file with the pre-defined input and flush it.
-  *(os) << "End Program arithmetic";
+  *(os) << "! test-file.F:\n"
+        << "#ifdef NEW\n"
+        << "  Program A \n"
+        << "#else\n"
+        << "  Program B\n"
+        << "#endif";
   os.reset();
 
   // Get the path of the input file
@@ -45,10 +49,11 @@ TEST(FrontendAction, TestInputOutputTestAction) {
   CompilerInstance compInst;
   compInst.CreateDiagnostics();
   auto invocation = std::make_shared<CompilerInvocation>();
-  invocation->frontendOpts().programAction_ = InputOutputTest;
+  invocation->frontendOpts().programAction_ = PrintPreprocessedInput;
+
   compInst.set_invocation(std::move(invocation));
   compInst.frontendOpts().inputs_.push_back(
-      FrontendInputFile(/*File=*/testFilePath, Language::Fortran));
+      FrontendInputFile(testFilePath, Language::Fortran));
 
   // 3. Set-up the output stream. Using output buffer wrapped as an output
   // stream, as opposed to an actual file (or a file descriptor).
@@ -60,17 +65,15 @@ TEST(FrontendAction, TestInputOutputTestAction) {
   // 4. Run the earlier defined FrontendAction
   bool success = ExecuteCompilerInvocation(&compInst);
 
+  // 5. Validate the expected output
   EXPECT_TRUE(success);
   EXPECT_TRUE(!outputFileBuffer.empty());
-  EXPECT_TRUE(llvm::StringRef(outputFileBuffer.data())
-                  .startswith("End Program arithmetic"));
+  EXPECT_TRUE(
+      llvm::StringRef(outputFileBuffer.data()).startswith("program b\n"));
 
-  // 5. Clear the input and the output files. Since we used an output buffer,
+  // 6. Clear the input and the output files. Since we used an output buffer,
   // there are no physical output files to delete.
-  ec = llvm::sys::fs::remove(inputFile);
-  if (ec)
-    FAIL() << "Failed to delete the test file";
-
-  compInst.ClearOutputFiles(/*EraseFiles=*/false);
+  llvm::sys::fs::remove(inputFile);
+  compInst.ClearOutputFiles(/*EraseFiles=*/true);
 }
 } // namespace
