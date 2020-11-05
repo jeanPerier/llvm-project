@@ -43,11 +43,19 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+ee73f451716c5a0cf30dd5204c7a062502841aae fix intrinsics actual arg char lengths
 
 In review:
+a81e73590c0a0e7154c63cbe58cf07f69072245b design doc for runtime table req'ts
+41f150eff92462c6707abdb6826f82b4ee960fa9 ac implied DO indices are const exprs
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 
 Done (oldest last, omitting no-ops):
+e16c0d6dc843fb75a1d74f0ba8686421bba9819b plug error recovery hole
+384462091bcc850c611d255bdbf16761df00e32b fix false error in...
+0c4288b4b58fcc8d31b4b0500384f5de04ad0ea9 ... better errors for bad fwd refs
+43977591f07a213fc9d45e5123c60f1b876c2f45 warn about FINAL pitfall
+643c51aa7a84afe7a13b95ab79b3003fa549a50f rewrite ambiguous READ(CVAR)
 86d91c271f790cca252cbd473993e261681752c0 allow "name:value" in !DIR$
 930bd6cc9002221b71e6a1a84beb8534025ce85e whole assumed-size array usage
 d2d626b2ab38d74f6751fc74ea2e6f1085ce987d TypeAndShape CHAR len tracking

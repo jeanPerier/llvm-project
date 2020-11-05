@@ -40,9 +40,23 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 940d0a310dca31ae97080b068cef92eadfee6367
+with llvm-project commit 93c94139e61467a01697dd3b53ac5bd8e989a49d
 
 Log of cherry-picked commits in reverse order (latest first):
+93c94139e61467a01697dd3b53ac5bd8e989a49d Andrezj: remove f18 options
+a7bcb3b9eb762357d22bcbe4cdc9f5651c9b1f66 Andrezj: remove f18 options
+cc2a2bb5ce5164590c85ecc099804407f344fceb Alex Z.: update ODS syntax
+1dad9d4282cc33689b304e87793eff2755b82725 Valentin: lower wait
+4ec7f7e45a6c12c6cc2fea36cf15e90ebb1bb6ea Valentin: lower init & shutdown
+b45ea4451a9ee9595865483f90b88faa84413475 Valentin: lower update
+c71adeff24cac194228e57c85af68c13284648af Valentin: lower enter data
+2e73a1f9faafe0a9bc6f8f177d7e92d8e6ae06b3 Valentin: lower exit data
+a4a4c503708f8bbf539147187faf180a80b4eea9 Praveen: OMP
+7ba393efe5fe861fe2905bb8c09801897fecc128 me: fix gcc 8.2.0 build
+855a32d9e55932885759979361b353c63def84c8 sameeran: OMP NFC
+d28de0d7f257bbe4703f3449f1672f1744cf306b Concatto: driver
+9ffb5b0469ae593f8b7e1d7d9ef6ea46cd366e6e Andrezj: renaming
+1ed2ca68191fb280161ee8f8cd080640db6be710 Andrezj: testing thing
 b7d1271a01b72a079ea016a9d4e31a73091d5f0e Andrezj: clean up after sameeran
 61f11f807cfc359b38b9e22d005456f924464c30 sameeran: enforce exit from region
 75ba29ac5654b622107653a0fd33f84846b4e39f Valentin: Enforce data/exit data rules
