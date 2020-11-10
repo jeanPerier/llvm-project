@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 93c94139e61467a01697dd3b53ac5bd8e989a49d
+with llvm-project commit 58c586e701889250c08285193dc75d94a7ed302d
 
 Log of cherry-picked commits in reverse order (latest first):
+2f7a41b2a70c45eff8a1f064174be0d1af9f8afa sameeran: fix OMP crash
+7282d9e170a0b45e799ab28ae6be836fe8f67c2c sameeran: fix docs warnings
+66a9607557a1f804911a5b8a687128462c5e4f1a Pete: no link with -c
+9914a8737f527bd065e3ac9b119c5bdb1762ac3a Valentin: set directive
 93c94139e61467a01697dd3b53ac5bd8e989a49d Andrezj: remove f18 options
 a7bcb3b9eb762357d22bcbe4cdc9f5651c9b1f66 Andrezj: remove f18 options
 cc2a2bb5ce5164590c85ecc099804407f344fceb Alex Z.: update ODS syntax
