@@ -20,7 +20,6 @@
 #include "flang/Common/restorer.h"
 #include <cstddef>
 #include <cstring>
-#include <deque>
 #include <forward_list>
 #include <list>
 #include <optional>
