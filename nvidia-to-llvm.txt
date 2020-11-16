@@ -22,7 +22,7 @@ For each change to merge:
 # build and test
   if arc works
   then arc diff
-  else git diff master >mydiff
+  else git show HEAD >mydiff
        # load into phabricator
        git commit --amend # add "Differential Revision: <url>"
   fi
@@ -43,14 +43,28 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-ee73f451716c5a0cf30dd5204c7a062502841aae fix intrinsics actual arg char lengths
 
 In review:
-a81e73590c0a0e7154c63cbe58cf07f69072245b design doc for runtime table req'ts
-41f150eff92462c6707abdb6826f82b4ee960fa9 ac implied DO indices are const exprs
-0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 
 Done (oldest last, omitting no-ops):
+2cb85cef1097baac219c22da442656588f458c68 Unsplit COMPLEX
+0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
+bc44d4826fa3fb9407af497c16f86d720b205f91 Val D.: fix missing provenance
+bc50a56fa74b05a78d12c81531edd1ebd00ef13e END FILE
+3ce5f957165d01b5123dfc62429f5ed1d1b6103d panicky patch for failed aarch64 build of f/r/allocatable.cpp
+13a9b60141e2f01d8533cb3a97d0fd19a34b82a3 + patch for shared libs for ...
+d93418558f68954e0dbfe3d310af6010aa387f2a ... fix CheckSpec.Expr w/ associations
+a49a36416647c25dcb831ab364cc96bf47506f17 [msvc] replace some forward_list<>
+8b24f3f99eeab2b85e64406c8df8c30405efb037 basic ALLOCATE/DEALLOCATE runtime
+df91cd575ca60b863cebc229604cebe8d1989600 Val D.: labels on ENDs
+0211380d6827a9b0b3bf802b986600675c0d844a IMPLICIT from scope of reference
+11a700af38b87b29c71ced1a56927ea56d6f623c isnan
+e16c0d6dc843fb75a1d74f0ba8686421bba9819b fix error recovery crash
+43977591f07a213fc9d45e5123c60f1b876c2f45 FINAL pitfall warning
+384462091bcc850c611d255bdbf16761df00e32b fix bad error message
+ee73f451716c5a0cf30dd5204c7a062502841aae fix intrinsics actual arg char lengths
+a81e73590c0a0e7154c63cbe58cf07f69072245b design doc for runtime table req'ts
+41f150eff92462c6707abdb6826f82b4ee960fa9 ac implied DO indices are const exprs
 e16c0d6dc843fb75a1d74f0ba8686421bba9819b plug error recovery hole
 384462091bcc850c611d255bdbf16761df00e32b fix false error in...
 0c4288b4b58fcc8d31b4b0500384f5de04ad0ea9 ... better errors for bad fwd refs
