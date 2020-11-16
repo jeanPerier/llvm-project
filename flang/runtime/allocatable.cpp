@@ -36,21 +36,20 @@ void RTNAME(AllocatableInitDerived)(Descriptor &descriptor,
 }
 
 void RTNAME(AllocatableAssign)(Descriptor &to, const Descriptor & /*from*/) {
-  INTERNAL_CHECK(!"AllocatableAssign is not yet implemented");
+  INTERNAL_CHECK(false); // AllocatableAssign is not yet implemented
 }
 
 int RTNAME(MoveAlloc)(Descriptor &to, const Descriptor & /*from*/,
     bool /*hasStat*/, Descriptor * /*errMsg*/, const char * /*sourceFile*/,
     int /*sourceLine*/) {
-  INTERNAL_CHECK(!"MoveAlloc is not yet implemented");
+  INTERNAL_CHECK(false); // MoveAlloc is not yet implemented
   return StatOk;
 }
 
 void RTNAME(AllocatableSetBounds)(Descriptor &descriptor, int zeroBasedDim,
     SubscriptValue lower, SubscriptValue upper) {
   INTERNAL_CHECK(zeroBasedDim >= 0 && zeroBasedDim < descriptor.rank());
-  auto dim{descriptor.GetDimension(zeroBasedDim)};
-  dim.SetBounds(lower, upper);
+  descriptor.GetDimension(zeroBasedDim).SetBounds(lower, upper);
   // The byte strides are computed when the object is allocated.
 }
 
