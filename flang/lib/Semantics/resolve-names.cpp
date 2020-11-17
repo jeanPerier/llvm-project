@@ -188,14 +188,12 @@ public:
     if (context().HasError(symbol)) {
       return std::nullopt;
     }
-    auto maybeExpr{AnalyzeExpr(*context_, expr)};
-    if (!maybeExpr) {
-      return std::nullopt;
-    }
-    auto exprType{maybeExpr->GetType()};
-    auto converted{evaluate::ConvertToType(symbol, std::move(*maybeExpr))};
-    if (!converted) {
-      if (exprType) {
+    if (auto maybeExpr{AnalyzeExpr(*context_, expr)}) {
+      if (auto converted{
+              evaluate::ConvertToType(symbol, std::move(*maybeExpr))}) {
+        return FoldExpr(std::move(*converted));
+      }
+      if (auto exprType{maybeExpr->GetType()}) {
         Say(source,
             "Initialization expression could not be converted to declared type of '%s' from %s"_err_en_US,
             symbol.name(), exprType->AsFortran());
@@ -204,9 +202,8 @@ public:
             "Initialization expression could not be converted to declared type of '%s'"_err_en_US,
             symbol.name());
       }
-      return std::nullopt;
     }
-    return FoldExpr(std::move(*converted));
+    return std::nullopt;
   }
 
   template <typename T> MaybeIntExpr EvaluateIntExpr(const T &expr) {
