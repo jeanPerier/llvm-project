@@ -43,6 +43,11 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit df62afd559d4899a968cb72ad2ddc98b27412fa6
 
 Log of cherry-picked commits in reverse order (latest first):
+e8356a79ffd36a6cfdc1ca19c1283d7f517c77b6 Andrezj: cmake dependency
+73ca690df88ad5df77afe29b984720963ee37183 River: mlir NFC headers
+681978d3b4e8fab98dd5c5c1f1687d3eff790a95 Pete: new scopes for ac-implied-do
+ba3317d0baacf2a08520735b2b8c89472fc8fc10 Rahul: fix MLIR unit test failures
+2e26459fabcab31221c6144633f10883bc1d3926 Praveen: OMP depend clause semantics
 6c02835d6c9290aa0a4f46dbce6827a8bd9466da Andrezj: remove option
 5795a81cbab879e353299556157dd5fd42cc7857 Pete: fix EQ comparison of arrays
 fdbc7e505c0cb424bf629a0d6901bc6812302dcc Andrezj: -###
