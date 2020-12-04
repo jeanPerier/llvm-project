@@ -47,6 +47,7 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+d7caeab6b416248f06cf44c4c686a5e6304943bd fix NULL pointer initializers
 2cb85cef1097baac219c22da442656588f458c68 Unsplit COMPLEX
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document
 bc44d4826fa3fb9407af497c16f86d720b205f91 Val D.: fix missing provenance
