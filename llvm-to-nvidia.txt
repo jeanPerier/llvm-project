@@ -40,9 +40,32 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit df62afd559d4899a968cb72ad2ddc98b27412fa6
+with llvm-project commit fe7fdcac87be4ad3de34901eb6fb5746437610e8
 
 Log of cherry-picked commits in reverse order (latest first):
+fe7fdcac87be4ad3de34901eb6fb5746437610e8 Rahul: mlir
+c7cae0e4fa4e1ed4bdca186096a408578225fc2b River: nfc
+09f7a55fad924b894fadef0f0edccffdfda7838a River: nfc
+672cc75cceda12e67915643566362f832edcb66d River: mlir
+f24c642178a5a31aa1c44585537c08fdfc3fdfd5 Pete: fix bogus message
+86f59de13b8058280d468984727bd1e6727f2112 Tim: fix generic merging w/ USE
+1f525ece4abfb6077d73e34acac0666855d19052 Tim: GetTopLevelUnitContaining
+7a91794d5b261bc87991d5acce9fa503e9a4f269 Praveen: OMP private
+c557f549ba049131e444dd17dc326988158677ef Johannes
+e73d8c793a5028b8ba93b9b9a82d059760c3ec4d Valentin: cache directive
+29dffb0c8a5dbe8bdcc1abe38aafb3f5ea7d57f4 yhegde: OMP ordered & collapse
+3ee08e38194ac05e42f8c5a633dc1aa8e41139f4 yhegde: OMP shared/private clauses
+952c9d3a91de351356336c4f84ff1a4d4090cc7b Valentin: typo
+aa179d80990921486ec3e4f97d53522a4bb6cfad Valentin: memory-order-clause
+1df8fa78e652d112c83d21096e5f2750f70f5b66 sameeran: nfc
+42ecf188b5ae1199d5b7405c521a3e72f80e7e94 sameeran: bugfix
+553e364194ac50eee56bcb31bb25f033527605b8 Valentin: host_data directive
+755674b715b1cb1d1d7d2753a6fd42104cf10cb9 Valentin: parallel directive
+da02327b9cf969f8a4714c3a793645997525b71f Pete: update docs
+1b749c0cb5c0dff3342e87054d6a86353eeb7b46 Andrezj: nfc
+65fcddff24d68e2b75a5fa820b6664b6ea78b1de River: mlir
+5349f99114cfcf597220cbc9b9253f178a43fabd me: null pointer inits
+ea4973f2068abfbfd637ed446c18fe2191301cad Pete: improve error message
 e8356a79ffd36a6cfdc1ca19c1283d7f517c77b6 Andrezj: cmake dependency
 73ca690df88ad5df77afe29b984720963ee37183 River: mlir NFC headers
 681978d3b4e8fab98dd5c5c1f1687d3eff790a95 Pete: new scopes for ac-implied-do
