@@ -19,7 +19,8 @@
 
 namespace Fortran::runtime::typeInfo {
 
-struct DerivedType {
+class DerivedType {
+public:
   ~DerivedType();
 
   // This member comes first because it's used like a vtable by generated code.

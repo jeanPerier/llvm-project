@@ -615,8 +615,8 @@ evaluate::StructureConstructor RuntimeTableBuilder::DescribeComponent(
     const Symbol &symbol, const ObjectEntityDetails &object, Scope &scope,
     const std::string &distinctName, const SymbolVector *parameters) {
   evaluate::StructureConstructorValues values;
-  auto typeAndShape{
-      evaluate::characteristics::TypeAndShape::Characterize(object)};
+  auto typeAndShape{evaluate::characteristics::TypeAndShape::Characterize(
+      object, context_.foldingContext())};
   CHECK(typeAndShape.has_value());
   auto dyType{typeAndShape->type()};
   const auto &shape{typeAndShape->shape()};
@@ -834,7 +834,6 @@ void RuntimeTableBuilder::DescribeGeneric(const GenericDetails &generic,
                            specials, *ref, false, false /*!final*/, io);
                      }
                      break;
-                   default:;
                    }
                  },
                  [](const auto &) {},
@@ -849,14 +848,13 @@ void RuntimeTableBuilder::DescribeSpecialProc(
   const auto *binding{specificOrBinding.detailsIf<ProcBindingDetails>()};
   const Symbol &specific{*(binding ? &binding->symbol() : &specificOrBinding)};
   if (auto proc{evaluate::characteristics::Procedure::Characterize(
-          specific, context_.intrinsics())}) {
+          specific, context_.foldingContext())}) {
     std::uint8_t rank{0};
     std::uint8_t isArgDescriptorSet{0};
     int argThatMightBeDescriptor{0};
     MaybeExpr which;
-    if (isAssignment) {
-      CHECK(
-          binding != nullptr); // only type-bound asst's are germane to runtime
+    if (isAssignment) { // only type-bound asst's are germane to runtime
+      CHECK(binding != nullptr);
       CHECK(proc->dummyArguments.size() == 2);
       which = proc->IsElemental() ? elementalAssignmentEnum_ : assignmentEnum_;
       if (binding && binding->passName() &&
@@ -913,8 +911,6 @@ void RuntimeTableBuilder::DescribeSpecialProc(
       case GenericKind::DefinedIo::WriteUnformatted:
         which = writeUnformattedEnum_;
         break;
-      default:
-        CRASH_NO_CASE;
       }
     }
     if (argThatMightBeDescriptor != 0 &&
