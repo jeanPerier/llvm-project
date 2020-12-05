@@ -33,12 +33,10 @@ include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR})
 add_flang_library(FortranRuntime
   ISO_Fortran_binding.cpp
   allocatable.cpp
-  blob.cpp
-  blob-builder.cpp
   buffer.cpp
   character.cpp
   connection.cpp
-  derived-type.cpp
+  derived.cpp
   descriptor.cpp
   edit-input.cpp
   edit-output.cpp
