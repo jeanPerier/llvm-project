@@ -29,7 +29,7 @@
 
 namespace Fortran::runtime::typeInfo {
 using TypeParameterValue = std::int64_t;
-struct DerivedType;
+class DerivedType;
 } // namespace Fortran::runtime::typeInfo
 
 namespace Fortran::runtime {

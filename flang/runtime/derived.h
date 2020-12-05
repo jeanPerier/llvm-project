@@ -10,7 +10,7 @@
 #define FLANG_RUNTIME_DERIVED_H_
 
 namespace Fortran::runtime::typeInfo {
-struct DerivedType;
+class DerivedType;
 }
 
 namespace Fortran::runtime {
