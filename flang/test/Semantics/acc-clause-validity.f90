@@ -131,16 +131,82 @@ program openacc_clause_validity
   !$acc data
   !$acc end data
 
-  !$acc data copyin(i)
+  !$acc data copy(aa) if(.true.)
+  !$acc end data
+
+  !$acc data copy(aa) if(ifCondition)
+  !$acc end data
+
+  !$acc data copy(aa, bb, cc)
+  !$acc end data
+
+  !$acc data copyin(aa) copyin(readonly: bb) copyout(cc)
+  !$acc end data
+
+  !$acc data copyin(readonly: aa, bb) copyout(zero: cc)
+  !$acc end data
+
+  !$acc data create(aa, bb(:,:)) create(zero: cc(:,:))
+  !$acc end data
+
+  !$acc data no_create(aa) present(bb, cc)
+  !$acc end data
+
+  !$acc data deviceptr(aa) attach(bb, cc)
+  !$acc end data
+
+  !$acc data copy(aa, bb) default(none)
+  !$acc end data
+
+  !$acc data copy(aa, bb) default(present)
+  !$acc end data
+
+  !ERROR: At most one DEFAULT clause can appear on the DATA directive
+  !$acc data copy(aa, bb) default(none) default(present)
+  !$acc end data
+
+  !ERROR: At most one IF clause can appear on the DATA directive
+  !$acc data copy(aa) if(.true.) if(ifCondition)
   !$acc end data
 
   !$acc data copyin(i)
   !ERROR: Unmatched PARALLEL directive
   !$acc end parallel
 
+  !ERROR: At least one of DEVICE, HOST, SELF clause must appear on the UPDATE directive
+  !$acc update
+
   !$acc update self(a, f) host(g) device(h)
 
-  !$acc update device(i) device_type(*) async
+  !$acc update host(aa) async(1)
+
+  !$acc update device(bb) async(async1)
+
+  !ERROR: At most one ASYNC clause can appear on the UPDATE directive
+  !$acc update host(aa, bb) async(1) async(2)
+
+  !$acc update self(bb, cc(:)) wait(1)
+
+  !ERROR: SELF clause on the UPDATE directive must have a var-list
+  !$acc update self
+
+  !$acc update device(aa, bb, cc) wait(wait1)
+
+  !$acc update host(aa) host(bb) device(cc) wait(1,2)
+
+  !$acc update device(aa, cc) wait(wait1, wait2)
+
+  !$acc update device(aa) device_type(*) async
+
+  !$acc update host(bb) device_type(*) wait
+
+  !$acc update self(cc) device_type(1,2) async device_type(3) wait
+
+  !ERROR: At most one IF clause can appear on the UPDATE directive
+  !$acc update device(aa) if(.true.) if(ifCondition)
+
+  !ERROR: At most one IF_PRESENT clause can appear on the UPDATE directive
+  !$acc update device(bb) if_present if_present
 
   !ERROR: Clause IF is not allowed after clause DEVICE_TYPE on the UPDATE directive
   !$acc update device(i) device_type(*) if(.TRUE.)
@@ -166,6 +232,12 @@ program openacc_clause_validity
   end do
 
   !$acc parallel loop self
+  do i = 1, N
+    a(i) = 3.14
+  end do
+
+  !ERROR: SELF clause on the PARALLEL LOOP directive only accepts optional scalar logical expression
+  !$acc parallel loop self(bb, cc(:))
   do i = 1, N
     a(i) = 3.14
   end do
@@ -471,26 +543,6 @@ program openacc_clause_validity
   end do
   !$acc end parallel loop
 
-  !$acc kernels device_type(*) async
-  do i = 1, N
-    a(i) = 3.14
-  end do
-  !$acc end kernels
-
-  !ERROR: Clause IF is not allowed after clause DEVICE_TYPE on the KERNELS directive
-  !$acc kernels device_type(*) if(.TRUE.)
-  do i = 1, N
-    a(i) = 3.14
-  end do
-  !$acc end kernels
-
-  !ERROR: Clause IF is not allowed after clause DEVICE_TYPE on the KERNELS LOOP directive
-  !$acc kernels loop device_type(*) if(.TRUE.)
-  do i = 1, N
-    a(i) = 3.14
-  end do
-  !$acc end kernels loop
-
   !$acc serial device_type(*) async
   do i = 1, N
     a(i) = 3.14
@@ -587,10 +639,28 @@ program openacc_clause_validity
     reduction_l = d(i) .neqv. e(i)
   end do
 
+  !$acc kernels async
+  !$acc end kernels
+
+  !$acc kernels async(1)
+  !$acc end kernels
+
+  !$acc kernels async(async1)
+  !$acc end kernels
+
+  !$acc kernels wait(wait1)
+  !$acc end kernels
+
+  !$acc kernels wait(wait1, wait2)
+  !$acc end kernels
+
   !$acc kernels wait(1, 2) async(3)
   !$acc end kernels
 
   !$acc kernels wait(queues: 1, 2) async(3)
+  !$acc end kernels
+
+  !$acc kernels wait(1) wait(2) async(3)
   !$acc end kernels
 
   !$acc kernels wait(devnum: 1: 1, 2) async(3)
@@ -598,6 +668,98 @@ program openacc_clause_validity
 
   !$acc kernels wait(devnum: 1: queues: 1, 2) async(3)
   !$acc end kernels
+
+  !$acc kernels num_gangs(8)
+  !$acc end kernels
+
+  !$acc kernels num_workers(8)
+  !$acc end kernels
+
+  !$acc kernels vector_length(128)
+  !$acc end kernels
+
+  !$acc kernels if(.true.)
+  !$acc end kernels
+
+  !$acc kernels if(ifCondition)
+  !$acc end kernels
+
+  !ERROR: At most one IF clause can appear on the KERNELS directive
+  !$acc kernels if(.true.) if(ifCondition)
+  !$acc end kernels
+
+  !$acc kernels self
+  !$acc end kernels
+
+  !$acc kernels self(.true.)
+  !$acc end kernels
+
+  !$acc kernels self(ifCondition)
+  !$acc end kernels
+
+  !$acc kernels copy(aa) copyin(bb) copyout(cc)
+  !$acc end kernels
+
+  !$acc kernels copy(aa, bb) copyout(zero: cc)
+  !$acc end kernels
+
+  !$acc kernels present(aa, bb) create(cc)
+  !$acc end kernels
+
+  !$acc kernels copyin(readonly: aa, bb) create(zero: cc)
+  !$acc end kernels
+
+  !$acc kernels deviceptr(aa, bb) no_create(cc)
+  !$acc end kernels
+
+  !$acc kernels attach(aa, bb, cc)
+  !$acc end kernels
+
+  !ERROR: PRIVATE clause is not allowed on the KERNELS directive
+  !$acc kernels private(aa, bb, cc)
+  !$acc end kernels
+
+  !$acc kernels default(none)
+  !$acc end kernels
+
+  !$acc kernels default(present)
+  !$acc end kernels
+
+  !ERROR: At most one DEFAULT clause can appear on the KERNELS directive
+  !$acc kernels default(none) default(present)
+  !$acc end kernels
+
+  !$acc kernels device_type(*)
+  !$acc end kernels
+
+  !$acc kernels device_type(1)
+  !$acc end kernels
+
+  !$acc kernels device_type(1, 3)
+  !$acc end kernels
+
+  !$acc kernels device_type(*) async wait num_gangs(8) num_workers(8) vector_length(128)
+  !$acc end kernels
+
+  !$acc kernels device_type(*) async
+  do i = 1, N
+    a(i) = 3.14
+  end do
+  !$acc end kernels
+
+  !ERROR: Clause IF is not allowed after clause DEVICE_TYPE on the KERNELS directive
+  !$acc kernels device_type(*) if(.TRUE.)
+  do i = 1, N
+    a(i) = 3.14
+  end do
+  !$acc end kernels
+
+  !ERROR: Clause IF is not allowed after clause DEVICE_TYPE on the KERNELS LOOP directive
+  !$acc kernels loop device_type(*) if(.TRUE.)
+  do i = 1, N
+    a(i) = 3.14
+  end do
+  !$acc end kernels loop
 
   !$acc wait
 

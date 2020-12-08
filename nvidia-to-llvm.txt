@@ -14,7 +14,7 @@ To look for changes to merge from NVIDIA to LLVM:
 # Ignore merge commits and changes to cherrypicking.txt.
 
 For each change to merge:
-  git checkout master
+  git checkout main
   git pull
   git checkout -b $BRANCH
   git -c merge.renameLimit=1 cherry-pick -n $COMMIT
@@ -32,21 +32,24 @@ For each change to merge:
   then arc land --hold $BRANCH
        git commit --amend # clean up the commit message
        git show -s # get the new HEAD commit number as $AMENDEDHEAD
-       git push -- origin $AMENDEDHEAD:master
-  else git push -- origin $BRANCH:master
+       git push -- origin $AMENDEDHEAD:main
+  else git push -- origin $BRANCH:main
   fi
-  git checkout master
+  git checkout main
   git pull
   git checkout $BRANCH
-  git rebase -i master # ensure that changes are now "no-op"
-  git checkout master
+  git rebase -i main # ensure that changes are now "no-op"
+  git checkout main
   git branch -D $BRANCH
 
 To do (oldest last):
 
 In review:
+252fccb64d27ada4365e684342967695a9047095 + clang patches for...
+145f0bbe938fa477218266723a9f3ce1d1f95a54 ... runtime tables
 
 Done (oldest last, omitting no-ops):
+b8ae4c56e5a2570b4751c3b7cac89eb3b3a64133 improve initializer semantics
 d7caeab6b416248f06cf44c4c686a5e6304943bd fix NULL pointer initializers
 2cb85cef1097baac219c22da442656588f458c68 Unsplit COMPLEX
 0e755edbc0eb29d98c6d2a069beb309921c79bfd DO CONCURRENT document

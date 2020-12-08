@@ -10,10 +10,10 @@ For each round of cherry-picking:
   git checkout $BRANCH
 
 If you want to see which files have diverged:
-  git diff --name-status refs/remotes/llvm-project/master HEAD -- flang
+  git diff --name-status refs/remotes/llvm-project/main HEAD -- flang
 
 To look for changes to merge from LLVM to NVIDIA:
-  git log ${LATEST_CHERRYPICK_COMMIT}..llvm-project/master -- flang >log.tmp
+  git log ${LATEST_CHERRYPICK_COMMIT}..llvm-project/main -- flang >log.tmp
   $EDITOR log.tmp llvm-to-nvidia.txt
 
 Look for new flang commits since the latest (top) entry in the log below.
@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit fe7fdcac87be4ad3de34901eb6fb5746437610e8
+with llvm-project commit 4fede8bc8a015477f2a8feeb30a1d2a2e155106d
 
 Log of cherry-picked commits in reverse order (latest first):
+1dd24e6ab7a70242edfa4139441bfe7753892b4e Valentin: clause validity check
+875b4fd5ee95bedd6ec2bcf8423c159ccecd8443 Valentin: clause validity check
+a366188d801ccefb4ef3f9d89415e97accc77443 Valentin: clause validity check
 fe7fdcac87be4ad3de34901eb6fb5746437610e8 Rahul: mlir
 c7cae0e4fa4e1ed4bdca186096a408578225fc2b River: nfc
 09f7a55fad924b894fadef0f0edccffdfda7838a River: nfc
