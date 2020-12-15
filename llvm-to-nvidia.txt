@@ -40,9 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 4fede8bc8a015477f2a8feeb30a1d2a2e155106d
+with llvm-project commit b0e5aea5572bbfaef1ad47777a7089b2879d2df4
 
 Log of cherry-picked commits in reverse order (latest first):
+2aa43358060c6b34fb9cdc6c4321e958f62331e7 Kruse: fix copy elision assumption
+a1eb154421a00d62f3a25057d262e1cac747e266 csigg: mlir
+6bbbe4a5746e65fb9b7efc8d525961994406a338 Andrezj: small bugfix to driver
+f1569b1ece5516d31d8c748f7b2981a688e32826 sameeran: flush construct semantics
+e43b3b08ccd60d63d4c3316859e9fec4cdaeaddd sameeran: atomic construct semantics
+1ffc1aaa09674824ce66600ee0b77d6a2c042e68 csigg: mlir
+84c09ab44599ece409e4e19761288ddf796fceec Pete: fix "flang" script
+c9e967af3fc7ce824cd811379c5e99a998819779 Irina: allocate directive
+9168a0f515c908dc3c3df822f17d489ec8a0caf2 Pete: fix bogus message on index-names
+0bf4a82a5a2b11a07a7f7eac5e49b565cb041b13 csigg: mlir
+b53115b6c8aa9a107bb80e704b077b253037514f Valentin: compute construct
+d553243fe4b5e1992c07aff7b54b16160a4d5e97 Valentin: reference OACC 3.1
+c823d74914a287e056eb311ce293e7d4a521eb25 Valentin: Add missing tests
 1dd24e6ab7a70242edfa4139441bfe7753892b4e Valentin: clause validity check
 875b4fd5ee95bedd6ec2bcf8423c159ccecd8443 Valentin: clause validity check
 a366188d801ccefb4ef3f9d89415e97accc77443 Valentin: clause validity check
