@@ -40,9 +40,11 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b0e5aea5572bbfaef1ad47777a7089b2879d2df4
+with llvm-project commit 07751310580fa5b7b94b6efa85d7964af0f699a6
 
 Log of cherry-picked commits in reverse order (latest first):
+7082de56b7ad4b4eeb75e59e0d4c28bed44b5d23 Tim: multiple names for same operator
+3a0352b85c14cb83150df62a9ea9ac3c4129060d Tim: USE of USE of generic
 2aa43358060c6b34fb9cdc6c4321e958f62331e7 Kruse: fix copy elision assumption
 a1eb154421a00d62f3a25057d262e1cac747e266 csigg: mlir
 6bbbe4a5746e65fb9b7efc8d525961994406a338 Andrezj: small bugfix to driver

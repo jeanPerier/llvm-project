@@ -5,7 +5,6 @@ Do once:
   cd $DIRECTORY
   git remote add f18-stage ssh://git@gitlab-master.nvidia.com:12051/fortran/f18-stage.git
 
-
 To look for changes to merge from NVIDIA to LLVM:
   git fetch f18-stage # or --all
   git log f18-stage/master >log.tmp
@@ -45,10 +44,15 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-252fccb64d27ada4365e684342967695a9047095 + clang patches for...
-145f0bbe938fa477218266723a9f3ce1d1f95a54 ... runtime tables
 
 Done (oldest last, omitting no-ops):
+1d622fe4d30847bfb78270ae00155410758b2f69 fix crash in folding (bug#48437)
+dec36fefb3bec8f72a2087196ab8ad64cde2960f STORAGE_SIZE() & al.
+4c2ca630fd1d6b8ae3d6f806bd95084bddf6cede fix bogus error for "p=>f()" array conformance
+75046911802cd9e26f9d6629c93e2adba11d4985 clean up TODOs
+7ec16c973cb9e36a6c38a73769fa598c10a776a6 fix list-directed REAL output
+252fccb64d27ada4365e684342967695a9047095 + clang patches for...
+145f0bbe938fa477218266723a9f3ce1d1f95a54 ... runtime tables
 b8ae4c56e5a2570b4751c3b7cac89eb3b3a64133 improve initializer semantics
 d7caeab6b416248f06cf44c4c686a5e6304943bd fix NULL pointer initializers
 2cb85cef1097baac219c22da442656588f458c68 Unsplit COMPLEX
