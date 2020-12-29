@@ -597,6 +597,7 @@ protected:
 
   bool inExecutionPart_{false};
   bool inSpecificationPart_{false};
+  bool inEquivalenceStmt_{false};
   std::set<SourceName> specPartForwardRefs_;
 
 private:
@@ -1349,6 +1350,7 @@ private:
   void CheckImport(const SourceName &, const SourceName &);
   void HandleCall(Symbol::Flag, const parser::Call &);
   void HandleProcedureName(Symbol::Flag, const parser::Name &);
+  bool CheckImplicitNoneExternal(const SourceName &, const Symbol &);
   bool SetProcFlag(const parser::Name &, Symbol &, Symbol::Flag);
   void ResolveSpecificationParts(ProgramTree &);
   void AddSubpNames(ProgramTree &);
@@ -2007,7 +2009,11 @@ Symbol *ScopeHandler::FindSymbol(const Scope &scope, const parser::Name &name) {
     }
     return FindSymbol(scope.parent(), name);
   } else {
-    return Resolve(name, scope.FindSymbol(name.source));
+    // In EQUIVALENCE statements only resolve names in the local scope, see
+    // 19.5.1.4, paragraph 2, item (10)
+    return Resolve(name,
+        inEquivalenceStmt_ ? FindInScope(scope, name)
+                           : scope.FindSymbol(name.source));
   }
 }
 
@@ -3065,11 +3071,14 @@ Symbol &SubprogramVisitor::PushSubprogramScope(
     symbol = &MakeSymbol(name, SubprogramDetails{});
   }
   symbol->set(subpFlag);
+  symbol->ReplaceName(name.source);
   PushScope(Scope::Kind::Subprogram, symbol);
   auto &details{symbol->get<SubprogramDetails>()};
   if (inInterfaceBlock()) {
     details.set_isInterface();
-    if (!isAbstract()) {
+    if (isAbstract()) {
+      symbol->attrs().set(Attr::ABSTRACT);
+    } else {
       MakeExternal(*symbol);
     }
     if (isGeneric()) {
@@ -4333,15 +4342,17 @@ void DeclarationVisitor::Post(const parser::CommonBlockObject &x) {
 
 bool DeclarationVisitor::Pre(const parser::EquivalenceStmt &x) {
   // save equivalence sets to be processed after specification part
-  CheckNotInBlock("EQUIVALENCE"); // C1107
-  for (const std::list<parser::EquivalenceObject> &set : x.v) {
-    equivalenceSets_.push_back(&set);
+  if (CheckNotInBlock("EQUIVALENCE")) { // C1107
+    for (const std::list<parser::EquivalenceObject> &set : x.v) {
+      equivalenceSets_.push_back(&set);
+    }
   }
   return false; // don't implicitly declare names yet
 }
 
 void DeclarationVisitor::CheckEquivalenceSets() {
   EquivalenceSets equivSets{context()};
+  inEquivalenceStmt_ = true;
   for (const auto *set : equivalenceSets_) {
     const auto &source{set->front().v.value().source};
     if (set->size() <= 1) { // R871
@@ -4358,6 +4369,7 @@ void DeclarationVisitor::CheckEquivalenceSets() {
     }
     equivSets.FinishSet(source);
   }
+  inEquivalenceStmt_ = false;
   for (auto &set : equivSets.sets()) {
     if (!set.empty()) {
       currScope().add_equivalenceSet(std::move(set));
@@ -5831,10 +5843,7 @@ void ResolveNamesVisitor::HandleProcedureName(
       return;
     }
     if (!symbol->attrs().test(Attr::INTRINSIC)) {
-      if (isImplicitNoneExternal() && !symbol->attrs().test(Attr::EXTERNAL)) {
-        Say(name,
-            "'%s' is an external procedure without the EXTERNAL"
-            " attribute in a scope with IMPLICIT NONE(EXTERNAL)"_err_en_US);
+      if (!CheckImplicitNoneExternal(name.source, *symbol)) {
         return;
       }
       MakeExternal(*symbol);
@@ -5855,7 +5864,11 @@ void ResolveNamesVisitor::HandleProcedureName(
     if (!SetProcFlag(name, *symbol, flag)) {
       return; // reported error
     }
-    if (IsProcedure(*symbol) || symbol->has<DerivedTypeDetails>() ||
+    CheckImplicitNoneExternal(name.source, *symbol);
+    if (symbol->has<SubprogramDetails>() &&
+        symbol->attrs().test(Attr::ABSTRACT)) {
+      Say(name, "Abstract interface '%s' may not be called"_err_en_US);
+    } else if (IsProcedure(*symbol) || symbol->has<DerivedTypeDetails>() ||
         symbol->has<ObjectEntityDetails>() ||
         symbol->has<AssocEntityDetails>()) {
       // Symbols with DerivedTypeDetails, ObjectEntityDetails and
@@ -5871,6 +5884,18 @@ void ResolveNamesVisitor::HandleProcedureName(
           "Use of '%s' as a procedure conflicts with its declaration"_err_en_US);
     }
   }
+}
+
+bool ResolveNamesVisitor::CheckImplicitNoneExternal(
+    const SourceName &name, const Symbol &symbol) {
+  if (isImplicitNoneExternal() && !symbol.attrs().test(Attr::EXTERNAL) &&
+      !symbol.attrs().test(Attr::INTRINSIC) && !symbol.HasExplicitInterface()) {
+    Say(name,
+        "'%s' is an external procedure without the EXTERNAL"
+        " attribute in a scope with IMPLICIT NONE(EXTERNAL)"_err_en_US);
+    return false;
+  }
+  return true;
 }
 
 // Variant of HandleProcedureName() for use while skimming the executable

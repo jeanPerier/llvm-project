@@ -40,9 +40,35 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 07751310580fa5b7b94b6efa85d7964af0f699a6
+with llvm-project commit 79cbb003c53009e5ca35b804bb7655dba97776e7
 
 Log of cherry-picked commits in reverse order (latest first):
+f782d5ea86f6fc82b51a0de688bf292f39cc4814 Tim: detect call to abstract interface
+d55627d221be8154cbdf454fa727afcc3f716b08 Tim: abstract interface in .mod file
+a2ca6bbda6160c1b474fffd6204bcac9456c7eb1 Praveen: OpenMP private semantics
+3b3a9d24188a0b04bd4d47d7308da0f64430dffe Alexis: GettingInvolved.md
+1aa10ab2e1ddc863a944fb181b2b8ed633864bab sameeran: revert...
+9a7895dc20852b662a66976d06871ec2a0b968c8 sameeran: task_reduction
+31b67d2debd43b9854248b853a52ea989c7322a0 Andrezj: fix formatting in a test
+44e74c75e614af453f4824cb9bf1f0056d7cf426 Andrezj: refactor unit tests
+1a6f43991ff7e5249f24660074f0dd784aeecd5f sameeran: dist_schedule clause
+e282ae57da29a37e143ab6d640f68e794f5cd614 sameeran: nowait clause
+34958d11c3457c8e05bbe2b31d5e013c04aecb55 sameeran: ProcBind clause
+f72c384b5ba943c92fadcbe77f9d7661728905ab sameeran: default clause thing
+442aac5da68c467563dc6fedf37892ee3d2b688b sameeran: allocate clause thing
+8f933a4e931dd1a66f19a81b33399cf7b407308f Valentin: TableGen for default clause values
+d6abd7317a269dc7d0204edb8e98f8fcc1a18a2f Andrezj: Change test file names
+bf0870d8640df27b6bb082de0347008240cb0e67 Tim: Fix IMPLICIT NONE(EXTERNAL)
+db2195bc5b3e3ef60e840d5877a62871a369203c Andrezj: rename test
+7d246cb19db9fce65946fb4bac6e570787dbe78a Andrezj: -fsyntax-only
+f6b577ed5bf61078cdcf60e94867b75c94f540a7 Tim: fix flang script
+fc5cf50e892b5e2307de924923fe799702b055d2 River: remove a thing
+1b97cdf885d6455841280b8da858835e641ee941 River: mlir
+f4c8b80318005ca61bfed9b40ee9e6039194159b Valentin: remove clause
+71699a998d4f648396a1a12820c0f04cc61f8e19 Valentin: enforce routine restrictions
+36bf2de8d866e2b448d17f4d2cb4bb96819d82b7 Valentin: serial construct clauses
+a4e47cd1857be1a1bfdada2a1c60a521fd21ecee sameeran: bug 48308
+4e90cad6a6b5504f11b7876e26e80c2a079e04b0 Pete: fix undeclared names in EQUIVALENCE
 7082de56b7ad4b4eeb75e59e0d4c28bed44b5d23 Tim: multiple names for same operator
 3a0352b85c14cb83150df62a9ea9ac3c4129060d Tim: USE of USE of generic
 2aa43358060c6b34fb9cdc6c4321e958f62331e7 Kruse: fix copy elision assumption
