@@ -125,14 +125,7 @@ void OmpStructureChecker::Enter(const parser::OpenMPBlockConstruct &x) {
   CheckMatching<parser::OmpBlockDirective>(beginDir, endDir);
 
   PushContextAndClauseSets(beginDir.source, beginDir.v);
-
-  switch (beginDir.v) {
-  case llvm::omp::OMPD_parallel:
-    CheckNoBranching(block, llvm::omp::OMPD_parallel, beginDir.source);
-    break;
-  default:
-    break;
-  }
+  CheckNoBranching(block, beginDir.v, beginDir.source);
 }
 
 void OmpStructureChecker::Leave(const parser::OpenMPBlockConstruct &) {
@@ -393,8 +386,7 @@ void OmpStructureChecker::Leave(const parser::OmpClauseList &) {
         llvm::omp::Clause::OMPC_copyprivate, {llvm::omp::Clause::OMPC_nowait});
   }
 
-  GetContext().requiredClauses.IterateOverMembers(
-      [this](llvm::omp::Clause c) { CheckRequired(c); });
+  CheckRequireAtLeastOneOf();
 }
 
 void OmpStructureChecker::Enter(const parser::OmpClause &x) {
@@ -419,6 +411,8 @@ CHECK_SIMPLE_CLAUSE(Mergeable, OMPC_mergeable)
 CHECK_SIMPLE_CLAUSE(Nogroup, OMPC_nogroup)
 CHECK_SIMPLE_CLAUSE(Notinbranch, OMPC_notinbranch)
 CHECK_SIMPLE_CLAUSE(Nowait, OMPC_nowait)
+CHECK_SIMPLE_CLAUSE(Reduction, OMPC_reduction)
+CHECK_SIMPLE_CLAUSE(TaskReduction, OMPC_task_reduction)
 CHECK_SIMPLE_CLAUSE(To, OMPC_to)
 CHECK_SIMPLE_CLAUSE(Uniform, OMPC_uniform)
 CHECK_SIMPLE_CLAUSE(Untied, OMPC_untied)
@@ -494,7 +488,6 @@ void OmpStructureChecker::CheckIsVarPartOfAnotherVar(
   }
 }
 // Following clauses have a seperate node in parse-tree.h.
-CHECK_SIMPLE_PARSER_CLAUSE(OmpReductionClause, OMPC_reduction)
 // Atomic-clause
 CHECK_SIMPLE_PARSER_CLAUSE(OmpAtomicRead, OMPC_read)
 CHECK_SIMPLE_PARSER_CLAUSE(OmpAtomicWrite, OMPC_write)
