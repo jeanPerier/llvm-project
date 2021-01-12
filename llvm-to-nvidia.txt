@@ -40,9 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 79cbb003c53009e5ca35b804bb7655dba97776e7
+with llvm-project commit 922a5b894114defb5302e514973de8c9cd23af6a
 
 Log of cherry-picked commits in reverse order (latest first):
+6f4d460762006af17826693abc1e7139a76aa1f2 sameeran: branch checking
+47567ca5faca147bcc28bcbbaa6bf448354bb5d4 Valentin: remove duplicated func
+8298ec2d6299a95d2920cb8ee993ac6c5e604097 Andrezj: testing thing
+ae0d1d2e5cd3a99da0b2eefc27c8f94b95f03cc6 Pete: fix bogus error on alt. return
+b73736a4048172c48b6b5c23d1321f230d442306 Valentin: enforce declare dir. restr.
+a2957f80f87f36ac8cfca06dec1c2defbe709876 Andrezj: rename tests
+e5cdb6c56edf656d03f57c5c285cfa8c6b7b6f57 Andrezj: new driver
+322e98bc279989a6fb7f181b6f6a2d9a6927dd67 Valentin: init & shutdown
+7809fa20400000fd40b4a4b56696c7fbcd0f0fa9 Faris: new driver
+fa1e543e0b8c625bf2625598d9a16c484e349884 Andrezj: update errors
+e49dc2981cb311ac2b696ebb016fac9a8cd60922 Andrezj: new driver
+4d0aad96e431ba78323dd3c7ee9ecd6f5552375d Valentin: Reduction clause
+6280bc1cc34ad67c4297b2da1ff3920f410e6894 sameeran: task_reduction clause
 f782d5ea86f6fc82b51a0de688bf292f39cc4814 Tim: detect call to abstract interface
 d55627d221be8154cbdf454fa727afcc3f716b08 Tim: abstract interface in .mod file
 a2ca6bbda6160c1b474fffd6204bcac9456c7eb1 Praveen: OpenMP private semantics
