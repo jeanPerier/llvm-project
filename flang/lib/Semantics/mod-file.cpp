@@ -427,7 +427,6 @@ void ModFileWriter::PutUse(const Symbol &symbol) {
     PutGenericName(uses_ << "=>", use);
   }
   uses_ << '\n';
-  PutUseExtraAttr(Attr::PRIVATE, symbol, use);
   PutUseExtraAttr(Attr::VOLATILE, symbol, use);
   PutUseExtraAttr(Attr::ASYNCHRONOUS, symbol, use);
   if (symbol.attrs().test(Attr::PRIVATE)) {
