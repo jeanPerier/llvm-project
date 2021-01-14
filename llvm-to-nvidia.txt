@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 922a5b894114defb5302e514973de8c9cd23af6a
+with llvm-project commit 4864d9f7e91fdd58a84e4ae576f1ad16f71f9d91
 
 Log of cherry-picked commits in reverse order (latest first):
+4864d9f7e91fdd58a84e4ae576f1ad16f71f9d91 me: resolve conflicting mod-file.cpp changes
+0afdbb4d2dead42df14361ca9f5613d56667481c Andrezj: more versioning
+3e41ab18db2255028c288a11665c08d260654299 Tim: Fix dangling pointer from sameeran
+a1bbd1ef1dbd2a39777ef0b2d623f15f0523cdbf Andrezj: version numbering
+3de92ca78cd4e180920acc077452f87c44c7d935 Pete: actual procedures with implicit interfaces
+18278ff1aac47d9bffa0231c74277ffc89def13e Tim: private accessibility in mod files (test; code no-op'ed)
 6f4d460762006af17826693abc1e7139a76aa1f2 sameeran: branch checking
 47567ca5faca147bcc28bcbbaa6bf448354bb5d4 Valentin: remove duplicated func
 8298ec2d6299a95d2920cb8ee993ac6c5e604097 Andrezj: testing thing
