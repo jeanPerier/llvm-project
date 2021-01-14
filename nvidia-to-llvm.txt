@@ -44,8 +44,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+7882a0071c6e4fe9e0bfac26edc611ae98bce844 whizard module file issues
 
 Done (oldest last, omitting no-ops):
+bd84c126df9467c8e37d41dd6088f13ab563be02 don't create HostAssocDetails symbols in derived type scopes
+6485856881624f179e956e2373d7caa212178cbd classification of shape inquiries
 1d622fe4d30847bfb78270ae00155410758b2f69 fix crash in folding (bug#48437)
 dec36fefb3bec8f72a2087196ab8ad64cde2960f STORAGE_SIZE() & al.
 4c2ca630fd1d6b8ae3d6f806bd95084bddf6cede fix bogus error for "p=>f()" array conformance
