@@ -40,9 +40,21 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 4864d9f7e91fdd58a84e4ae576f1ad16f71f9d91
+with llvm-project commit 35389d853bffb4e0769b8c9c7b8e574f447a8f2e
 
 Log of cherry-picked commits in reverse order (latest first):
+cea3abc26f7cbc4ec4cf4cf73b4cce5f926420a9 Andrezj: move flags around
+6bd0a4451ccd4a5cbab1f735052edbcafcb856ea Valentin: tablegen clean-up
+480643a95cd157e654f4f97e8231b18850e7d79a Raul: clean up cmake files
+c42f5ca3d84c7b0d4e735ab3794718c429369309 praveen: OMP semantic checks workshare
+197d9a55f105391f34a0657e6c1d5ef3166dad7d Faris: predef'd macros
+443d6957ca712aacdfd72c3408a8837580f6a286 Faris: fixed-form detection
+87dfd5e012e147f4bfa3a9a4564e9cbc167278ff Faris: -I in new driver
+b6e06a740c26b2b9d91455ad49a5009335089242 Andrezj: testing nfc
+1e1a011b09d0e6e9ff62b37721906485c386708c Pete: disallow INTENT on dummy procedure
+39665d9aabb7cd92d58f8ba45b32a1899922ec01 yhegde: OMP semantic check
+d6acf3c2012b00f06a422e8704609676be7729b2 Tim: fix use-assoc'd proc in generic
+ca98baa042538e1a8654dd86b24d1602df9a1aec Valentin: rename gen'd file
 4864d9f7e91fdd58a84e4ae576f1ad16f71f9d91 me: resolve conflicting mod-file.cpp changes
 0afdbb4d2dead42df14361ca9f5613d56667481c Andrezj: more versioning
 3e41ab18db2255028c288a11665c08d260654299 Tim: Fix dangling pointer from sameeran
