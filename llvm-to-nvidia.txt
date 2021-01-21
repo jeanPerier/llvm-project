@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 35389d853bffb4e0769b8c9c7b8e574f447a8f2e
+with llvm-project commit bfec9148a042c8fd6093ae0d54c784211a295c6c
 
 Log of cherry-picked commits in reverse order (latest first):
+aba24c1580cfafc387d94add3855cb4a1e90db3c Andrezj: rearrange things
+0eeb15741bdaa6740c3bfcbed981b9d19d5348fb Andrezj: report messages from prescanner
+bebbe64075abf9d9887a8e1ee39c1ecefe970954 Pete: deferred shapes on POINTER statement
+b564b12bc665c5b9d7148422e4a65871dd31b912 Andrezj: test refactoring
 cea3abc26f7cbc4ec4cf4cf73b4cce5f926420a9 Andrezj: move flags around
 6bd0a4451ccd4a5cbab1f735052edbcafcb856ea Valentin: tablegen clean-up
 480643a95cd157e654f4f97e8231b18850e7d79a Raul: clean up cmake files
