@@ -90,6 +90,8 @@ def fircg_XArrayCoorOp : fircg_Op<"ext_array_coor", [AttrSizedOperandSegments]> 
          the element of the array to be computed.
        - LEN type parameters: A vector of runtime LEN type parameters that
          describe an correspond to the elemental derived type.
+       - Source box: a box describing the memory layout if the underlying array
+         is not contiguous (e.g pointer or assumed shape dummy). 
 
     The memref, shape, and indices arguments are mandatory. The rest are
     optional.
@@ -102,12 +104,13 @@ def fircg_XArrayCoorOp : fircg_Op<"ext_array_coor", [AttrSizedOperandSegments]> 
     Variadic<AnyIntegerType>:$slice,
     Variadic<AnyCoordinateType>:$subcomponent,
     Variadic<AnyCoordinateType>:$indices,
-    Variadic<AnyIntegerType>:$lenParams
+    Variadic<AnyIntegerType>:$lenParams,
+    Optional<fir_BoxType>:$sourceBox
   );
   let results = (outs fir_ReferenceType);
 
   let assemblyFormat = [{
-    $memref (`(`$shape^`)`)? (`origin` $shift^)? (`[`$slice^`]`)? (`path` $subcomponent^)? `<`$indices`>` (`typeparams` $lenParams^)? attr-dict `:` functional-type(operands, results)
+    $memref (`(`$shape^`)`)? (`origin` $shift^)? (`[`$slice^`]`)? (`path` $subcomponent^)? (`sourcebox` $sourceBox^)? `<`$indices`>` (`typeparams` $lenParams^)? attr-dict `:` functional-type(operands, results)
   }];
 
   let extraClassDeclaration = [{

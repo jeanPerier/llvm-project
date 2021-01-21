@@ -142,9 +142,17 @@ public:
         sliceOpers.append(sliceOp.triples().begin(), sliceOp.triples().end());
         subcompOpers.append(sliceOp.fields().begin(), sliceOp.fields().end());
       }
+    mlir::Value sourceBox;
+    auto addr = arrCoor.memref();
+    if (auto boxTy = addr.getType().dyn_cast<fir::BoxType>()) {
+      sourceBox = addr;
+      auto refTy = fir::ReferenceType::get(boxTy.getEleTy());
+      addr = rewriter.create<fir::BoxAddrOp>(loc, refTy, addr);
+    }
+
     auto xArrCoor = rewriter.create<cg::XArrayCoorOp>(
-        loc, arrCoor.getType(), arrCoor.memref(), shapeOpers, shiftOpers,
-        sliceOpers, subcompOpers, arrCoor.indices(), arrCoor.lenParams());
+        loc, arrCoor.getType(), addr, shapeOpers, shiftOpers, sliceOpers,
+        subcompOpers, arrCoor.indices(), arrCoor.lenParams(), sourceBox);
     LLVM_DEBUG(llvm::dbgs()
                << "rewriting " << arrCoor << " to " << xArrCoor << '\n');
     rewriter.replaceOp(arrCoor, xArrCoor.getOperation()->getResults());

@@ -262,11 +262,13 @@ static bool conflictOnLoad(llvm::ArrayRef<mlir::Operation *> reach,
                            ArrayMergeStoreOp st) {
   mlir::Value load;
   auto addr = st.memref();
+  auto stEleTy = fir::dyn_cast_ptrOrBoxEleTy(addr.getType());
   for (auto *op : reach)
     if (auto ld = mlir::dyn_cast<ArrayLoadOp>(op)) {
       auto ldTy = ld.memref().getType();
-      if (ldTy.isa<fir::PointerType>() &&
-          dyn_cast_ptrEleTy(st.memref().getType()) == dyn_cast_ptrEleTy(ldTy))
+      if (auto boxTy = ldTy.dyn_cast<fir::BoxType>())
+        ldTy = boxTy.getEleTy();
+      if (ldTy.isa<fir::PointerType>() && stEleTy == dyn_cast_ptrEleTy(ldTy))
         return true;
       if (ld.memref() == addr) {
         if (load)
@@ -456,8 +458,8 @@ public:
       llvm::SmallVector<mlir::Value, 8> extents;
       getExtents(extents, load.shape().getDefiningOp());
       auto allocmem = rewriter.create<AllocMemOp>(
-          loc, dyn_cast_ptrEleTy(load.memref().getType()), mlir::ValueRange{},
-          extents);
+          loc, dyn_cast_ptrOrBoxEleTy(load.memref().getType()),
+          mlir::ValueRange{}, extents);
       genArrayCopy(load.getLoc(), rewriter, allocmem, load.memref(),
                    load.shape(), load.getType());
       rewriter.setInsertionPoint(op);

@@ -97,6 +97,10 @@ bool isa_aggregate(mlir::Type t);
 /// not a memory reference type, then returns a null `Type`.
 mlir::Type dyn_cast_ptrEleTy(mlir::Type t);
 
+/// Extract the `Type` pointed to from a FIR memory reference or box type. If
+/// `t` is not a memory reference or box type, then returns a null `Type`.
+mlir::Type dyn_cast_ptrOrBoxEleTy(mlir::Type t);
+
 // Intrinsic types
 
 /// Model of the Fortran CHARACTER intrinsic type, including the KIND type
@@ -185,13 +189,17 @@ class BoxType
     : public mlir::Type::TypeBase<BoxType, mlir::Type, detail::BoxTypeStorage> {
 public:
   using Base::Base;
-  static BoxType get(mlir::Type eleTy, mlir::AffineMapAttr map = {});
+  static BoxType get(mlir::Type eleTy, bool isContiguous = false,
+                     mlir::AffineMapAttr map = {});
   mlir::Type getEleTy() const;
+  /// Does this describe an entity that is known to be contiguous at compile
+  /// time ?
+  bool isContiguous() const;
   mlir::AffineMapAttr getLayoutMap() const;
 
   static mlir::LogicalResult
   verifyConstructionInvariants(mlir::Location, mlir::Type eleTy,
-                               mlir::AffineMapAttr map);
+                               bool isContiguous, mlir::AffineMapAttr map);
 };
 
 /// The type of a pair that describes a CHARACTER variable. Specifically, a

@@ -113,6 +113,13 @@ inline mlir::LLVM::LLVMType getVoidPtrType(mlir::MLIRContext *context) {
       mlir::LLVM::LLVMIntegerType::get(context, 8));
 }
 
+static mlir::LLVM::ConstantOp
+genConstantIndex(mlir::Location loc, mlir::LLVM::LLVMType ity,
+                 mlir::ConversionPatternRewriter &rewriter, int offset) {
+  auto cattr = rewriter.getI64IntegerAttr(offset);
+  return rewriter.create<mlir::LLVM::ConstantOp>(loc, ity, cattr);
+}
+
 namespace {
 /// FIR conversion pattern template
 template <typename FromOp>
@@ -177,6 +184,16 @@ protected:
     auto c = genConstantOffset(loc, rewriter, off);
     auto p = genGEP(loc, pty, rewriter, a, c0, c7, dim, c);
     return rewriter.create<mlir::LLVM::LoadOp>(loc, ty, p);
+  }
+
+  mlir::Value
+  getStrideFromBox(mlir::Location loc, mlir::Value box, unsigned dim,
+                   mlir::ConversionPatternRewriter &rewriter) const {
+    auto idxTy = lowerTy().indexType();
+    auto c0 = genConstantOffset(loc, rewriter, 0);
+    auto c7 = genConstantOffset(loc, rewriter, 7);
+    auto dimValue = genConstantIndex(loc, idxTy, rewriter, dim);
+    return loadFromOffset(loc, box, c0, c7, dimValue, 2, idxTy, rewriter);
   }
 
   template <typename... ARGS>
@@ -247,13 +264,6 @@ struct AddrOfOpConversion : public FIROpConversion<fir::AddrOfOp> {
   }
 };
 } // namespace
-
-static mlir::LLVM::ConstantOp
-genConstantIndex(mlir::Location loc, mlir::LLVM::LLVMType ity,
-                 mlir::ConversionPatternRewriter &rewriter, int offset) {
-  auto cattr = rewriter.getI64IntegerAttr(offset);
-  return rewriter.create<mlir::LLVM::ConstantOp>(loc, ity, cattr);
-}
 
 namespace {
 /// convert to LLVM IR dialect `alloca`
@@ -1432,7 +1442,7 @@ struct InsertOnRangeOpConversion
 /// (See the static restriction on coordinate_of.) array_coor determines the
 /// coordinate (location) of a specific element.
 struct XArrayCoorOpConversion
-   : public FIROpAndTypeConversion<fir::cg::XArrayCoorOp> {
+    : public FIROpAndTypeConversion<fir::cg::XArrayCoorOp> {
   using FIROpAndTypeConversion::FIROpAndTypeConversion;
 
   mlir::LogicalResult
@@ -1449,22 +1459,6 @@ struct XArrayCoorOpConversion
     auto shiftOps = coor.shift().begin();
     auto sliceOps = coor.slice().begin();
     auto idxTy = lowerTy().indexType();
-    mlir::Value base;
-    if (coor.subcomponent().empty()) {
-      // Cast the base address to a pointer to T
-      base = rewriter.create<mlir::LLVM::BitcastOp>(loc, ty, operands[0]);
-    } else {
-      // operands[0] must have a pointer type. For subcomponent slicing, we
-      // want to cast away the array type and have a plain struct type.
-      auto ty0 = unwrap(operands[0].getType());
-      auto ptrTy = ty0.dyn_cast<mlir::LLVM::LLVMPointerType>();
-      assert(ptrTy && "expected pointer type");
-      auto eleTy = ptrTy.getElementType();
-      if (auto arrTy = eleTy.dyn_cast<mlir::LLVM::LLVMArrayType>())
-        eleTy = arrTy.getElementType();
-      auto newTy = mlir::LLVM::LLVMPointerType::get(eleTy);
-      base = rewriter.create<mlir::LLVM::BitcastOp>(loc, newTy, operands[0]);
-    }
     mlir::Value one = genConstantIndex(loc, idxTy, rewriter, 1);
     auto prevExt = one;
     mlir::Value off = genConstantIndex(loc, idxTy, rewriter, 0);
@@ -1473,7 +1467,6 @@ struct XArrayCoorOpConversion
     for (unsigned i = 0; i < rank;
          ++i, ++indexOps, ++shapeOps, ++shiftOps, ++sliceOps) {
       auto index = asType(loc, rewriter, idxTy, *indexOps);
-      auto nextExt = asType(loc, rewriter, idxTy, *shapeOps);
       mlir::Value lb = one;
       if (isShifted)
         lb = asType(loc, rewriter, idxTy, *shiftOps);
@@ -1488,14 +1481,50 @@ struct XArrayCoorOpConversion
         auto adj = rewriter.create<mlir::LLVM::SubOp>(loc, idxTy, sliceLb, lb);
         diff = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, diff, adj);
       }
-      auto sc = rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, diff, prevExt);
-      off = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, sc, off);
-      prevExt =
-          rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, prevExt, nextExt);
+      if (coor.sourceBox()) {
+        auto stride = getStrideFromBox(loc, operands.back(), i, rewriter);
+        auto sc = rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, diff, stride);
+        off = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, sc, off);
+      } else {
+        // compute stride assuming contiguity of the base array.
+        auto sc = rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, diff, prevExt);
+        off = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, sc, off);
+        auto nextExt = asType(loc, rewriter, idxTy, *shapeOps);
+        prevExt =
+            rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, prevExt, nextExt);
+      }
     }
-    SmallVector<mlir::Value, 8> args{base, off};
-    args.append(coor.subcomponent().begin(), coor.subcomponent().end());
-    rewriter.replaceOpWithNewOp<mlir::LLVM::GEPOp>(coor, ty, args);
+    if (coor.sourceBox()) {
+      if (!coor.subcomponent().empty())
+        TODO("arrayCoorOp with subcomponent on non contiguous base");
+      // Base array is not contiguous.
+      auto voidPtrTy = getVoidPtrType(coor.getContext());
+      auto base =
+          rewriter.create<mlir::LLVM::BitcastOp>(loc, voidPtrTy, operands[0]);
+      SmallVector<mlir::Value, 4> args{base, off};
+      auto addr = rewriter.create<mlir::LLVM::GEPOp>(loc, voidPtrTy, args);
+      rewriter.replaceOpWithNewOp<mlir::LLVM::BitcastOp>(coor, ty, addr);
+    } else {
+      mlir::Value base;
+      if (coor.subcomponent().empty()) {
+        // Cast the base address to a pointer to T
+        base = rewriter.create<mlir::LLVM::BitcastOp>(loc, ty, operands[0]);
+      } else {
+        // operands[0] must have a pointer type. For subcomponent slicing, we
+        // want to cast away the array type and have a plain struct type.
+        auto ty0 = unwrap(operands[0].getType());
+        auto ptrTy = ty0.dyn_cast<mlir::LLVM::LLVMPointerType>();
+        assert(ptrTy && "expected pointer type");
+        auto eleTy = ptrTy.getElementType();
+        if (auto arrTy = eleTy.dyn_cast<mlir::LLVM::LLVMArrayType>())
+          eleTy = arrTy.getElementType();
+        auto newTy = mlir::LLVM::LLVMPointerType::get(eleTy);
+        base = rewriter.create<mlir::LLVM::BitcastOp>(loc, newTy, operands[0]);
+      }
+      SmallVector<mlir::Value, 4> args{base, off};
+      args.append(coor.subcomponent().begin(), coor.subcomponent().end());
+      rewriter.replaceOpWithNewOp<mlir::LLVM::GEPOp>(coor, ty, args);
+    }
     return success();
   }
 
@@ -1573,12 +1602,32 @@ struct CoordinateOpConversion
       // base = box->data : ptr
       base = rewriter.create<mlir::LLVM::LoadOp>(loc, pty, p);
 
-      // If the base has dynamic shape, it has to be boxed as the dimension
-      // information is saved in the box.
-      if (fir::LLVMTypeConverter::dynamicallySized(cpnTy)) {
-        TODO("");
-        return success();
+      auto arrTy = cpnTy.dyn_cast<fir::SequenceType>();
+      if (!arrTy || arrTy.getDimension() + 1 != operands.size())
+        TODO("fir.coordinateOf codegen with fir.box and record types");
+
+      // Applies byte strides from the box. Ignore lower bound from stride,
+      // fir.coordinate_of indexes are zero based. Lowering takes care of
+      // lower bound aspects.
+      // This both accounts for dynamically sized types and non contiguous
+      // arrays.
+      auto idxTy = lowerTy().indexType();
+      mlir::Value off = genConstantIndex(loc, idxTy, rewriter, 0);
+      for (auto index : llvm::enumerate(operands.drop_front())) {
+        auto stride =
+            getStrideFromBox(loc, operands[0], index.index(), rewriter);
+        auto sc = rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, index.value(),
+                                                     stride);
+        off = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, sc, off);
       }
+      auto voidPtrTy = getVoidPtrType(coor.getContext());
+      auto voidPtrBase =
+          rewriter.create<mlir::LLVM::BitcastOp>(loc, voidPtrTy, base);
+      SmallVector<mlir::Value, 4> args{voidPtrBase, off};
+      auto addr = rewriter.create<mlir::LLVM::GEPOp>(loc, voidPtrTy, args);
+      rewriter.replaceOpWithNewOp<mlir::LLVM::BitcastOp>(coor, unwrap(ty),
+                                                         addr);
+      return success();
     } else {
       if (fir::LLVMTypeConverter::dynamicallySized(cpnTy))
         return mlir::emitError(loc, "bare reference to unknown shape");
@@ -1668,45 +1717,7 @@ struct CoordinateOpConversion
       rewriter.replaceOp(coor, retval);
       return success();
     }
-
-    // Taking a coordinate of an array with deferred shape. In this case, the
-    // array must be boxed. We need to retrieve the array triples from the box.
-    //
-    // Given:
-    //
-    //   %box ... : box<array<? x ? x ? x i32>>
-    //   %addr = coordinate_of %box, %0, %1, %2
-    //
-    // We want to lower this into an llvm GEP as:
-    //
-    //   %i1 = (%0 - %box.dims(0).lo) * %box.dims(0).str
-    //   %i2 = (%1 - %box.dims(1).lo) * %box.dims(1).str * %box.dims(0).ext
-    //   %scale_by = %box.dims(1).ext * %box.dims(0).ext
-    //   %i3 = (%2 - %box.dims(2).lo) * %box.dims(2).str * %scale_by
-    //   %offset = %i3 + %i2 + %i1
-    //   %addr = getelementptr i32, i32* %box.ref, i64 %offset
-    //
-    // Section 18.5.3 para 3 specifies when and how to interpret the `lo`
-    // value(s) of the triple. The implication is that they must always be
-    // zero for `coordinate_of`. This is because we do not use `coordinate_of`
-    // to compute the offset into a `box<ptr>` or `box<heap>`. The coordinate
-    // is pointer arithmetic. Pointers along a path must be explicitly
-    // dereferenced with a `load`.
-
-    if (!firTy.isa<fir::BoxType>())
-      return mlir::emitError(loc, "base must have box type");
-    if (!cpnTy.isa<fir::SequenceType>())
-      return mlir::emitError(loc, "base element must be reference to array");
-    auto baseTy = cpnTy.cast<fir::SequenceType>();
-    const auto baseDim = baseTy.getDimension();
-    if (!arraysHaveKnownShape(baseTy.getEleTy(),
-                              operands.drop_front(1 + baseDim)))
-      return mlir::emitError(loc, "base element has deferred shapes");
-
-    // Generate offset computation.
-    TODO("");
-
-    return failure();
+    return mlir::emitError(loc, "fir.coordinate_of base must have box type");
   }
 
   bool hasSubDimensions(mlir::Type type) const {

@@ -1162,7 +1162,7 @@ static constexpr llvm::StringRef getTargetOffsetAttr() {
 template <typename A, typename... AdditionalArgs>
 static A getSubOperands(unsigned pos, A allArgs,
                         mlir::DenseIntElementsAttr ranges,
-                        AdditionalArgs &&...additionalArgs) {
+                        AdditionalArgs &&... additionalArgs) {
   unsigned start = 0;
   for (unsigned i = 0; i < pos; ++i)
     start += (*(ranges.begin() + i)).getZExtValue();
@@ -1741,6 +1741,47 @@ fir::GlobalOp fir::createGlobalOp(mlir::Location loc, mlir::ModuleOp module,
   auto result = modBuilder.create<fir::GlobalOp>(loc, name, type, attrs);
   result.setVisibility(mlir::SymbolTable::Visibility::Private);
   return result;
+}
+
+bool fir::valueHasFirAttribute(mlir::Value value,
+                               llvm::StringRef attributeName) {
+  // If this is a fir.box that was loaded, the fir attributes will be on the
+  // related fir.ref<fir.box> creation.
+  if (value.getType().isa<fir::BoxType>())
+    if (auto definingOp = value.getDefiningOp())
+      if (auto loadOp = mlir::dyn_cast<fir::LoadOp>(definingOp))
+        value = loadOp.memref();
+  // If this is a function argument, look in the argument attributes.
+  if (auto blockArg = value.dyn_cast<mlir::BlockArgument>()) {
+    if (blockArg.getOwner() && blockArg.getOwner()->isEntryBlock())
+      if (auto funcOp =
+              mlir::dyn_cast<mlir::FuncOp>(blockArg.getOwner()->getParentOp()))
+        if (funcOp.getArgAttr(blockArg.getArgNumber(), attributeName))
+          return true;
+    return false;
+  }
+
+  if (auto definingOp = value.getDefiningOp()) {
+    // If this is an allocated value, look at the allocation attributes.
+    if (mlir::isa<fir::AllocMemOp>(definingOp) ||
+        mlir::isa<AllocaOp>(definingOp))
+      return definingOp->hasAttr(attributeName);
+    // If this is an imported global, look at AddOfOp and GlobalOp attributes.
+    // Both operations are looked at because use/host associated variable (the
+    // AddrOfOp) can have ASYNCHRONOUS/VOLATILE attributes even if the ultimate
+    // entity (the globalOp) does not have them.
+    if (auto addressOfOp = mlir::dyn_cast<fir::AddrOfOp>(definingOp)) {
+      if (addressOfOp->hasAttr(attributeName))
+        return true;
+      if (auto module = addressOfOp.getParentOfType<mlir::ModuleOp>())
+        if (auto globlaOp =
+                module.lookupSymbol<fir::GlobalOp>(addressOfOp.symbol()))
+          return globlaOp->hasAttr(attributeName);
+    }
+  }
+  // TODO: Construct associated entities attributes. Decide where the fir
+  // attributes must be placed/looked for in this case.
+  return false;
 }
 
 // Tablegen operators

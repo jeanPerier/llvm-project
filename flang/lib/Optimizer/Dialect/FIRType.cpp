@@ -61,6 +61,8 @@ BoxType parseBox(mlir::DialectAsmParser &parser, mlir::Location loc) {
     parser.emitError(parser.getCurrentLocation(), "expected type parameter");
     return {};
   }
+  // TODO
+  bool isContiguous = false;
 
   mlir::AffineMapAttr map;
   if (!parser.parseOptionalComma())
@@ -72,7 +74,7 @@ BoxType parseBox(mlir::DialectAsmParser &parser, mlir::Location loc) {
     parser.emitError(parser.getCurrentLocation(), "expected '>'");
     return {};
   }
-  return BoxType::get(ofTy, map);
+  return BoxType::get(ofTy, isContiguous, map);
 }
 
 // `boxchar` `<` kind `>`
@@ -645,37 +647,44 @@ private:
 
 /// Boxed object (a Fortran descriptor)
 struct BoxTypeStorage : public mlir::TypeStorage {
-  using KeyTy = std::tuple<mlir::Type, mlir::AffineMapAttr>;
+  using KeyTy = std::tuple<mlir::Type, bool, mlir::AffineMapAttr>;
 
   static unsigned hashKey(const KeyTy &key) {
     auto hashVal{llvm::hash_combine(std::get<mlir::Type>(key))};
+    hashVal =
+        llvm::hash_combine(hashVal, llvm::hash_combine(std::get<bool>(key)));
     return llvm::hash_combine(
         hashVal, llvm::hash_combine(std::get<mlir::AffineMapAttr>(key)));
   }
 
   bool operator==(const KeyTy &key) const {
     return std::get<mlir::Type>(key) == getElementType() &&
-           std::get<mlir::AffineMapAttr>(key) == getLayoutMap();
+           std::get<mlir::AffineMapAttr>(key) == getLayoutMap() &&
+           std::get<bool>(key) == getIsContiguous();
   }
 
   static BoxTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
                                    const KeyTy &key) {
     auto *storage = allocator.allocate<BoxTypeStorage>();
-    return new (storage) BoxTypeStorage{std::get<mlir::Type>(key),
-                                        std::get<mlir::AffineMapAttr>(key)};
+    return new (storage)
+        BoxTypeStorage{std::get<mlir::Type>(key), std::get<bool>(key),
+                       std::get<mlir::AffineMapAttr>(key)};
   }
 
   mlir::Type getElementType() const { return eleTy; }
   mlir::AffineMapAttr getLayoutMap() const { return map; }
+  bool getIsContiguous() const { return isContiguous; }
 
 protected:
   mlir::Type eleTy;
   mlir::AffineMapAttr map;
+  bool isContiguous;
 
 private:
   BoxTypeStorage() = delete;
-  explicit BoxTypeStorage(mlir::Type eleTy, mlir::AffineMapAttr map)
-      : eleTy{eleTy}, map{map} {}
+  explicit BoxTypeStorage(mlir::Type eleTy, bool isContiguous,
+                          mlir::AffineMapAttr map)
+      : eleTy{eleTy}, map{map}, isContiguous{isContiguous} {}
 };
 
 /// Boxed CHARACTER object type
@@ -999,6 +1008,19 @@ mlir::Type dyn_cast_ptrEleTy(mlir::Type t) {
       .Default([](mlir::Type) { return mlir::Type{}; });
 }
 
+mlir::Type dyn_cast_ptrOrBoxEleTy(mlir::Type t) {
+  return llvm::TypeSwitch<mlir::Type, mlir::Type>(t)
+      .Case<fir::ReferenceType, fir::PointerType, fir::HeapType>(
+          [](auto p) { return p.getEleTy(); })
+      .Case<fir::BoxType>([](auto p) {
+        auto eleTy = p.getEleTy();
+        if (auto ty = fir::dyn_cast_ptrEleTy(eleTy))
+          return ty;
+        return eleTy;
+      })
+      .Default([](mlir::Type) { return mlir::Type{}; });
+}
+
 } // namespace fir
 
 // CHARACTER
@@ -1064,8 +1086,9 @@ KindTy fir::RealType::getFKind() const { return getImpl()->getFKind(); }
 
 // Box<T>
 
-BoxType fir::BoxType::get(mlir::Type elementType, mlir::AffineMapAttr map) {
-  return Base::get(elementType.getContext(), elementType, map);
+BoxType fir::BoxType::get(mlir::Type elementType, bool isContiguous,
+                          mlir::AffineMapAttr map) {
+  return Base::get(elementType.getContext(), elementType, isContiguous, map);
 }
 
 mlir::Type fir::BoxType::getEleTy() const {
@@ -1076,8 +1099,11 @@ mlir::AffineMapAttr fir::BoxType::getLayoutMap() const {
   return getImpl()->getLayoutMap();
 }
 
+bool fir::BoxType::isContiguous() const { return getImpl()->getIsContiguous(); }
+
 mlir::LogicalResult
 fir::BoxType::verifyConstructionInvariants(mlir::Location, mlir::Type eleTy,
+                                           bool isContiguous,
                                            mlir::AffineMapAttr map) {
   // TODO
   return mlir::success();
