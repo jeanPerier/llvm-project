@@ -66,7 +66,7 @@ subroutine test4(a,b,c)
 ! TODO: this declaration fails in CallInterface lowering
 !  real, allocatable, intent(out) :: a(:)
   real :: a(100) ! FIXME: fake it for now
-  real, intent(in) :: b(:), c
+  real, intent(in), contiguous :: b(:), c
   ! CHECK: %[[Ba:.*]] = fir.box_addr %arg1
   ! CHECK-DAG: %[[A:.*]] = fir.array_load %arg0(%
   ! CHECK-DAG: %[[B:.*]] = fir.array_load %[[Ba]](%

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SymbolMap.h"
+#include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "mlir/IR/BuiltinTypes.h"
 
 mlir::Value fir::getBase(const fir::ExtendedValue &exv) {
@@ -200,6 +201,18 @@ Fortran::lower::operator<<(llvm::raw_ostream &os,
   return os;
 }
 
+bool fir::AbstractArrayBox::isContiguous() const {
+  // If the extended value is not coming from a descriptor, it  is contiguous.
+  if (!sourceBox)
+    return true;
+  // Allocatables are always known to be contiguous at compile time.
+  if (auto boxTy = sourceBox.getType().dyn_cast<fir::BoxType>())
+    if (boxTy.getEleTy().isa<fir::HeapType>())
+      return true;
+  // Otherwise, look for a CONTIGOUS attribute.
+  return fir::valueHasFirAttribute(sourceBox, fir::getContiguousAttrName());
+}
+
 /// Debug verifier for MutableBox ctor. There is no guarantee that this will
 /// always be called, so it should not have any functional side effects,
 /// the const is here to enforce that.
@@ -223,4 +236,9 @@ bool fir::MutableBoxValue::verify() const {
       return false;
   }
   return true;
+}
+
+bool fir::MutableBoxValue::isContiguous() const {
+  return isAllocatable() ||
+         fir::valueHasFirAttribute(getAddr(), fir::getContiguousAttrName());
 }

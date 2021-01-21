@@ -15,6 +15,7 @@
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Todo.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
+#include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Support/InternalNames.h"
 #include "flang/Semantics/symbol.h"
 #include "flang/Semantics/tools.h"
@@ -230,6 +231,10 @@ void Fortran::lower::CallInterface<T>::declare() {
       mlir::FunctionType ty = genFunctionType();
       func =
           Fortran::lower::FirOpBuilder::createFunction(loc, module, name, ty);
+      for (const auto &placeHolder : llvm::enumerate(inputs))
+        if (!placeHolder.value().attributes.empty())
+          func.setArgAttrs(placeHolder.index(), placeHolder.value().attributes);
+      // for (const auto &placeHolder : outputs)
     }
   }
 }
@@ -466,12 +471,15 @@ private:
       const FortranEntity &entity) {
     using Attrs = Fortran::evaluate::characteristics::DummyDataObject::Attr;
 
+    llvm::SmallVector<mlir::NamedAttribute, 2> attrs;
     if (obj.attrs.test(Attrs::Optional))
       TODO("Optional in procedure interface");
     if (obj.attrs.test(Attrs::Asynchronous))
       TODO("Asynchronous in procedure interface");
     if (obj.attrs.test(Attrs::Contiguous))
-      TODO("Contiguous in procedure interface");
+      attrs.emplace_back(
+          mlir::Identifier::get(fir::getContiguousAttrName(), &mlirContext),
+          UnitAttr::get(&mlirContext));
     if (obj.attrs.test(Attrs::Value))
       TODO("Value in procedure interface");
     if (obj.attrs.test(Attrs::Volatile))
@@ -511,10 +519,11 @@ private:
 
     if (obj.attrs.test(Attrs::Allocatable) || obj.attrs.test(Attrs::Pointer)) {
       auto boxRefType = fir::ReferenceType::get(boxType);
-      addFirInput(boxRefType, nextPassedArgPosition(), Property::MutableBox);
+      addFirInput(boxRefType, nextPassedArgPosition(), Property::MutableBox,
+                  attrs);
       addPassedArg(PassEntityBy::MutableBox, entity);
     } else {
-      addFirInput(boxType, nextPassedArgPosition(), Property::Box);
+      addFirInput(boxType, nextPassedArgPosition(), Property::Box, attrs);
       addPassedArg(PassEntityBy::Box, entity);
     }
   }
@@ -564,11 +573,17 @@ private:
           getConverter().getFoldingContext(), AsGenericExpr(*expr)));
     return std::nullopt;
   }
-  void addFirInput(mlir::Type type, int entityPosition, Property p) {
-    interface.inputs.emplace_back(FirPlaceHolder{type, entityPosition, p});
+  void
+  addFirInput(mlir::Type type, int entityPosition, Property p,
+              llvm::ArrayRef<mlir::NamedAttribute> attributes = llvm::None) {
+    interface.inputs.emplace_back(
+        FirPlaceHolder{type, entityPosition, p, attributes});
   }
-  void addFirOutput(mlir::Type type, int entityPosition, Property p) {
-    interface.outputs.emplace_back(FirPlaceHolder{type, entityPosition, p});
+  void
+  addFirOutput(mlir::Type type, int entityPosition, Property p,
+               llvm::ArrayRef<mlir::NamedAttribute> attributes = llvm::None) {
+    interface.outputs.emplace_back(
+        FirPlaceHolder{type, entityPosition, p, attributes});
   }
   void addPassedArg(PassEntityBy p, FortranEntity entity) {
     interface.passedArguments.emplace_back(

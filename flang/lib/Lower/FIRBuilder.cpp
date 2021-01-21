@@ -287,6 +287,23 @@ mlir::Value Fortran::lower::FirOpBuilder::createSlice(
       [&](auto) -> mlir::Value { fir::emitFatalError(loc, "not an array"); });
 }
 
+/// If an extended value came from a fir.box and a box is needed for it, return
+/// the source fir.box or a new one depending on the needs. T must be BoxValue
+/// type that extends AbstractArrayBox.
+template <typename T>
+static mlir::Value reboxIfSourceBox(mlir::Location loc, const T &box) {
+  // TODO: The source fir.box lower bounds and attributes (pointer/allocatable)
+  // may not match the ones needed for the box created (which should be driven
+  // by the dummy argument attributes according to Fortran 2018 section 18.3.5
+  // point 4). For now, assumes this does not really matters and propagate the
+  // box if the source is not known to be contiguous. A fir.rebox op should be
+  // created to take the stride/shape from a fir.box, but set new attributes,
+  // lower bounds.
+  if (!box.isContiguous())
+    return box.getSourceBox();
+  return mlir::Value{};
+}
+
 mlir::Value
 Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
                                         const fir::ExtendedValue &exv) {
@@ -298,10 +315,14 @@ Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
   auto boxTy = fir::BoxType::get(elementType);
   return exv.match(
       [&](const fir::ArrayBoxValue &box) -> mlir::Value {
+        if (auto irBox = reboxIfSourceBox(loc, box))
+          return irBox;
         auto s = createShape(loc, exv);
         return create<fir::EmboxOp>(loc, boxTy, itemAddr, s);
       },
       [&](const fir::CharArrayBoxValue &box) -> mlir::Value {
+        if (auto irBox = reboxIfSourceBox(loc, box))
+          return irBox;
         auto s = createShape(loc, exv);
         if (Fortran::lower::CharacterExprHelper::hasConstantLengthInType(exv))
           return create<fir::EmboxOp>(loc, boxTy, itemAddr, s);
@@ -312,6 +333,8 @@ Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
                                     lenParams);
       },
       [&](const fir::BoxValue &box) -> mlir::Value {
+        if (auto irBox = reboxIfSourceBox(loc, box))
+          return irBox;
         auto s = createShape(loc, exv);
         return create<fir::EmboxOp>(loc, boxTy, itemAddr, s);
       },

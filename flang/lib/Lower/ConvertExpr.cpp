@@ -950,8 +950,7 @@ public:
   // Determine the result type after removing `dims` dimensions from the array
   // type `arrTy`
   mlir::Type genSubType(mlir::Type arrTy, unsigned dims) {
-    auto unwrapTy = arrTy.cast<fir::ReferenceType>().getEleTy();
-    auto seqTy = unwrapTy.cast<fir::SequenceType>();
+    auto seqTy = fir::dyn_cast_ptrOrBoxEleTy(arrTy).cast<fir::SequenceType>();
     auto shape = seqTy.getShape();
     assert(shape.size() > 0 && "removing columns for sequence sans shape");
     assert(dims <= shape.size() && "removing more columns than exist");
@@ -978,7 +977,7 @@ public:
 
   fir::ExtendedValue
   genArrayRefComponent(const Fortran::evaluate::ArrayRef &aref) {
-    auto base = fir::getBase(gen(aref.base().GetComponent()));
+    auto base = gen(aref.base().GetComponent()).getMemRef();
     llvm::SmallVector<mlir::Value, 8> args;
     for (auto &subsc : aref.subscript())
       args.push_back(genunbox(subsc));
@@ -1011,6 +1010,7 @@ public:
       return arr.getLBounds().empty() ? one : arr.getLBounds()[dim];
     };
     auto genFullDim = [&](const auto &arr, mlir::Value delta) -> mlir::Value {
+      assert(arr.isContiguous());
       mlir::Value total = zero;
       assert(arr.getExtents().size() == aref.subscript().size());
       delta = builder.createConvert(loc, idxTy, delta);
@@ -1096,7 +1096,8 @@ public:
         }
       }
       return builder.create<fir::ArrayCoorOp>(
-          loc, refTy, addr, shape, mlir::Value{}, arrayCoorArgs, ValueRange());
+          loc, refTy, arr.isContiguous() ? addr : arr.getSourceBox(), shape,
+          mlir::Value{}, arrayCoorArgs, ValueRange());
     };
     return exv.match(
         [&](const fir::ArrayBoxValue &arr) {
@@ -1133,11 +1134,10 @@ public:
             return genAllocatableOrPointerUnbox(x);
           },
           [](const auto &x) -> Fortran::lower::SymbolBox { return x; });
-      if (!si.hasConstantShape())
+      if (!si.hasConstantShape() && si.isContiugous())
         return gen(si, aref);
       auto box = gen(symbol);
-      auto base = fir::getBase(box);
-      assert(base && "boxed type not handled");
+      auto memref = box.getMemRef();
       unsigned i = 0;
       llvm::SmallVector<mlir::Value, 8> args;
       auto loc = getLoc();
@@ -1147,7 +1147,6 @@ public:
           if (auto *val = v->getUnboxed()) {
             auto ty = val->getType();
             auto adj = getLBound(si, i++, ty);
-            assert(adj && "boxed value not handled");
             args.push_back(builder.create<mlir::SubIOp>(loc, ty, *val, adj));
           } else {
             TODO("");
@@ -1159,9 +1158,9 @@ public:
           TODO("");
         }
       }
-      auto ty = genSubType(base.getType(), args.size());
+      auto ty = genSubType(memref.getType(), args.size());
       ty = builder.getRefType(ty);
-      auto addr = builder.create<fir::CoordinateOp>(loc, ty, base, args);
+      auto addr = builder.create<fir::CoordinateOp>(loc, ty, memref, args);
       // FIXME: return may not be a scalar.
       return box.match(
           [&](const fir::CharArrayBoxValue &x) -> fir::ExtendedValue {
@@ -2104,8 +2103,8 @@ public:
   CC genarr(const Fortran::semantics::SymbolRef &sym) {
     auto loc = getLoc();
     auto extMemref = asScalarRef(sym);
-    auto memref = fir::getBase(extMemref);
-    auto arrTy = fir::dyn_cast_ptrEleTy(memref.getType());
+    auto memref = extMemref.getMemRef();
+    auto arrTy = fir::dyn_cast_ptrOrBoxEleTy(memref.getType());
     assert(arrTy.isa<fir::SequenceType>());
     auto shape = builder.createShape(loc, extMemref);
     mlir::Value slice;

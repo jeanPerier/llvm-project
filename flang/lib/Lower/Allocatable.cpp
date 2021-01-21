@@ -204,6 +204,10 @@ public:
     return readBaseAddress();
   }
 
+  /// Return the loaded irBox (fir.box) that may be an empty value if the entity
+  /// is described with a set variables.
+  mlir::Value getIRBox() { return irBox; }
+
 private:
   Fortran::lower::FirOpBuilder &builder;
   mlir::Location loc;
@@ -919,19 +923,21 @@ Fortran::lower::genMutableBoxRead(Fortran::lower::FirOpBuilder &builder,
   llvm::SmallVector<mlir::Value, 2> lbounds;
   llvm::SmallVector<mlir::Value, 2> extents;
   llvm::SmallVector<mlir::Value, 2> lengths;
-  auto addr =
-      MutablePropertyReader(builder, loc, box).read(lbounds, extents, lengths);
+  mlir::Value sourceBox;
+  auto mutablePropertyReader = MutablePropertyReader(builder, loc, box);
+  auto addr = mutablePropertyReader.read(lbounds, extents, lengths);
+  auto irBox = mutablePropertyReader.getIRBox();
   auto rank = box.rank();
   if (box.isCharacter()) {
     auto len = lengths.empty() ? mlir::Value{} : lengths[0];
     if (rank)
-      return fir::CharArrayBoxValue{addr, len, extents, lbounds};
+      return fir::CharArrayBoxValue{addr, len, extents, lbounds, irBox};
     return fir::CharBoxValue{addr, len};
   }
   if (box.isDerived())
     TODO("derived type MutableBoxValue opening");
   if (rank)
-    return fir::ArrayBoxValue{addr, extents, lbounds};
+    return fir::ArrayBoxValue{addr, extents, lbounds, irBox};
   return fir::AbstractBox{addr};
 }
 
