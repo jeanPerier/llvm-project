@@ -44,12 +44,16 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-4872d822686138ba295c087b149064e16b7832f6 tweaks to utilities for Whizard
-6c11b0d6cca58c1b268b97738607cbaddf5011c3 Val: ASSOCIATE
-7ffe862ffacc0a52896a935055dad2a1bc18bb10 intrinsics work (Whizard)
-42ebd88fbd511a211771a910d04ff28a5f015e6c Better C_LOC and C_ASSOCIATED (Whizard)
 
 Done (oldest last, omitting no-ops):
+cb2e47fa0b624d1a638106afa4c854d75a7c87af fix bogus errors with bindings (Whizard)
+bb4e4d27841e3386ce4b89b8f41f0e0ec1e438c2 NULL() actual for dummy pointer (Whizard)
+a7f6cceb8b0cf5eff2d57aa6823ef2597d24dab2 name resolution fixes (Whizard)
+67a6995597bb56665e2964e623424a2b80fe2e67 folding improvements (Whizard)
+7ffe862ffacc0a52896a935055dad2a1bc18bb10 intrinsics work (Whizard)
+42ebd88fbd511a211771a910d04ff28a5f015e6c Better C_LOC and C_ASSOCIATED (Whizard)
+4872d822686138ba295c087b149064e16b7832f6 tweaks to utilities for Whizard
+6c11b0d6cca58c1b268b97738607cbaddf5011c3 Val: ASSOCIATE
 35ecf8fc4839926d5b6fed75ec73362c8ccbbe91 WhyNotModifiable updates (Whizard)
 31f9a918c4f2f257d72e9de7661dcaccfa83e4e5 access specific procedures via aliases (Whizard)
 7882a0071c6e4fe9e0bfac26edc611ae98bce844 whizard module file issues

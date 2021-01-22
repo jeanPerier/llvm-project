@@ -40,9 +40,11 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit bfec9148a042c8fd6093ae0d54c784211a295c6c
+with llvm-project commit f187d64c80acd84f3f60799b80eba2485f8866df
 
 Log of cherry-picked commits in reverse order (latest first):
+f187d64c80acd84f3f60799b80eba2485f8866df whizard NFCs
+02e174e8f77f8c03e32e5860492dd9c7dabc6906 Pete: fix typo in message
 aba24c1580cfafc387d94add3855cb4a1e90db3c Andrezj: rearrange things
 0eeb15741bdaa6740c3bfcbed981b9d19d5348fb Andrezj: report messages from prescanner
 bebbe64075abf9d9887a8e1ee39c1ecefe970954 Pete: deferred shapes on POINTER statement
