@@ -951,6 +951,112 @@ Fortran::lower::genMutableBoxRead(Fortran::lower::FirOpBuilder &builder,
 }
 
 //===----------------------------------------------------------------------===//
+// MutableBoxValue writing interface implementation
+//===----------------------------------------------------------------------===//
+
+/// Update MutableBoxValue \p box to describe \p source.
+/// If ubounds is non empty, bounds remapping is performed (Fortran
+/// 2018 10.2.2.3 point 9), and \p lbounds must be present with the same size.
+/// If
+static void genMutableBoxWriteImpl(Fortran::lower::FirOpBuilder &builder,
+                                   mlir::Location loc,
+                                   const fir::MutableBoxValue &box,
+                                   const fir::ExtendedValue &source,
+                                   mlir::ValueRange lbounds,
+                                   mlir::ValueRange ubounds) {
+  mlir::Value addr = fir::getBase(source);
+  if (!fir::dyn_cast_ptrEleTy(addr.getType())) {
+    mlir::emitError(loc, "RHS of pointer assignment is not a memory reference");
+    return;
+  }
+  llvm::SmallVector<mlir::Value, 4> extents;
+  llvm::SmallVector<mlir::Value, 4> newLbounds;
+  llvm::SmallVector<mlir::Value, 4> lengths;
+  mlir::Value sourceBox;
+  const auto copyArrayShape = [&](const fir::AbstractArrayBox &arr) {
+    extents.append(arr.getExtents().begin(), arr.getExtents().end());
+    newLbounds.append(arr.getLBounds().begin(), arr.getLBounds().end());
+    if (!arr.isContiguous())
+      sourceBox = arr.getSourceBox();
+  };
+
+  source.match(
+      [&](const fir::CharBoxValue &ch) { lengths.push_back(ch.getLen()); },
+      [&](const fir::ArrayBoxValue &arr) { copyArrayShape(arr); },
+      [&](const fir::CharArrayBoxValue &arr) {
+        copyArrayShape(arr);
+        lengths.push_back(arr.getLen());
+      },
+      [&](const fir::BoxValue &arr) {
+        copyArrayShape(arr);
+        lengths.append(arr.getLenTypeParams().begin(),
+                       arr.getLenTypeParams().end());
+      },
+      [&](const fir::MutableBoxValue &) {
+        // No point implementing this, if right-hand side is a
+        // pointer/allocatable, the related MutableBoxValue has been read into
+        // another ExtendedValue category.
+        fir::emitFatalError(loc,
+                            "Cannot write MutableBox to another MutableBox");
+      },
+      // nothing to do
+      [&](const fir::UnboxedValue &) {}, [&](const fir::ProcBoxValue &) {});
+
+  // Override source lower bounds with user provided lower bounds
+  if (!lbounds.empty()) {
+    newLbounds.clear();
+    newLbounds.append(lbounds.begin(), lbounds.end());
+  }
+
+  // Override source shape with user provided shape. This is only possible
+  // is the base array is contiguous (or discontiguous rank 1 TODO)
+  if (!ubounds.empty()) {
+    extents.clear();
+    auto idxTy = builder.getIndexType();
+    auto one = builder.createIntegerConstant(loc, idxTy, 1);
+    for (auto [lb, ub] : llvm::zip(lbounds, ubounds)) {
+      auto lbi = builder.createConvert(loc, idxTy, lb);
+      auto ubi = builder.createConvert(loc, idxTy, ub);
+      auto diff = builder.create<mlir::SubIOp>(loc, idxTy, ubi, lbi);
+      extents.emplace_back(builder.create<mlir::AddIOp>(loc, idxTy, diff, one));
+    }
+    // Cast base addr to new sequence type.
+    auto ty = fir::dyn_cast_ptrEleTy(addr.getType());
+    if (auto seqTy = ty.dyn_cast<fir::SequenceType>()) {
+      fir::SequenceType::Shape shape(extents.size(),
+                                     fir::SequenceType::getUnknownExtent());
+      ty = fir::SequenceType::get(shape, seqTy.getEleTy());
+    }
+    addr = builder.createConvert(loc, builder.getRefType(ty), addr);
+  }
+
+  // TODO: need a "fir.rebox" op that would take a fir.box as memref argument
+  // in order to take into account the underlying array strides.
+  if (sourceBox)
+    mlir::emitError(loc,
+                    "TODO: pointer assignment to non simply contiguous array");
+
+  MutablePropertyWriter{builder, loc, box}.updateMutableBox(addr, newLbounds,
+                                                            extents, lengths);
+}
+
+void Fortran::lower::genMutableBoxWrite(Fortran::lower::FirOpBuilder &builder,
+                                        mlir::Location loc,
+                                        const fir::MutableBoxValue &box,
+                                        const fir::ExtendedValue &source,
+                                        mlir::ValueRange lbounds) {
+  return genMutableBoxWriteImpl(builder, loc, box, source, lbounds,
+                                /*ubounds=*/llvm::None);
+}
+
+void Fortran::lower::genMutableBoxWriteWithRemap(
+    Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+    const fir::MutableBoxValue &box, const fir::ExtendedValue &source,
+    mlir::ValueRange lbounds, mlir::ValueRange ubounds) {
+  return genMutableBoxWriteImpl(builder, loc, box, source, lbounds, ubounds);
+}
+
+//===----------------------------------------------------------------------===//
 // MutableBoxValue syncing implementation
 //===----------------------------------------------------------------------===//
 

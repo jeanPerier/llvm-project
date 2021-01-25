@@ -142,6 +142,13 @@ getCharacterLiteralCopy(const std::optional<A> &x) {
   return llvm::None;
 }
 
+/// Clone subexpression and wrap it as a generic `Fortran::evaluate::Expr`.
+template <typename A>
+static Fortran::evaluate::Expr<Fortran::evaluate::SomeType>
+toEvExpr(const A &x) {
+  return Fortran::evaluate::AsGenericExpr(Fortran::common::Clone(x));
+}
+
 //===----------------------------------------------------------------------===//
 // FirConverter
 //===----------------------------------------------------------------------===//
@@ -1492,13 +1499,20 @@ private:
     localSymbols.popScope();
   }
 
+  static bool isArraySectionWithoutVectorSubscript(
+      const Fortran::semantics::SomeExpr &expr) {
+    return Fortran::evaluate::IsVariable(expr) &&
+           !Fortran::evaluate::UnwrapWholeSymbolDataRef(expr) &&
+           !Fortran::evaluate::HasVectorSubscript(expr);
+  }
+
   /// Shared for both assignments and pointer assignments.
   void genAssignment(const Fortran::evaluate::Assignment &assign) {
     Fortran::lower::StatementContext stmtCtx;
+    auto loc = toLocation();
     std::visit(
         Fortran::common::visitors{
             [&](const Fortran::evaluate::Assignment::Intrinsic &) {
-              auto loc = toLocation();
               const auto *sym =
                   Fortran::evaluate::UnwrapWholeSymbolDataRef(assign.lhs);
               // Assignment of allocatable are more complex, the lhs may need to
@@ -1571,13 +1585,46 @@ private:
               // Defined assignment: call ProcRef
               TODO("");
             },
-            [&](const Fortran::evaluate::Assignment::BoundsSpec &) {
+            [&](const Fortran::evaluate::Assignment::BoundsSpec &lbExprs) {
               // Pointer assignment with possibly empty bounds-spec
-              TODO("");
+
+              // TODO: p => x(i:j:k). Needs PR 580 `createSomeArrayBox`.
+              // Currently, the code will associate a temp evaluation of the
+              // arry section to p.
+              if (isArraySectionWithoutVectorSubscript(assign.rhs))
+                mlir::emitError(loc,
+                                "TODO: pointer assignment to array sections");
+
+              llvm::SmallVector<mlir::Value, 4> lbounds;
+              for (const auto &lbExpr : lbExprs)
+                lbounds.push_back(
+                    fir::getBase(genExprValue(toEvExpr(lbExpr), stmtCtx)));
+              Fortran::lower::genMutableBoxWrite(
+                  *builder, loc, genExprMutableBox(loc, assign.lhs),
+                  genExprAddr(assign.rhs, stmtCtx), lbounds);
             },
-            [&](const Fortran::evaluate::Assignment::BoundsRemapping &) {
+            [&](const Fortran::evaluate::Assignment::BoundsRemapping
+                    &boundExprs) {
               // Pointer assignment with bounds-remapping
-              TODO("");
+
+              // TODO: p => x(i:j:k). Needs PR 580 `createSomeArrayBox`.
+              // Currently, the code will associate a temp evaluation of the
+              // arry section to p.
+              if (isArraySectionWithoutVectorSubscript(assign.rhs))
+                mlir::emitError(loc,
+                                "TODO: pointer assignment to array sections");
+
+              llvm::SmallVector<mlir::Value, 4> lbounds;
+              llvm::SmallVector<mlir::Value, 4> ubounds;
+              for (const auto &[lbExpr, ubExpr] : boundExprs) {
+                lbounds.push_back(
+                    fir::getBase(genExprValue(toEvExpr(lbExpr), stmtCtx)));
+                ubounds.push_back(
+                    fir::getBase(genExprValue(toEvExpr(ubExpr), stmtCtx)));
+              }
+              Fortran::lower::genMutableBoxWriteWithRemap(
+                  *builder, loc, genExprMutableBox(loc, assign.lhs),
+                  genExprAddr(assign.rhs, stmtCtx), lbounds, ubounds);
             },
         },
         assign.u);
