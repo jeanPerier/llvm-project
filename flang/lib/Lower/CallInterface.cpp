@@ -485,7 +485,9 @@ private:
     if (obj.attrs.test(Attrs::Volatile))
       TODO("Volatile in procedure interface");
     if (obj.attrs.test(Attrs::Target))
-      TODO("Target in procedure interface");
+      attrs.emplace_back(
+          mlir::Identifier::get(fir::getTargetAttrName(), &mlirContext),
+          UnitAttr::get(&mlirContext));
 
     // TODO: intents that require special care (e.g finalization)
 
