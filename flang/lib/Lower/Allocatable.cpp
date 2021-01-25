@@ -831,12 +831,12 @@ Fortran::lower::createUnallocatedBox(Fortran::lower::FirOpBuilder &builder,
                                       lenParams);
 }
 
-/// Is this symbol a pointer to a scalar or contiguous array ?
+/// Is this symbol a pointer to a pointer array that does not have the
+/// CONTIGUOUS attribute ?
 static inline bool
-isScalarOrContiguousPointer(const Fortran::semantics::Symbol &sym) {
-  return Fortran::semantics::IsPointer(sym) &&
-         (sym.Rank() == 0 ||
-          sym.attrs().test(Fortran::semantics::Attr::CONTIGUOUS));
+isNonContiguousArrayPointer(const Fortran::semantics::Symbol &sym) {
+  return Fortran::semantics::IsPointer(sym) && sym.Rank() != 0 &&
+         !sym.attrs().test(Fortran::semantics::Attr::CONTIGUOUS);
 }
 
 /// In case it is safe to track the properties in variables outside a
@@ -859,7 +859,7 @@ createMutableProperties(Fortran::lower::AbstractConverter &converter,
   // account for the discontiguity.
   if (var.isGlobal() || Fortran::semantics::IsDummy(sym) ||
       sym.attrs().test(Fortran::semantics::Attr::VOLATILE) ||
-      !isScalarOrContiguousPointer(sym) || useAllocateRuntime ||
+      isNonContiguousArrayPointer(sym) || useAllocateRuntime ||
       useDescForMutableBox)
     return {};
   fir::MutableProperties mutableProperties;
@@ -954,7 +954,7 @@ Fortran::lower::genMutableBoxRead(Fortran::lower::FirOpBuilder &builder,
 // MutableBoxValue syncing implementation
 //===----------------------------------------------------------------------===//
 
-/// Depending on the implementation, allocatable descriptor and the
+/// Depending on the implementation, allocatable/pointer descriptor and the
 /// MutableBoxValue need to be synced before and after calls passing the
 /// descriptor. These calls will generate the syncing if needed and be no-op
 mlir::Value
