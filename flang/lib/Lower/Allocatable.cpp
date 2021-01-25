@@ -831,6 +831,14 @@ Fortran::lower::createUnallocatedBox(Fortran::lower::FirOpBuilder &builder,
                                       lenParams);
 }
 
+/// Is this symbol a pointer to a scalar or contiguous array ?
+static inline bool
+isScalarOrContiguousPointer(const Fortran::semantics::Symbol &sym) {
+  return Fortran::semantics::IsPointer(sym) &&
+         (sym.Rank() == 0 ||
+          sym.attrs().test(Fortran::semantics::Attr::CONTIGUOUS));
+}
+
 /// In case it is safe to track the properties in variables outside a
 /// descriptor, create the variables to hold the mutable properties of the
 /// entity var. The variables are not initialized here.
@@ -847,9 +855,12 @@ createMutableProperties(Fortran::lower::AbstractConverter &converter,
   // arguments. All.) Volatile means the variable may change in ways not defined
   // per Fortran, so lowering can most likely not keep the descriptor and values
   // in sync as needed.
+  // Pointers to non contiguous arrays need to be represented with a fir.box to
+  // account for the discontiguity.
   if (var.isGlobal() || Fortran::semantics::IsDummy(sym) ||
       sym.attrs().test(Fortran::semantics::Attr::VOLATILE) ||
-      useAllocateRuntime || useDescForMutableBox)
+      !isScalarOrContiguousPointer(sym) || useAllocateRuntime ||
+      useDescForMutableBox)
     return {};
   fir::MutableProperties mutableProperties;
   auto name = converter.mangleName(sym);
@@ -918,8 +929,6 @@ Fortran::lower::genMutableBoxRead(Fortran::lower::FirOpBuilder &builder,
                                   const fir::MutableBoxValue &box) {
   if (box.hasAssumedRank())
     TODO("Assumed rank allocatables or pointers");
-  if (box.isPointer())
-    TODO("pointer"); // deal with non contiguity;
   llvm::SmallVector<mlir::Value, 2> lbounds;
   llvm::SmallVector<mlir::Value, 2> extents;
   llvm::SmallVector<mlir::Value, 2> lengths;

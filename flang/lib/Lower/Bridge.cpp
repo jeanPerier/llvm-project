@@ -1503,14 +1503,19 @@ private:
                   Fortran::evaluate::UnwrapWholeSymbolDataRef(assign.lhs);
               // Assignment of allocatable are more complex, the lhs may need to
               // be deallocated/reallocated. See Fortran 2018 10.2.1.3 p3
+              // Left TODO since not needed in F95.
               const bool isHeap =
                   sym && Fortran::semantics::IsAllocatable(*sym);
-              if (isHeap) {
-                TODO("assignment to allocatable not implemented");
-              }
+              if (isHeap)
+                mlir::emitWarning(
+                    loc,
+                    "F2003 assignment to allocatable semantic not implemented");
               // Target of the pointer must be assigned. See Fortran
-              // 2018 10.2.1.3 p2
-              const bool isPointer = sym && Fortran::semantics::IsPointer(*sym);
+              // 2018 10.2.1.3 p2. genExprAddr() on a pointer returns the target
+              // address, so nothing special is required to be done here for
+              // pointers. Optional runtime checks that the pointer is
+              // associated could be inserted here.
+
               if (assign.lhs.Rank() > 0) {
                 // Array assignment
                 // See Fortran 2018 10.2.1.3 p5, p6, and p7
@@ -1526,9 +1531,7 @@ private:
                 // Conversions should have been inserted by semantic analysis,
                 // but they can be incorrect between the rhs and lhs. Correct
                 // that here.
-                auto addr =
-                    fir::getBase(isPointer ? genExprValue(assign.lhs, stmtCtx)
-                                           : genExprAddr(assign.lhs, stmtCtx));
+                auto addr = fir::getBase(genExprAddr(assign.lhs, stmtCtx));
                 auto val = createFIRExpr(loc, &assign.rhs, stmtCtx);
                 // A function with multiple entry points returning different
                 // types tags all result variables with one of the largest
