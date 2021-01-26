@@ -36,7 +36,7 @@ const SourceFile *Parsing::Prescan(const std::string &path, Options options) {
     sourceFile = allSources.ReadStandardInput(fileError);
   } else {
     std::optional<std::string> currentDirectory{"."};
-    sourceFile = allSources.Open(path, fileError, currentDirectory);
+    sourceFile = allSources.Open(path, fileError, std::move(currentDirectory));
   }
   if (!fileError.str().empty()) {
     ProvenanceRange range{allSources.AddCompilerInsertion(path)};

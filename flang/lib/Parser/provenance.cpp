@@ -162,13 +162,13 @@ void AllSources::AppendSearchPathDirectory(std::string directory) {
 }
 
 const SourceFile *AllSources::Open(std::string path, llvm::raw_ostream &error,
-    const std::optional<std::string> &prependPath) {
+    std::optional<std::string> &&prependPath) {
   std::unique_ptr<SourceFile> source{std::make_unique<SourceFile>(encoding_)};
   if (prependPath) {
     // Set to "." for the initial source file; set to the directory name
     // of the including file for #include "quoted-file" directives &
     // INCLUDE statements.
-    searchPath_.push_front(*prependPath);
+    searchPath_.emplace_front(std::move(*prependPath));
   }
   std::optional<std::string> found{LocateSourceFile(path, searchPath_)};
   if (prependPath) {

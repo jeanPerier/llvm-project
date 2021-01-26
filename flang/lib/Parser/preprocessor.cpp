@@ -623,7 +623,8 @@ void Preprocessor::Directive(const TokenSequence &dir, Prescanner *prescanner) {
     }
     std::string buf;
     llvm::raw_string_ostream error{buf};
-    const SourceFile *included{allSources_.Open(include, error, prependPath)};
+    const SourceFile *included{
+        allSources_.Open(include, error, std::move(prependPath))};
     if (!included) {
       prescanner->Say(dir.GetTokenProvenanceRange(dirOffset),
           "#include: %s"_err_en_US, error.str());
