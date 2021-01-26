@@ -377,7 +377,7 @@ MaybeExtentExpr GetExtent(FoldingContext &context, const Subscript &subscript,
 MaybeExtentExpr ComputeUpperBound(
     ExtentExpr &&lower, MaybeExtentExpr &&extent) {
   if (extent) {
-    return std::move(*extent) - std::move(lower) + ExtentExpr{1};
+    return std::move(*extent) + std::move(lower) - ExtentExpr{1};
   } else {
     return std::nullopt;
   }
