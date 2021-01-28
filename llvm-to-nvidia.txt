@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit f187d64c80acd84f3f60799b80eba2485f8866df
+with llvm-project commit 6110e7716cd0000fdeb2a7edfbec7c9991f1a08a
 
 Log of cherry-picked commits in reverse order (latest first):
+6110e7716cd0000fdeb2a7edfbec7c9991f1a08a me: fix #include "file" search paths
+f30c523660106dd19072ae7baed72b18adfb0aa7 Valentin: allow multiple wait clauses
+b65896ef8b5a0c72f4f738356aba8e454ae340be Valentin: fix exit data directive
+5e09a025277c170cf864a86d8eea8b1adeb9fbd9 Valentin: fix host_data_directive
+a8f51ea2120bc454e3e3ece6995febe47fbb98d1 Faris: driver
+d2abd62b9d123cde5a55a92450bbe665b237a72d Valentin: NFC
+1c8f199f449916d30ec12ecc5bb0f157ab1d01a0 Faris: mess with preprocessing tests
+8e3adda820e8cd06ca86a83c23cf6adf46b786fa Faris: remove newline
 f187d64c80acd84f3f60799b80eba2485f8866df whizard NFCs
 02e174e8f77f8c03e32e5860492dd9c7dabc6906 Pete: fix typo in message
 aba24c1580cfafc387d94add3855cb4a1e90db3c Andrezj: rearrange things

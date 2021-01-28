@@ -150,7 +150,7 @@ public:
 
   void AppendSearchPathDirectory(std::string); // new last directory
   const SourceFile *Open(std::string path, llvm::raw_ostream &error,
-      const std::optional<std::string> &prependPath);
+      std::optional<std::string> &&prependPath = std::nullopt);
   const SourceFile *ReadStandardInput(llvm::raw_ostream &error);
 
   ProvenanceRange AddIncludedFile(
