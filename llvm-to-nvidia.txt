@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 6110e7716cd0000fdeb2a7edfbec7c9991f1a08a
+with llvm-project commit 3a9d2f1488f0a767d4e55dc701bbdfc5438bbb3e
 
 Log of cherry-picked commits in reverse order (latest first):
+af43440bd2f49f9cc548099d35e42734f03735ef Eric: update #include and comment
+760e6c4ce58324856d8f105b37bb974564e0f170 Andrezj: frontend
+59186902555546b9d864065d03eb1c79cb041409 Eric: ComplexType renaming
+3f46c209f1527530ca8e60a51d08e32e886fa11b Valentin: enforce checks
+94fac81fccfef9917e94bed398781744fb82e159 xgupta: fix links
+9b64e0e205603bd558d180a0b900ccdbe105bf2b Andrezj: doc
+543cd89d3fb5a108d4050635c00093695b2b6c6d Pete: get lower bounds right on named constant arrays
 6110e7716cd0000fdeb2a7edfbec7c9991f1a08a me: fix #include "file" search paths
 f30c523660106dd19072ae7baed72b18adfb0aa7 Valentin: allow multiple wait clauses
 b65896ef8b5a0c72f4f738356aba8e454ae340be Valentin: fix exit data directive

@@ -44,8 +44,13 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+38ab67d3353ca803735e302634a4a71fffc8ca20 Error on UBOUND(assumed-size array)
+2274d6e7bcd216adaf46d418eb1a1924eef455c2 IEEE_SUPPORT_...
 
 Done (oldest last, omitting no-ops):
+04163734d1a57bce24fff0da783f5a89c965a584 WRITE(I+J) parsing
+bc2527d3e5387bca1a1537e0112768c22cf5d28c shape & length characterization
+46dadb65bc28e8706d4bb8664cc49ac52dc32e65 alternative PARAMETER statement
 35f2e72ada580f34667c50d7a25494423d0ad57f REAL128
 fc4204b83318f700568926da4fca66ac0106c4f5 search paths
 cb2e47fa0b624d1a638106afa4c854d75a7c87af fix bogus errors with bindings (Whizard)
