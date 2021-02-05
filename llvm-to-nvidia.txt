@@ -40,9 +40,25 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 3a9d2f1488f0a767d4e55dc701bbdfc5438bbb3e
+with llvm-project commit 1b81117f88e44bccdf0506f3b6b77ef58f6ce5f0
 
 Log of cherry-picked commits in reverse order (latest first):
+bca0619a1bcad0d2be9f03ae5f768a64f48b1b8a Sourabh: mlir error handling in tco
+807a8daf1b2eaf251ac121bfc14e4537a0422026 Eric: fix warning
+9673a0099536e1bc99898d69c89c54087c01d1ce Eric: remove dims type
+bdb40dd14e84efb27e0c416c64721e8390b854e3 Mehdi: fix closure
+ae7e84285fb34e49029f1f131af287b1b3f2d071 Eric: IntType->IntegerType
+ba000628bdbddfe1ec37da9aa7aa2d19f03cb3a4 Andrezj: -test-io -
+985a42fdf8ae3117442ea129b684569fa6942a71 Arnamoy: -J/-module-dir
+d06e94031bcdfa43512bf7b0cdfd4b4bad3ca4e1 Andrezj: PrescanAction
+3a1513c142f4a1ddb97d882a12c89f90cb2529ac Faris: source form flags
+2018dafce50cbd1363fdd4e24c76e98852843a19 Pete: Fix LBOUND()
+f2879559ac11d88f1f9f043d4c0fec981ac2a9e6 Sourabh: enable FIR types and Dialect tests
+4463e39d91c6c54e671f409ae6e170d67239c577 Sourabh: LoopOp->DoLoopOp
+34eb0adaa9cd76f5bb0549f5a32d6ef452fe977e me: -fsyntax-only
+5bc6e75386e71129d3cbdcae6486a244a5301d54 Praveen: OMP semantic checks
+e2bd29a0d680158a66472859a18af0f1d450bbe1 Eric: update CG rewrite pass
+d3950072161f067ef4f3bd8b86ec37c97813b97d Eric: update #include
 af43440bd2f49f9cc548099d35e42734f03735ef Eric: update #include and comment
 760e6c4ce58324856d8f105b37bb974564e0f170 Andrezj: frontend
 59186902555546b9d864065d03eb1c79cb041409 Eric: ComplexType renaming

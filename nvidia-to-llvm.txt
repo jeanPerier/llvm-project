@@ -44,10 +44,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-38ab67d3353ca803735e302634a4a71fffc8ca20 Error on UBOUND(assumed-size array)
-2274d6e7bcd216adaf46d418eb1a1924eef455c2 IEEE_SUPPORT_...
 
 Done (oldest last, omitting no-ops):
+789d396fcee2e20a53aa08fe8d65c8b542dc685d TypeAndShape::MeasureElementSizeInBytes
+38ab67d3353ca803735e302634a4a71fffc8ca20 Error on UBOUND(assumed-size array)
+2274d6e7bcd216adaf46d418eb1a1924eef455c2 IEEE_SUPPORT_...
 04163734d1a57bce24fff0da783f5a89c965a584 WRITE(I+J) parsing
 bc2527d3e5387bca1a1537e0112768c22cf5d28c shape & length characterization
 46dadb65bc28e8706d4bb8664cc49ac52dc32e65 alternative PARAMETER statement
