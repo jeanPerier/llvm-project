@@ -5,9 +5,14 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
+//
+// Coding style: https://mlir.llvm.org/getting_started/DeveloperGuide/
+//
+//===----------------------------------------------------------------------===//
 
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -81,14 +86,45 @@ BoxProcType parseBoxProc(mlir::DialectAsmParser &parser, mlir::Location loc) {
   return parseTypeSingleton<BoxProcType>(parser, loc);
 }
 
-// `char` `<` kind `>`
+// `char` `<` kind [`,` `len`] `>`
 CharacterType parseCharacter(mlir::DialectAsmParser &parser) {
-  return parseKindSingleton<CharacterType>(parser);
+  int kind = 0;
+  if (parser.parseLess() || parser.parseInteger(kind)) {
+    parser.emitError(parser.getCurrentLocation(), "kind value expected");
+    return {};
+  }
+  CharacterType::LenType len = 1;
+  if (mlir::succeeded(parser.parseOptionalComma())) {
+    if (mlir::succeeded(parser.parseOptionalQuestion())) {
+      len = fir::CharacterType::unknownLen();
+    } else if (!mlir::succeeded(parser.parseInteger(len))) {
+      parser.emitError(parser.getCurrentLocation(), "len value expected");
+      return {};
+    }
+  }
+  if (parser.parseGreater())
+    return {};
+  return CharacterType::get(parser.getBuilder().getContext(), kind, len);
 }
 
 // `complex` `<` kind `>`
 fir::ComplexType parseComplex(mlir::DialectAsmParser &parser) {
   return parseKindSingleton<fir::ComplexType>(parser);
+}
+
+// `shape` `<` rank `>`
+ShapeType parseShape(mlir::DialectAsmParser &parser) {
+  return parseRankSingleton<ShapeType>(parser);
+}
+
+// `shapeshift` `<` rank `>`
+ShapeShiftType parseShapeShift(mlir::DialectAsmParser &parser) {
+  return parseRankSingleton<ShapeShiftType>(parser);
+}
+
+// `slice` `<` rank `>`
+SliceType parseSlice(mlir::DialectAsmParser &parser) {
+  return parseRankSingleton<SliceType>(parser);
 }
 
 // `field`
@@ -137,6 +173,19 @@ TypeDescType parseTypeDesc(mlir::DialectAsmParser &parser, mlir::Location loc) {
   return parseTypeSingleton<TypeDescType>(parser, loc);
 }
 
+// `vector` `<` len `:` type `>`
+fir::VectorType parseVector(mlir::DialectAsmParser &parser,
+                            mlir::Location loc) {
+  int64_t len = 0;
+  mlir::Type eleTy;
+  if (parser.parseLess() || parser.parseInteger(len) || parser.parseColon() ||
+      parser.parseType(eleTy) || parser.parseGreater()) {
+    parser.emitError(parser.getNameLoc(), "invalid vector type");
+    return {};
+  }
+  return fir::VectorType::get(len, eleTy);
+}
+
 // `void`
 mlir::Type parseVoid(mlir::DialectAsmParser &parser) {
   return parser.getBuilder().getNoneType();
@@ -151,7 +200,7 @@ SequenceType parseSequence(mlir::DialectAsmParser &parser, mlir::Location) {
   }
   SequenceType::Shape shape;
   if (parser.parseOptionalStar()) {
-    if (parser.parseDimensionList(shape, true)) {
+    if (parser.parseDimensionList(shape, /*allowDynamic=*/true)) {
       parser.emitError(parser.getNameLoc(), "invalid shape");
       return {};
     }
@@ -181,7 +230,9 @@ static bool isaIntegerType(mlir::Type ty) {
 
 bool verifyRecordMemberType(mlir::Type ty) {
   return !(ty.isa<BoxType>() || ty.isa<BoxCharType>() ||
-           ty.isa<BoxProcType>() || ty.isa<FieldType>() || ty.isa<LenType>() ||
+           ty.isa<BoxProcType>() || ty.isa<ShapeType>() ||
+           ty.isa<ShapeShiftType>() || ty.isa<SliceType>() ||
+           ty.isa<FieldType>() || ty.isa<LenType>() ||
            ty.isa<ReferenceType>() || ty.isa<TypeDescType>());
 }
 
@@ -335,12 +386,20 @@ mlir::Type fir::parseFirType(FIROpsDialect *, mlir::DialectAsmParser &parser) {
     return parseReal(parser);
   if (typeNameLit == "ref")
     return parseReference(parser, loc);
+  if (typeNameLit == "shape")
+    return parseShape(parser);
+  if (typeNameLit == "shapeshift")
+    return parseShapeShift(parser);
+  if (typeNameLit == "slice")
+    return parseSlice(parser);
   if (typeNameLit == "tdesc")
     return parseTypeDesc(parser, loc);
   if (typeNameLit == "type")
     return parseDerived(parser, loc);
   if (typeNameLit == "void")
     return parseVoid(parser);
+  if (typeNameLit == "vector")
+    return parseVector(parser, loc);
 
   parser.emitError(parser.getNameLoc(), "unknown FIR type " + typeNameLit);
   return {};
@@ -353,26 +412,104 @@ namespace detail {
 
 /// `CHARACTER` storage
 struct CharacterTypeStorage : public mlir::TypeStorage {
-  using KeyTy = KindTy;
+  using KeyTy = std::tuple<KindTy, CharacterType::LenType>;
 
-  static unsigned hashKey(const KeyTy &key) { return llvm::hash_combine(key); }
+  static unsigned hashKey(const KeyTy &key) {
+    auto hashVal = llvm::hash_combine(std::get<0>(key));
+    return llvm::hash_combine(hashVal, llvm::hash_combine(std::get<1>(key)));
+  }
 
-  bool operator==(const KeyTy &key) const { return key == getFKind(); }
+  bool operator==(const KeyTy &key) const {
+    return key == KeyTy{getFKind(), getLen()};
+  }
 
   static CharacterTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
-                                         KindTy kind) {
+                                         const KeyTy &key) {
     auto *storage = allocator.allocate<CharacterTypeStorage>();
-    return new (storage) CharacterTypeStorage{kind};
+    return new (storage)
+        CharacterTypeStorage{std::get<0>(key), std::get<1>(key)};
   }
 
   KindTy getFKind() const { return kind; }
+  CharacterType::LenType getLen() const { return len; }
 
 protected:
   KindTy kind;
+  CharacterType::LenType len;
 
 private:
   CharacterTypeStorage() = delete;
-  explicit CharacterTypeStorage(KindTy kind) : kind{kind} {}
+  explicit CharacterTypeStorage(KindTy kind, CharacterType::LenType len)
+      : kind{kind}, len{len} {}
+};
+
+struct ShapeTypeStorage : public mlir::TypeStorage {
+  using KeyTy = unsigned;
+
+  static unsigned hashKey(const KeyTy &key) { return llvm::hash_combine(key); }
+
+  bool operator==(const KeyTy &key) const { return key == getRank(); }
+
+  static ShapeTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                     unsigned rank) {
+    auto *storage = allocator.allocate<ShapeTypeStorage>();
+    return new (storage) ShapeTypeStorage{rank};
+  }
+
+  unsigned getRank() const { return rank; }
+
+protected:
+  unsigned rank;
+
+private:
+  ShapeTypeStorage() = delete;
+  explicit ShapeTypeStorage(unsigned rank) : rank{rank} {}
+};
+
+struct ShapeShiftTypeStorage : public mlir::TypeStorage {
+  using KeyTy = unsigned;
+
+  static unsigned hashKey(const KeyTy &key) { return llvm::hash_combine(key); }
+
+  bool operator==(const KeyTy &key) const { return key == getRank(); }
+
+  static ShapeShiftTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                          unsigned rank) {
+    auto *storage = allocator.allocate<ShapeShiftTypeStorage>();
+    return new (storage) ShapeShiftTypeStorage{rank};
+  }
+
+  unsigned getRank() const { return rank; }
+
+protected:
+  unsigned rank;
+
+private:
+  ShapeShiftTypeStorage() = delete;
+  explicit ShapeShiftTypeStorage(unsigned rank) : rank{rank} {}
+};
+
+struct SliceTypeStorage : public mlir::TypeStorage {
+  using KeyTy = unsigned;
+
+  static unsigned hashKey(const KeyTy &key) { return llvm::hash_combine(key); }
+
+  bool operator==(const KeyTy &key) const { return key == getRank(); }
+
+  static SliceTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                     unsigned rank) {
+    auto *storage = allocator.allocate<SliceTypeStorage>();
+    return new (storage) SliceTypeStorage{rank};
+  }
+
+  unsigned getRank() const { return rank; }
+
+protected:
+  unsigned rank;
+
+private:
+  SliceTypeStorage() = delete;
+  explicit SliceTypeStorage(unsigned rank) : rank{rank} {}
 };
 
 /// The type of a derived type part reference
@@ -560,9 +697,9 @@ struct BoxCharTypeStorage : public mlir::TypeStorage {
 
   KindTy getFKind() const { return kind; }
 
-  // a !fir.boxchar<k> always wraps a !fir.char<k>
+  // a !fir.boxchar<k> always wraps a !fir.char<k, ?>
   CharacterType getElementType(mlir::MLIRContext *ctxt) const {
-    return CharacterType::get(ctxt, getFKind());
+    return CharacterType::getUnknownLen(ctxt, getFKind());
   }
 
 protected:
@@ -679,7 +816,7 @@ struct SequenceTypeStorage : public mlir::TypeStorage {
       std::tuple<SequenceType::Shape, mlir::Type, mlir::AffineMapAttr>;
 
   static unsigned hashKey(const KeyTy &key) {
-    auto shapeHash{hash_value(std::get<SequenceType::Shape>(key))};
+    auto shapeHash = hash_value(std::get<SequenceType::Shape>(key));
     shapeHash = llvm::hash_combine(shapeHash, std::get<mlir::Type>(key));
     return llvm::hash_combine(shapeHash, std::get<mlir::AffineMapAttr>(key));
   }
@@ -785,6 +922,39 @@ private:
   explicit TypeDescTypeStorage(mlir::Type ofTy) : ofTy{ofTy} {}
 };
 
+/// Vector type storage
+struct VectorTypeStorage : public mlir::TypeStorage {
+  using KeyTy = std::tuple<uint64_t, mlir::Type>;
+
+  static unsigned hashKey(const KeyTy &key) {
+    return llvm::hash_combine(std::get<uint64_t>(key),
+                              std::get<mlir::Type>(key));
+  }
+
+  bool operator==(const KeyTy &key) const {
+    return key == KeyTy{getLen(), getEleTy()};
+  }
+
+  static VectorTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
+                                      const KeyTy &key) {
+    auto *storage = allocator.allocate<VectorTypeStorage>();
+    return new (storage)
+        VectorTypeStorage{std::get<uint64_t>(key), std::get<mlir::Type>(key)};
+  }
+
+  uint64_t getLen() const { return len; }
+  mlir::Type getEleTy() const { return eleTy; }
+
+protected:
+  uint64_t len;
+  mlir::Type eleTy;
+
+private:
+  VectorTypeStorage() = delete;
+  explicit VectorTypeStorage(uint64_t len, mlir::Type eleTy)
+      : len{len}, eleTy{eleTy} {}
+};
+
 } // namespace detail
 
 template <typename A, typename B>
@@ -816,11 +986,13 @@ bool isa_box_type(mlir::Type t) {
 }
 
 bool isa_passbyref_type(mlir::Type t) {
-  return t.isa<ReferenceType>() || isa_box_type(t);
+  return t.isa<ReferenceType>() || isa_box_type(t) ||
+         t.isa<mlir::FunctionType>();
 }
 
 bool isa_aggregate(mlir::Type t) {
-  return t.isa<SequenceType>() || t.isa<RecordType>();
+  return t.isa<SequenceType>() || t.isa<RecordType>() ||
+         t.isa<mlir::TupleType>();
 }
 
 mlir::Type dyn_cast_ptrEleTy(mlir::Type t) {
@@ -834,11 +1006,16 @@ mlir::Type dyn_cast_ptrEleTy(mlir::Type t) {
 
 // CHARACTER
 
-CharacterType fir::CharacterType::get(mlir::MLIRContext *ctxt, KindTy kind) {
-  return Base::get(ctxt, kind);
+CharacterType fir::CharacterType::get(mlir::MLIRContext *ctxt, KindTy kind,
+                                      CharacterType::LenType len) {
+  return Base::get(ctxt, kind, len);
 }
 
-int fir::CharacterType::getFKind() const { return getImpl()->getFKind(); }
+KindTy fir::CharacterType::getFKind() const { return getImpl()->getFKind(); }
+
+CharacterType::LenType fir::CharacterType::getLen() const {
+  return getImpl()->getLen();
+}
 
 // Field
 
@@ -858,7 +1035,7 @@ LogicalType fir::LogicalType::get(mlir::MLIRContext *ctxt, KindTy kind) {
   return Base::get(ctxt, kind);
 }
 
-int fir::LogicalType::getFKind() const { return getImpl()->getFKind(); }
+KindTy fir::LogicalType::getFKind() const { return getImpl()->getFKind(); }
 
 // INTEGER
 
@@ -866,7 +1043,7 @@ fir::IntegerType fir::IntegerType::get(mlir::MLIRContext *ctxt, KindTy kind) {
   return Base::get(ctxt, kind);
 }
 
-int fir::IntegerType::getFKind() const { return getImpl()->getFKind(); }
+KindTy fir::IntegerType::getFKind() const { return getImpl()->getFKind(); }
 
 // COMPLEX
 
@@ -886,7 +1063,7 @@ RealType fir::RealType::get(mlir::MLIRContext *ctxt, KindTy kind) {
   return Base::get(ctxt, kind);
 }
 
-int fir::RealType::getFKind() const { return getImpl()->getFKind(); }
+KindTy fir::RealType::getFKind() const { return getImpl()->getFKind(); }
 
 // Box<T>
 
@@ -953,8 +1130,10 @@ mlir::Type fir::ReferenceType::getEleTy() const {
 mlir::LogicalResult
 fir::ReferenceType::verifyConstructionInvariants(mlir::Location loc,
                                                  mlir::Type eleTy) {
-  if (eleTy.isa<FieldType>() || eleTy.isa<LenType>() ||
-      eleTy.isa<ReferenceType>() || eleTy.isa<TypeDescType>())
+  if (eleTy.isa<ShapeType>() || eleTy.isa<ShapeShiftType>() ||
+      eleTy.isa<SliceType>() || eleTy.isa<FieldType>() ||
+      eleTy.isa<LenType>() || eleTy.isa<ReferenceType>() ||
+      eleTy.isa<TypeDescType>())
     return mlir::emitError(loc, "cannot build a reference to type: ")
            << eleTy << '\n';
   return mlir::success();
@@ -973,10 +1152,11 @@ mlir::Type fir::PointerType::getEleTy() const {
 
 static bool canBePointerOrHeapElementType(mlir::Type eleTy) {
   return eleTy.isa<BoxType>() || eleTy.isa<BoxCharType>() ||
-         eleTy.isa<BoxProcType>() || eleTy.isa<FieldType>() ||
-         eleTy.isa<LenType>() || eleTy.isa<HeapType>() ||
-         eleTy.isa<PointerType>() || eleTy.isa<ReferenceType>() ||
-         eleTy.isa<TypeDescType>();
+         eleTy.isa<BoxProcType>() || eleTy.isa<ShapeType>() ||
+         eleTy.isa<ShapeShiftType>() || eleTy.isa<SliceType>() ||
+         eleTy.isa<FieldType>() || eleTy.isa<LenType>() ||
+         eleTy.isa<HeapType>() || eleTy.isa<PointerType>() ||
+         eleTy.isa<ReferenceType>() || eleTy.isa<TypeDescType>();
 }
 
 mlir::LogicalResult
@@ -1061,10 +1241,12 @@ mlir::LogicalResult fir::SequenceType::verifyConstructionInvariants(
     mlir::AffineMapAttr map) {
   // DIMENSION attribute can only be applied to an intrinsic or record type
   if (eleTy.isa<BoxType>() || eleTy.isa<BoxCharType>() ||
-      eleTy.isa<BoxProcType>() || eleTy.isa<FieldType>() ||
-      eleTy.isa<LenType>() || eleTy.isa<HeapType>() ||
+      eleTy.isa<BoxProcType>() || eleTy.isa<ShapeType>() ||
+      eleTy.isa<ShapeShiftType>() || eleTy.isa<SliceType>() ||
+      eleTy.isa<FieldType>() || eleTy.isa<LenType>() || eleTy.isa<HeapType>() ||
       eleTy.isa<PointerType>() || eleTy.isa<ReferenceType>() ||
-      eleTy.isa<TypeDescType>() || eleTy.isa<SequenceType>())
+      eleTy.isa<TypeDescType>() || eleTy.isa<fir::VectorType>() ||
+      eleTy.isa<SequenceType>())
     return mlir::emitError(loc, "cannot build an array of this element type: ")
            << eleTy << '\n';
   return mlir::success();
@@ -1089,6 +1271,31 @@ llvm::hash_code fir::hash_value(const SequenceType::Shape &sh) {
   }
   return llvm::hash_combine(0);
 }
+
+// Shape
+
+ShapeType fir::ShapeType::get(mlir::MLIRContext *ctxt, unsigned rank) {
+  return Base::get(ctxt, rank);
+}
+
+unsigned fir::ShapeType::getRank() const { return getImpl()->getRank(); }
+
+// Shapeshift
+
+ShapeShiftType fir::ShapeShiftType::get(mlir::MLIRContext *ctxt,
+                                        unsigned rank) {
+  return Base::get(ctxt, rank);
+}
+
+unsigned fir::ShapeShiftType::getRank() const { return getImpl()->getRank(); }
+
+// Slice
+
+SliceType fir::SliceType::get(mlir::MLIRContext *ctxt, unsigned rank) {
+  return Base::get(ctxt, rank);
+}
+
+unsigned fir::SliceType::getRank() const { return getImpl()->getRank(); }
 
 /// RecordType
 ///
@@ -1132,9 +1339,9 @@ mlir::Type fir::RecordType::getType(llvm::StringRef ident) {
   return {};
 }
 
-/// Type descriptor type
-///
-/// This is the type of a type descriptor object (similar to a class instance)
+//===----------------------------------------------------------------------===//
+// Type descriptor type
+//===----------------------------------------------------------------------===//
 
 TypeDescType fir::TypeDescType::get(mlir::Type ofType) {
   assert(!ofType.isa<ReferenceType>());
@@ -1147,10 +1354,32 @@ mlir::LogicalResult
 fir::TypeDescType::verifyConstructionInvariants(mlir::Location loc,
                                                 mlir::Type eleTy) {
   if (eleTy.isa<BoxType>() || eleTy.isa<BoxCharType>() ||
-      eleTy.isa<BoxProcType>() || eleTy.isa<FieldType>() ||
-      eleTy.isa<LenType>() || eleTy.isa<ReferenceType>() ||
-      eleTy.isa<TypeDescType>())
+      eleTy.isa<BoxProcType>() || eleTy.isa<ShapeType>() ||
+      eleTy.isa<ShapeShiftType>() || eleTy.isa<SliceType>() ||
+      eleTy.isa<FieldType>() || eleTy.isa<LenType>() ||
+      eleTy.isa<ReferenceType>() || eleTy.isa<TypeDescType>())
     return mlir::emitError(loc, "cannot build a type descriptor of type: ")
+           << eleTy << '\n';
+  return mlir::success();
+}
+
+//===----------------------------------------------------------------------===//
+// Vector type
+//===----------------------------------------------------------------------===//
+
+fir::VectorType fir::VectorType::get(uint64_t len, mlir::Type eleTy) {
+  return Base::get(eleTy.getContext(), len, eleTy);
+}
+
+mlir::Type fir::VectorType::getEleTy() const { return getImpl()->getEleTy(); }
+
+uint64_t fir::VectorType::getLen() const { return getImpl()->getLen(); }
+
+mlir::LogicalResult
+fir::VectorType::verifyConstructionInvariants(mlir::Location loc, uint64_t len,
+                                              mlir::Type eleTy) {
+  if (!(fir::isa_real(eleTy) || fir::isa_integer(eleTy)))
+    return mlir::emitError(loc, "cannot build a vector of type ")
            << eleTy << '\n';
   return mlir::success();
 }
@@ -1160,11 +1389,10 @@ namespace {
 void printBounds(llvm::raw_ostream &os, const SequenceType::Shape &bounds) {
   os << '<';
   for (auto &b : bounds) {
-    if (b >= 0) {
+    if (b >= 0)
       os << b << 'x';
-    } else {
+    else
       os << "?x";
-    }
   }
 }
 
@@ -1202,15 +1430,27 @@ void fir::printFirType(FIROpsDialect *, mlir::Type ty,
     os << '>';
     return;
   }
-  if (auto type = ty.dyn_cast<CharacterType>()) {
-    os << "char<" << type.getFKind() << '>';
+  if (auto chTy = ty.dyn_cast<CharacterType>()) {
+    // Fortran intrinsic type CHARACTER
+    os << "char<" << chTy.getFKind();
+    auto len = chTy.getLen();
+    if (len != fir::CharacterType::singleton()) {
+      os << ',';
+      if (len == fir::CharacterType::unknownLen())
+        os << '?';
+      else
+        os << len;
+    }
+    os << '>';
     return;
   }
   if (auto type = ty.dyn_cast<fir::ComplexType>()) {
+    // Fortran intrinsic type COMPLEX
     os << "complex<" << type.getFKind() << '>';
     return;
   }
   if (auto type = ty.dyn_cast<RecordType>()) {
+    // Fortran derived type
     os << "type<" << type.getName();
     if (!recordTypeVisited.count(type.uniqueKey())) {
       recordTypeVisited.insert(type.uniqueKey());
@@ -1237,6 +1477,18 @@ void fir::printFirType(FIROpsDialect *, mlir::Type ty,
     os << '>';
     return;
   }
+  if (auto type = ty.dyn_cast<ShapeType>()) {
+    os << "shape<" << type.getRank() << '>';
+    return;
+  }
+  if (auto type = ty.dyn_cast<ShapeShiftType>()) {
+    os << "shapeshift<" << type.getRank() << '>';
+    return;
+  }
+  if (auto type = ty.dyn_cast<SliceType>()) {
+    os << "slice<" << type.getRank() << '>';
+    return;
+  }
   if (ty.isa<FieldType>()) {
     os << "field";
     return;
@@ -1248,6 +1500,7 @@ void fir::printFirType(FIROpsDialect *, mlir::Type ty,
     return;
   }
   if (auto type = ty.dyn_cast<fir::IntegerType>()) {
+    // Fortran intrinsic type INTEGER
     os << "int<" << type.getFKind() << '>';
     return;
   }
@@ -1256,6 +1509,7 @@ void fir::printFirType(FIROpsDialect *, mlir::Type ty,
     return;
   }
   if (auto type = ty.dyn_cast<LogicalType>()) {
+    // Fortran intrinsic type LOGICAL
     os << "logical<" << type.getFKind() << '>';
     return;
   }
@@ -1266,6 +1520,7 @@ void fir::printFirType(FIROpsDialect *, mlir::Type ty,
     return;
   }
   if (auto type = ty.dyn_cast<fir::RealType>()) {
+    // Fortran intrinsic types REAL and DOUBLE PRECISION
     os << "real<" << type.getFKind() << '>';
     return;
   }
@@ -1297,4 +1552,24 @@ void fir::printFirType(FIROpsDialect *, mlir::Type ty,
     os << '>';
     return;
   }
+  if (auto type = ty.dyn_cast<fir::VectorType>()) {
+    os << "vector<" << type.getLen() << ':';
+    p.printType(type.getEleTy());
+    os << '>';
+    return;
+  }
+}
+
+bool fir::isa_unknown_size_box(mlir::Type t) {
+  if (auto boxTy = t.dyn_cast<fir::BoxType>()) {
+    auto eleTy = boxTy.getEleTy();
+    if (auto actualEleTy = fir::dyn_cast_ptrEleTy(eleTy))
+      eleTy = actualEleTy;
+    if (eleTy.isa<mlir::NoneType>())
+      return true;
+    if (auto seqTy = eleTy.dyn_cast<fir::SequenceType>())
+      if (seqTy.hasUnknownShape())
+        return true;
+  }
+  return false;
 }

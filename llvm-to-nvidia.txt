@@ -40,9 +40,24 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 1b81117f88e44bccdf0506f3b6b77ef58f6ce5f0
+with llvm-project commit db0d7d0ba9f9d6c03263234beabb1c0b8435a445
 
 Log of cherry-picked commits in reverse order (latest first):
+cf471632b1bd02d6f6e582c8c0f82043f7d09946 Andrezj: add unit test dependency
+2996a8d67553b9d469e01215b49bb1af17ad6d1e zinenko: no mutable DialectRegistry
+6d48a1a53fabae8715091a9aca128cc4a5d9b0a6 Faris: -fopenmp, -fopenacc
+e090182fe153c9ceea50b1807f8ca5c13729e402 Eric: update name "uniquer"
+399c3d5b297208b7dcdfac1710e02e2775281704 Eric: shape &c.
+2cd0a113df2c12405e7a81f970f2df5a0de46df2 Eric: OpaqueAttr
+e892109c3e55eefcd197d9ef8dc701550d5f268e Eric: NFC comment
+bdf3ad582e50b06863026b72a1371353a257fc56 Eric: NFC comments
+7e20a413483307c2f7df327074bc0b687335f3b1 Eric: FIR character type
+c2c83e97c3ac98ddf5bd685cbfba3f620f59fa51 tpopp: unrevert...
+511dd4f4383b1c2873beac4dbea2df302f1f9d0c tpopp: revert...
+7827753f9810e846fb702f3e8dcff0bfb37344e1 tpopp: reorder MLIRContext location
+f6342806dbfcae5320013331958dae98855e75f6 Eric: FIR vector type
+a1a1d338e99dc9c6d1234b70f43dea2e1bb2f8ce Eric: NFC: KindTy
+ea3574561020081d84459a6e8028b59ff3814000 Eric: NFC comments
 bca0619a1bcad0d2be9f03ae5f768a64f48b1b8a Sourabh: mlir error handling in tco
 807a8daf1b2eaf251ac121bfc14e4537a0422026 Eric: fix warning
 9673a0099536e1bc99898d69c89c54087c01d1ce Eric: remove dims type
