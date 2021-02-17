@@ -40,9 +40,36 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit db0d7d0ba9f9d6c03263234beabb1c0b8435a445
+with llvm-project commit 642048eea041ff79aa9e8a934edff2415ab16447
 
 Log of cherry-picked commits in reverse order (latest first):
+5ef029d2671914ee8065a878a076eee1caae9ab1 Valentin: NFC move to tablegen
+61b8a3e7c5acdbef8d6f36cbaf062e5b1e8875fc Valentin: NFC move to tablegen
+209bc67b78f4777be6d37ce721d5ba1d700e3acc Valentin: NFC move to tablegen
+77dc203cd0f65a8dbd71f3814e0cc3199c791980 Pete: detect circular procedure interfaces
+b86dbe0c23e3d284699da551afc2ca9c634a6c62 Valentin: fix build
+8260232cdd138d1357d308e43c33f0f16044f44c Valentin: add fir-opt tool (take 2)
+10826ea7b1c12c2afe421448996f98ed66869020 Faris: new driver options
+df22133a8a402ed2d31ff92482678c5092792e66 Andrezj: rm unused code
+96d229c9abdfb2836e18a554bfb63b5d52aeebfa Andrezj: unparsing options
+548549e88ac4a1908206b888be24592e1dbcc38f Andrezj: -fdebug-dump-... implies -fsyntax-only
+20e3a6cb6270b68139f74529ab8efdfad1263533 yhegde: OMP semantic checks for DO loops
+af186e93723837a507042acf1d7338e125706129 Valentin: revert fir-opt tool
+8c1b63307f0696058bf4a9f7a54b012867f2457e Valentin: NFC move to tablegen
+df1eeaa7b404f7c5a96a812479f0ee2ce8354f6a Valentin: add fir-opt tool
+8fc219d58feb9b4027feae3a3376598d60b93289 Eric: NFC formatting change
+f800a9bd42bf5cab31fcdc3b74d3bd75502afd3c Eric: NFC move from FIRDialect.h
+a48bee2294b608f5c530f783757692eb2ca44100 Valentin: NFC move to tablegen
+f47d7c145b89985807c1e84316d091c5711f2e49 Eric: NFC renaming
+4dc87d1010351170d73ebd23869751fe1bd6ac26 Eric: update kind mapping class
+204360fd71d605d04cbe6e6efa3c2a898912c326 Leandro: fix FlangConfig.cmake.in typo
+6a7deff58e3f725801f8566ef414af4074bc7a9d Sourabh: rm LINK_WITH_FIR
+661f9e2a92302b1c7140528423fdbfc133a68b41 Valentin: revert...
+d96bb48f7874d636ffd0ee233e2d66fff0614b8f Valentin: NFC move to tablegen
+0feff71eabd39fc93f3d9ec30ed16e26da6cf883 Andrezj: Move macro predefs around
+5ad416ca781837ec1f2142533f044bd46e87e83c Valentin: fix build
+550f251e47e6132ff7cefaa7bb63420934d39c05 Valentin: NFC move to tablegen
+edd365c7098d212172b6e94a793910a8e1a0f521 Valentin: NFC move to tablegen
 cf471632b1bd02d6f6e582c8c0f82043f7d09946 Andrezj: add unit test dependency
 2996a8d67553b9d469e01215b49bb1af17ad6d1e zinenko: no mutable DialectRegistry
 6d48a1a53fabae8715091a9aca128cc4a5d9b0a6 Faris: -fopenmp, -fopenacc
