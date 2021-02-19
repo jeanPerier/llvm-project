@@ -158,8 +158,17 @@ public:
   }
 
   /// Convert a StringRef string into a fir::StringLitOp.
-  fir::StringLitOp createStringLit(mlir::Location loc, mlir::Type eleTy,
-                                   llvm::StringRef string);
+  fir::StringLitOp createStringLitOp(mlir::Location loc,
+                                     llvm::StringRef string);
+
+  /// Create a !fir.char<1> string literal global and returns a
+  /// fir::CharBoxValue with its address en length.
+  fir::ExtendedValue createStringLiteral(mlir::Location loc,
+                                         llvm::StringRef string);
+
+  /// Unique a compiler generated identifier. A short prefix should be provided
+  /// to hint at the origin of the identifier.
+  std::string uniqueCGIdent(llvm::StringRef prefix, llvm::StringRef name);
 
   //===--------------------------------------------------------------------===//
   // Linkage helpers (inline). The default linkage is external.
@@ -249,6 +258,15 @@ public:
   mlir::Value createBool(mlir::Location loc, bool b) {
     return createIntegerConstant(loc, getIntegerType(1), b ? 1 : 0);
   }
+
+  //===--------------------------------------------------------------------===//
+  // Location helpers
+  //===--------------------------------------------------------------------===//
+
+  /// Generate a string literal containing the file name and return its address
+  mlir::Value locationToFilename(mlir::Location);
+  /// Generate a constant of the given type with the location line number
+  mlir::Value locationToLineNo(mlir::Location, mlir::Type);
 
 private:
   const fir::KindMapping &kindMap;
