@@ -15,6 +15,7 @@
 
 #include "flang/Lower/IntrinsicCall.h"
 #include "RTBuilder.h"
+#include "StatementContext.h"
 #include "SymbolMap.h"
 #include "flang/Common/static-multimap-view.h"
 #include "flang/Lower/Allocatable.h"
@@ -99,8 +100,9 @@ struct IntrinsicLibrary {
 
   // Constructors.
   explicit IntrinsicLibrary(Fortran::lower::FirOpBuilder &builder,
-                            mlir::Location loc)
-      : builder{builder}, loc{loc} {}
+                            mlir::Location loc,
+                            Fortran::lower::StatementContext *stmtCtx = nullptr)
+      : builder{builder}, loc{loc}, stmtCtx{stmtCtx} {}
   IntrinsicLibrary() = delete;
   IntrinsicLibrary(const IntrinsicLibrary &) = delete;
 
@@ -210,8 +212,12 @@ struct IntrinsicLibrary {
   getUnrestrictedIntrinsicSymbolRefAttr(llvm::StringRef name,
                                         mlir::FunctionType signature);
 
+  /// Add clean-up for \p temp to the current statement context;
+  void addCleanUpForTemp(mlir::Location loc, mlir::Value temp);
+
   Fortran::lower::FirOpBuilder &builder;
   mlir::Location loc;
+  Fortran::lower::StatementContext *stmtCtx;
 };
 
 struct IntrinsicDummyArgument {
@@ -1032,6 +1038,12 @@ mlir::SymbolRefAttr IntrinsicLibrary::getUnrestrictedIntrinsicSymbolRefAttr(
   return builder.getSymbolRefAttr(funcOp.getName());
 }
 
+void IntrinsicLibrary::addCleanUpForTemp(mlir::Location loc, mlir::Value temp) {
+  assert(stmtCtx);
+  auto *bldr = &builder;
+  stmtCtx->attachCleanup([=]() { bldr->create<fir::FreeMemOp>(loc, temp); });
+}
+
 //===----------------------------------------------------------------------===//
 // Code generators for the intrinsic
 //===----------------------------------------------------------------------===//
@@ -1384,7 +1396,7 @@ IntrinsicLibrary::genTrim(mlir::Type, llvm::ArrayRef<fir::ExtendedValue> args) {
   auto res = Fortran::lower::genMutableBoxRead(builder, loc, restultMutableBox);
   return res.match(
       [&](const fir::CharBoxValue &box) -> fir::ExtendedValue {
-        // TODO: add addr to StatementContext temps
+        addCleanUpForTemp(loc, fir::getBase(box));
         return box;
       },
       [&](const auto &) -> fir::ExtendedValue {
@@ -1497,9 +1509,10 @@ fir::ExtendedValue
 Fortran::lower::genIntrinsicCall(Fortran::lower::FirOpBuilder &builder,
                                  mlir::Location loc, llvm::StringRef name,
                                  llvm::Optional<mlir::Type> resultType,
-                                 llvm::ArrayRef<fir::ExtendedValue> args) {
-  return IntrinsicLibrary{builder, loc}.genIntrinsicCall(name, resultType,
-                                                         args);
+                                 llvm::ArrayRef<fir::ExtendedValue> args,
+                                 Fortran::lower::StatementContext &stmtCtx) {
+  return IntrinsicLibrary{builder, loc, &stmtCtx}.genIntrinsicCall(
+      name, resultType, args);
 }
 
 mlir::Value Fortran::lower::genMax(Fortran::lower::FirOpBuilder &builder,
