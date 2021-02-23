@@ -86,3 +86,20 @@ Fortran::lower::genCharCompare(Fortran::lower::FirOpBuilder &builder,
   return genRawCharCompare(builder, loc, cmp, lhsBuffer, fir::getLen(lhs),
                            rhsBuffer, fir::getLen(rhs));
 }
+
+void Fortran::lower::genTrim(Fortran::lower::FirOpBuilder &builder,
+                             mlir::Location loc, const mlir::Value &resultBox,
+                             const mlir::Value &stringBox) {
+  auto trimFunc = getRuntimeFunc<mkRTKey(Trim)>(loc, builder);
+  auto fTy = trimFunc.getType();
+  auto sourceFile = builder.locationToFilename(loc);
+  auto sourceLine = builder.locationToLineNo(loc, fTy.getInput(3));
+
+  llvm::SmallVector<mlir::Value, 4> args;
+  auto i = 0;
+  args.emplace_back(builder.createConvert(loc, fTy.getInput(i++), resultBox));
+  args.emplace_back(builder.createConvert(loc, fTy.getInput(i++), stringBox));
+  args.emplace_back(builder.createConvert(loc, fTy.getInput(i++), sourceFile));
+  args.emplace_back(builder.createConvert(loc, fTy.getInput(i++), sourceLine));
+  builder.create<fir::CallOp>(loc, trimFunc, args);
+}

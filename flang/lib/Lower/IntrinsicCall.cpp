@@ -15,8 +15,11 @@
 
 #include "flang/Lower/IntrinsicCall.h"
 #include "RTBuilder.h"
+#include "SymbolMap.h"
 #include "flang/Common/static-multimap-view.h"
+#include "flang/Lower/Allocatable.h"
 #include "flang/Lower/CharacterExpr.h"
+#include "flang/Lower/CharacterRuntime.h"
 #include "flang/Lower/ComplexExpr.h"
 #include "flang/Lower/ConvertType.h"
 #include "flang/Lower/FIRBuilder.h"
@@ -148,6 +151,7 @@ struct IntrinsicLibrary {
   mlir::Value genNint(mlir::Type, llvm::ArrayRef<mlir::Value>);
   fir::ExtendedValue genPresent(mlir::Type, llvm::ArrayRef<fir::ExtendedValue>);
   mlir::Value genSign(mlir::Type, llvm::ArrayRef<mlir::Value>);
+  fir::ExtendedValue genTrim(mlir::Type, llvm::ArrayRef<fir::ExtendedValue>);
   /// Implement all conversion functions like DBLE, the first argument is
   /// the value to convert. There may be an additional KIND arguments that
   /// is ignored because this is already reflected in the result type.
@@ -271,6 +275,7 @@ static constexpr IntrinsicHandler handlers[]{
     {"nint", &I::genNint},
     {"present", &I::genPresent, {{{"a", asInquired}}}, /*isElemental=*/false},
     {"sign", &I::genSign},
+    {"trim", &I::genTrim, {{{"string", asAddr}}}, /*isElemental*/ false},
 };
 
 /// To make fir output more readable for debug, one can outline all intrinsic
@@ -1357,6 +1362,34 @@ mlir::Value IntrinsicLibrary::genSign(mlir::Type resultType,
   auto cmp =
       builder.create<fir::CmpfOp>(loc, mlir::CmpFPredicate::OLT, args[1], zero);
   return builder.create<mlir::SelectOp>(loc, cmp, neg, abs);
+}
+
+// TRIM
+fir::ExtendedValue
+IntrinsicLibrary::genTrim(mlir::Type, llvm::ArrayRef<fir::ExtendedValue> args) {
+  assert(args.size() == 1);
+  auto string = builder.createBox(loc, args[0]);
+  // Create mutable fir.box to be passed to the runtime for the result.
+  auto kind = Fortran::lower::CharacterExprHelper::getCharacterKind(
+      fir::getBase(args[0]).getType());
+  auto charTy = fir::CharacterType::getUnknownLen(builder.getContext(), kind);
+  auto restultMutableBox =
+      Fortran::lower::createTempMutableBox(builder, loc, charTy);
+  auto restultIrBox =
+      Fortran::lower::getMutableIRBox(builder, loc, restultMutableBox);
+  // Call runtime. The runtime is allocating the result.
+  Fortran::lower::genTrim(builder, loc, restultIrBox, string);
+  // Read result from mutable fir.box and add it to the list of temps to be
+  // finalized by the StatementContext.
+  auto res = Fortran::lower::genMutableBoxRead(builder, loc, restultMutableBox);
+  return res.match(
+      [&](const fir::CharBoxValue &box) -> fir::ExtendedValue {
+        // TODO: add addr to StatementContext temps
+        return box;
+      },
+      [&](const auto &) -> fir::ExtendedValue {
+        fir::emitFatalError(loc, "result of TRIM is not a scalar character");
+      });
 }
 
 // Compare two FIR values and return boolean result as i1.
