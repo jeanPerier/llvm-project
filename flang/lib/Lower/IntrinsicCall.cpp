@@ -1378,22 +1378,20 @@ mlir::Value IntrinsicLibrary::genSign(mlir::Type resultType,
 
 // TRIM
 fir::ExtendedValue
-IntrinsicLibrary::genTrim(mlir::Type, llvm::ArrayRef<fir::ExtendedValue> args) {
+IntrinsicLibrary::genTrim(mlir::Type resultType,
+                          llvm::ArrayRef<fir::ExtendedValue> args) {
   assert(args.size() == 1);
   auto string = builder.createBox(loc, args[0]);
   // Create mutable fir.box to be passed to the runtime for the result.
-  auto kind = Fortran::lower::CharacterExprHelper::getCharacterKind(
-      fir::getBase(args[0]).getType());
-  auto charTy = fir::CharacterType::getUnknownLen(builder.getContext(), kind);
-  auto restultMutableBox =
-      Fortran::lower::createTempMutableBox(builder, loc, charTy);
-  auto restultIrBox =
-      Fortran::lower::getMutableIRBox(builder, loc, restultMutableBox);
+  auto resultMutableBox =
+      Fortran::lower::createTempMutableBox(builder, loc, resultType);
+  auto resultIrBox =
+      Fortran::lower::getMutableIRBox(builder, loc, resultMutableBox);
   // Call runtime. The runtime is allocating the result.
-  Fortran::lower::genTrim(builder, loc, restultIrBox, string);
+  Fortran::lower::genTrim(builder, loc, resultIrBox, string);
   // Read result from mutable fir.box and add it to the list of temps to be
   // finalized by the StatementContext.
-  auto res = Fortran::lower::genMutableBoxRead(builder, loc, restultMutableBox);
+  auto res = Fortran::lower::genMutableBoxRead(builder, loc, resultMutableBox);
   return res.match(
       [&](const fir::CharBoxValue &box) -> fir::ExtendedValue {
         addCleanUpForTemp(loc, fir::getBase(box));
