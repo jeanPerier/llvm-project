@@ -17,7 +17,7 @@ To look for changes to merge from LLVM to NVIDIA:
   $EDITOR log.tmp llvm-to-nvidia.txt
 
 Look for new flang commits since the latest (top) entry in the log below.
-Add them to the "Commits to be cherry-picked" list below
+Add them to the "Log of cherry-picked commits" list below
 (or "Not cherry-picked" if you think they should not be).
 
 For each commit that you want to pick:
@@ -40,9 +40,32 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 642048eea041ff79aa9e8a934edff2415ab16447
+with llvm-project commit b183cbfacd32ef7ac128ec0327c5972fd7e7f9c6
 
 Log of cherry-picked commits in reverse order (latest first):
+67360decc3d4bda363c2fa2550eb1c2b876c8cf0 Eric: add array value ops
+8c074cb0b74e14ab1135d09cb53daf1a09602f73 csigg: mark deprecated mlir API
+ad14ccc8c22e1480db7bfc1a176311e6f572c588 Shao-Ce: consistency change
+baebc1162f810f7bf5de48919054f75a2f81e180 Andrezj: set stdin input type to Fortran
+082ec3ab07760d1a6e47886246090c6f58708dbf Eric: rm dead code
+841f6995cd33b8891655b2aeb78deca548362c23 Valentin: move types to tablegen
+330406143230451160a8dfc5b0dc24aa015abde0 Eric: add zero_bits
+6740694742165c03e074f19141f58a8df5a887ec Eric: rm dead code
+5e54bef4d291d4353bb26e0782539b6f79625f68 Andrezj: share driver test dirs
+36ea1cac1a4226cc55866982104dc3de2cc194bf Jean: add source line to TODO msgs
+06e25d56451977ef5b7052282faacfe3d42acb65 River: refactoring
+7d1397f7ad4bbdad56468d5a4c7a77fa4c553936 Renaud: make member function const
+8720ec6b9a288b686089c5137dda64001a7a9f38 Tim: -J
+d81f633fe28fd23108b4dc8c25548f1653ba0cd2 Andrezj: -Xflang
+c68d2895a1f4019b387c69d1e5eec31b0eb5e7b0 Eric: update test tool classes
+a88991d782889abcb3a1d44860d7cb009fa15747 Eric: run clang-format
+529f71811b0475995f2d9cf766f18d897eec574c Faris: debug options
+c0deb81cd1a4afbe7d1666390c31746b308ff96f Andrezj: add dependency
+4bd08dab5ff99d094513f4adf4bf16bbce8f5a1f Faris: arm driver dump options
+8cfe9c02a0430e604bfec520caaea0e5d61ed399 Mehdi: fix MinGW-w64 build
+fd3297dc32fab5c7a0a53efe71cf5c98cc365d50 Eric: clang-tidy
+930150781da15f93811568760a60c7319de916b5 Eric: merge tablegen files
+0d4534237de38fcf1b2a71bcb0f74cb5675fe7e1 Eric: clang-tidy
 5ef029d2671914ee8065a878a076eee1caae9ab1 Valentin: NFC move to tablegen
 61b8a3e7c5acdbef8d6f36cbaf062e5b1e8875fc Valentin: NFC move to tablegen
 209bc67b78f4777be6d37ce721d5ba1d700e3acc Valentin: NFC move to tablegen
