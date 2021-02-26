@@ -44,10 +44,13 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-57399aa56412701d2732b06ff952920f5e484182 Improve module file error message
-58bc31e82d3237010c18460eb831d07c58c3f548 Don't predefine macros for "no pp" source files
+f60dc3884542b5138118d5ca5459781a052e0f86 Extension: forward refs to dummy args IMPLICIT NONE
 
 Done (oldest last, omitting no-ops):
+8a272fedcf6d50eead562542ddd198b54ac7ae0c Warn about explicit typing of generic intrinsics
+f1ba830b9389565f457a3995c2f5bbe38f525f31 Ensure intrinsics PURE &/or ELEMENTAL
+57399aa56412701d2732b06ff952920f5e484182 Improve module file error message
+58bc31e82d3237010c18460eb831d07c58c3f548 Don't predefine macros for "no pp" source files
 2b3096ac32f7b1b66ee46c6789d484372aa28dd4 Specific procedures with same names as generics
 cebfc1c07cbff365a1d37959bc1362c806fe43fe Manage specification part state better
 789d396fcee2e20a53aa08fe8d65c8b542dc685d TypeAndShape::MeasureElementSizeInBytes
