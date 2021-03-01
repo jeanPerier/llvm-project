@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b183cbfacd32ef7ac128ec0327c5972fd7e7f9c6
+with llvm-project commit 5a451a428904168a02483510235c66a4c82fdaab
 
 Log of cherry-picked commits in reverse order (latest first):
+75ef78ffee7f7d6efa45af19f24fba7616290300 Praveen: OMP semantic checks
+ac473bb2b2add52e51b1c18b5acc7d9bfa7619a9 Eric: upstream valueHasFirAttribute()
+0b785a46b7eecbfd24394b42814844e02e5fefe6 Eric: add remaining Ops
+5077d42cfa427598826eb7b69ad805bad8f4ec9d Eric: fix deprecation warnings
 67360decc3d4bda363c2fa2550eb1c2b876c8cf0 Eric: add array value ops
 8c074cb0b74e14ab1135d09cb53daf1a09602f73 csigg: mark deprecated mlir API
 ad14ccc8c22e1480db7bfc1a176311e6f572c588 Shao-Ce: consistency change
@@ -559,6 +563,8 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+00e6513374eb961065d6830b30205fb0f3001c43 Andrezj: revert...
+07de0846a5055015b55dc2b8faa2143f9902e549 Pete: reverted patch for circular definitions
 0057532e3f45508bd9aa2115948afee5859ed70c Barton: revert Camille's 89a9db438f85c6d4c0f11ecd0448bb71e1deac24
 765b81f6b93f747bbca57e9042bdd3ce9fea5c5b Tim: revert Truby breakage...
 332170356e35ea9cdc2c1d612b61a50ec5ea322e Truby: break OOT builds

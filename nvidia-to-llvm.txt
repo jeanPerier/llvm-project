@@ -44,9 +44,10 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-f60dc3884542b5138118d5ca5459781a052e0f86 Extension: forward refs to dummy args IMPLICIT NONE
 
 Done (oldest last, omitting no-ops):
+b25eba6e565c6a7a177c10d62c21f0354917ad6f SCAN and VERIFY
+f60dc3884542b5138118d5ca5459781a052e0f86 Extension: forward refs to dummy args IMPLICIT NONE
 8a272fedcf6d50eead562542ddd198b54ac7ae0c Warn about explicit typing of generic intrinsics
 f1ba830b9389565f457a3995c2f5bbe38f525f31 Ensure intrinsics PURE &/or ELEMENTAL
 57399aa56412701d2732b06ff952920f5e484182 Improve module file error message
