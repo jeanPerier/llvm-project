@@ -40,9 +40,21 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 5a451a428904168a02483510235c66a4c82fdaab
+with llvm-project commit 87d5b34c249421d92fb0c8c0cd208e067aa71e57
 
 Log of cherry-picked commits in reverse order (latest first):
+d090f427780f7c6c556dd79a80673405850a09c8 Valentin: add tests
+21c8e1b00aef074750dd681d89099ed7864ba87a Eric: comments
+ab971c29a56a4c24359b499d05c30c8c9fc4dea3 Arnamoy: driver options
+32c49c7d730d8e46921f3f17aee52a7a5320d9ef Zinenko: mlir thing
+19db802e7b13f190ebae6f5389b0bfbc1827e4e7 Zinenko: mlir thing
+64be3fcb7a2ece5aa28296b1e53b5ae448bd1713 River: fix flang build
+1c2935a7729fdc22186fa0a21968061a7f52f021 Pete: no MODULE subprogram at global scope
+16005fd979153f381e01d20dc584e101279fe24b Pete: patch...
+95540f9dbf0369b3c3ed2fa44371a99440cf79a9 Pete: catch circular interfaces (take 3)
+bf4dbc49843ca24e90e37f127ceef988286cd1c6 Andrezj: NFC
+563ea45052bdff336fcf1e89bdbe36d2a44ab52d Arnamoy: -fdefault-* fix
+5a451a428904168a02483510235c66a4c82fdaab me: SCAN and VERIFY (tidying)
 75ef78ffee7f7d6efa45af19f24fba7616290300 Praveen: OMP semantic checks
 ac473bb2b2add52e51b1c18b5acc7d9bfa7619a9 Eric: upstream valueHasFirAttribute()
 0b785a46b7eecbfd24394b42814844e02e5fefe6 Eric: add remaining Ops
@@ -563,6 +575,8 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+1253009eb20da936e551b824431dca282d970ef1 Andrezj: revert...
+93c5e6bb49ca502d266700dd292e3873dfa51bb6 Pete: reverted 2nd patch for circular definitions
 00e6513374eb961065d6830b30205fb0f3001c43 Andrezj: revert...
 07de0846a5055015b55dc2b8faa2143f9902e549 Pete: reverted patch for circular definitions
 0057532e3f45508bd9aa2115948afee5859ed70c Barton: revert Camille's 89a9db438f85c6d4c0f11ecd0448bb71e1deac24
