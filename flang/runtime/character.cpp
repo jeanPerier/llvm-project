@@ -269,13 +269,14 @@ inline std::size_t ScanVerify(const char *x, std::size_t xLen, const char *set,
   int increment{back ? -1 : 1};
   if (xLen > 0) {
     std::uint64_t bitSet[256 / 64]{0};
+    std::uint64_t one{1};
     for (std::size_t j{0}; j < setLen; ++j) {
-      unsigned setCh{set[j] & 0xff};
-      bitSet[setCh / 64] |= static_cast<std::uint64_t>(1) << (setCh % 64);
+      unsigned setCh{static_cast<unsigned char>(set[j])};
+      bitSet[setCh / 64] |= one << (setCh % 64);
     }
     for (; xLen-- > 0; at += increment) {
-      unsigned ch{x[at - 1] & 0xff};
-      bool inSet{(bitSet[ch / 64] >> (ch % 64)) & 1};
+      unsigned ch{static_cast<unsigned char>(x[at - 1])};
+      bool inSet{((bitSet[ch / 64] >> (ch % 64)) & 1) != 0};
       if (inSet != IS_VERIFY) {
         return at;
       }
@@ -301,18 +302,16 @@ static void ScanVerify(Descriptor &result, const Descriptor &string,
     const Descriptor &set, const Descriptor *back,
     const Terminator &terminator) {
   int rank{string.rank() ? string.rank()
-          : set.rank()   ? set.rank()
-          : back         ? back->rank()
-                         : 0};
+                         : set.rank() ? set.rank() : back ? back->rank() : 0};
   SubscriptValue lb[maxRank], ub[maxRank], stringAt[maxRank], setAt[maxRank],
       backAt[maxRank];
   SubscriptValue elements{1};
   for (int j{0}; j < rank; ++j) {
     lb[j] = 1;
-    ub[j] = string.rank() ? string.GetDimension(j).Extent()
-        : set.rank()      ? set.GetDimension(j).Extent()
-        : back            ? back->GetDimension(j).Extent()
-                          : 1;
+    ub[j] = string.rank()
+        ? string.GetDimension(j).Extent()
+        : set.rank() ? set.GetDimension(j).Extent()
+                     : back ? back->GetDimension(j).Extent() : 1;
     elements *= ub[j];
     stringAt[j] = setAt[j] = backAt[j] = 1;
   }
