@@ -17,12 +17,13 @@ namespace Fortran::semantics {
 void DeallocateChecker::Leave(const parser::DeallocateStmt &deallocateStmt) {
   for (const parser::AllocateObject &allocateObject :
       std::get<std::list<parser::AllocateObject>>(deallocateStmt.t)) {
-    std::visit(
+    MaybeExpr expr{std::visit(
         common::visitors{
-            [&](const parser::Name &name) {
+            [&](const parser::Name &name) -> MaybeExpr {
               auto const *symbol{name.symbol};
               if (context_.HasError(symbol)) {
                 // already reported an error
+                return {};
               } else if (!IsVariableName(*symbol)) {
                 context_.Say(name.source,
                     "name in DEALLOCATE statement must be a variable name"_err_en_US);
@@ -32,8 +33,10 @@ void DeallocateChecker::Leave(const parser::DeallocateStmt &deallocateStmt) {
               } else {
                 context_.CheckIndexVarRedefine(name);
               }
+              return evaluate::ExpressionAnalyzer{context_}.Analyze(name);
             },
-            [&](const parser::StructureComponent &structureComponent) {
+            [&](const parser::StructureComponent &structureComponent)
+                -> MaybeExpr {
               evaluate::ExpressionAnalyzer analyzer{context_};
               if (MaybeExpr checked{analyzer.Analyze(structureComponent)}) {
                 if (!IsAllocatableOrPointer(
@@ -41,10 +44,15 @@ void DeallocateChecker::Leave(const parser::DeallocateStmt &deallocateStmt) {
                   context_.Say(structureComponent.component.source,
                       "component in DEALLOCATE statement must have the ALLOCATABLE or POINTER attribute"_err_en_US);
                 }
+                return checked;
               }
+              return {};
             },
         },
-        allocateObject.u);
+        allocateObject.u)};
+    if (expr) {
+      evaluate::SetExpr(allocateObject, std::move(*expr));
+    }
   }
   bool gotStat{false}, gotMsg{false};
   for (const parser::StatOrErrmsg &deallocOpt :

@@ -421,6 +421,16 @@ bool AllocationCheckerHelper::RunChecks(SemanticsContext &context) {
     CHECK(context.AnyFatalError());
     return false;
   }
+  // Analyze and save AllocateObject Name or StructureComponent as a typed
+  // expression.
+  std::visit(
+      [&](const auto &x) {
+        evaluate::ExpressionAnalyzer analyzer{context};
+        if (MaybeExpr checked{analyzer.Analyze(x)}) {
+          evaluate::SetExpr(allocateObject_, std::move(*checked));
+        }
+      },
+      allocateObject_.u);
   GatherAllocationBasicInfo();
   if (!IsAllocatableOrPointer(*symbol_)) { // C932
     context.Say(name_.source,

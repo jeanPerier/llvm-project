@@ -77,6 +77,8 @@ struct SetExprHelper {
   void Set(const parser::Expr &x) { Set(x.typedExpr); }
   void Set(const parser::Variable &x) { Set(x.typedExpr); }
   void Set(const parser::DataStmtConstant &x) { Set(x.typedExpr); }
+  void Set(const parser::AllocateObject &x) { Set(x.typedExpr); }
+  void Set(const parser::PointerObject &x) { Set(x.typedExpr); }
   template <typename T> void Set(const common::Indirection<T> &x) {
     Set(x.value());
   }

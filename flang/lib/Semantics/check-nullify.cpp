@@ -23,12 +23,13 @@ void NullifyChecker::Leave(const parser::NullifyStmt &nullifyStmt) {
   parser::ContextualMessages messages{
       *context_.location(), &context_.messages()};
   for (const parser::PointerObject &pointerObject : nullifyStmt.v) {
-    std::visit(
+    MaybeExpr expr{std::visit(
         common::visitors{
-            [&](const parser::Name &name) {
+            [&](const parser::Name &name) -> MaybeExpr {
               const Symbol *symbol{name.symbol};
               if (context_.HasError(symbol)) {
                 // already reported an error
+                return {};
               } else if (!IsVariableName(*symbol) && !IsProcName(*symbol)) {
                 messages.Say(name.source,
                     "name in NULLIFY statement must be a variable or procedure pointer name"_err_en_US);
@@ -38,8 +39,10 @@ void NullifyChecker::Leave(const parser::NullifyStmt &nullifyStmt) {
               } else if (pure) {
                 CheckDefinabilityInPureScope(messages, *symbol, scope, *pure);
               }
+              return evaluate::ExpressionAnalyzer{context_}.Analyze(name);
             },
-            [&](const parser::StructureComponent &structureComponent) {
+            [&](const parser::StructureComponent &structureComponent)
+                -> MaybeExpr {
               evaluate::ExpressionAnalyzer analyzer{context_};
               if (MaybeExpr checked{analyzer.Analyze(structureComponent)}) {
                 if (!IsPointer(*structureComponent.component.symbol)) { // C951
@@ -51,10 +54,15 @@ void NullifyChecker::Leave(const parser::NullifyStmt &nullifyStmt) {
                         messages, *symbol, scope, *pure);
                   }
                 }
+                return checked;
               }
+              return {};
             },
         },
-        pointerObject.u);
+        pointerObject.u)};
+    if (expr) {
+      evaluate::SetExpr(pointerObject, std::move(*expr));
+    }
   }
   // From 9.7.3.1(1)
   //   A pointer-object shall not depend on the value,
