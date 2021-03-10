@@ -46,6 +46,16 @@ static void Compare(const char *x, const char *y, std::size_t xBytes,
   TestCharCompare(y, x, yBytes, xBytes, -expect);
 }
 
+static void Index(
+    const char *str, const char *want, bool back, std::size_t expect) {
+  auto res{
+      RTNAME(Index1)(str, std::strlen(str), want, std::strlen(want), back)};
+  if (res != expect) {
+    Fail() << "Index('" << str << "','" << want << "',back=" << back
+           << "): got " << res << ", should be " << expect << '\n';
+  }
+}
+
 static void Scan(
     const char *str, const char *set, bool back, std::size_t expect) {
   auto res{RTNAME(Scan1)(str, std::strlen(str), set, std::strlen(set), back)};
@@ -73,6 +83,18 @@ int main() {
   Compare("abc", "def", 3, 3, -1);
   Compare("ab ", "abc", 3, 2, 0);
   Compare("abc", "abc", 2, 3, -1);
+  Index("", "", false, 1);
+  Index("", "", true, 1);
+  Index("a", "", false, 1);
+  Index("a", "", true, 2);
+  Index("", "a", false, 0);
+  Index("", "a", true, 0);
+  Index("aa", "a", false, 1);
+  Index("aa", "a", true, 2);
+  Index("Fortran that I ran", "that I ran", false, 9);
+  Index("Fortran that I ran", "that I ran", true, 9);
+  Index("Fortran that you ran", "that I ran", false, 0);
+  Index("Fortran that you ran", "that I ran", true, 0);
   Scan("abc", "abc", false, 1);
   Scan("abc", "abc", true, 3);
   Scan("abc", "cde", false, 3);
