@@ -40,9 +40,27 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 87d5b34c249421d92fb0c8c0cd208e067aa71e57
+with llvm-project commit b552adf8b388a4fbdaa6fb46bdedc83fc738fc2b
 
 Log of cherry-picked commits in reverse order (latest first):
+95193ac5ba60b5ffd1af43bc561ce2b745437f94 Asher: gtestify character tests (modified)
+31bb8efd698304a8385ff79229ffbaa5613efdfb River: call destructor
+868187df2132d54f7c282b7ca2ead4682631bf2a Pete: Handle TBP with alt returns
+e361afb6c5c9e0360d1782a23f143f80da94cee8 Arnamoy: OMP semantic check
+1fd4beecc8bb1148123265a63e0bff92b626c4a3 Arnamoy: -fdebug-module-writer
+baf637dcde8ccc24fd6ffbc82d8321ba18ec857f Leonard: rename to LICENSE.TXT
+361e9bf97ed793b66a65788932f25f7b6a02f862 Arnamoy: clang-format
+40e261803bd40099ee2f322670157b0b57d7bf3e Pete: Fix CHECK() on bad TBP
+547624af1963f082f0c4676b0c019528372f6f13 Andrezj: revert a RUN line change
+987ee6e3cc1fb672b3ed201e72a5281c2ec88c99 Eric: upstream pre-FIR tree
+523d7bc6f427f9ae32e54dbf1764826cfb269d21 Andrezj: -fdebug-dump-parsing-log
+45da495f73d83b4c1400bf5896765d7883bd67e2 Andrezj: merge test directories
+890afad954d60aa91a27fa5ef0689e1d53aad7b4 Mehdi: fix build
+63200a058e6d5f275204154a16723e8f169a317a Pete: sort symbols by creation order
+b04fbc191325a0fc07eb6882f5ab85123b6dc165 Andrezj: module search tests
+cfd7d8123a3b1e77343763ac2b62124bfcffe6d6 Pete: fix bad dereference of NULLIFY object
+a89a3c2c7d55e672f5154408396975587f9de28c yhegde: add semantic check
+c3e5f504a0c592dd28f869f9a74cc9f480a3c7a5 Valentin: add more tests
 d090f427780f7c6c556dd79a80673405850a09c8 Valentin: add tests
 21c8e1b00aef074750dd681d89099ed7864ba87a Eric: comments
 ab971c29a56a4c24359b499d05c30c8c9fc4dea3 Arnamoy: driver options
