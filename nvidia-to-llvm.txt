@@ -44,8 +44,12 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+d0a0f2f309bd0e125f3063f38d41d0ad9edba1ac gtestified unit tests for INDEX
+6f9e15415375cd7ad4b074a610f9a62345f4497d + INDEX
 
 Done (oldest last, omitting no-ops):
+f59ae6e3bc772f802eee4b71f38f1deafe97153e ptr-valued func calls as variables
+2a6b5e282ec1a6a76079c7db8cf77ab0b54bd8bc Val: (de)allocate API const args
 b25eba6e565c6a7a177c10d62c21f0354917ad6f SCAN and VERIFY
 f60dc3884542b5138118d5ca5459781a052e0f86 Extension: forward refs to dummy args IMPLICIT NONE
 8a272fedcf6d50eead562542ddd198b54ac7ae0c Warn about explicit typing of generic intrinsics

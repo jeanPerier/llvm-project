@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b552adf8b388a4fbdaa6fb46bdedc83fc738fc2b
+with llvm-project commit 51151828acad6b1e5b0719285ce7172506877fd1
 
 Log of cherry-picked commits in reverse order (latest first):
+da408d98d7ce0fd962de6f405dd102dce5c607b0 Andrezj: driver thing
+8e1c09ee5f8066918c6c91982395f6449f97f056 Tim: build intrinsic .mod files in include/flang
+3fc9ca87f1ab7c8e342cb942729df30f1ba80418 Arnamoy: OMP work
+59f213c162a43e09bb71bc7a413a1b72c4fddc03 pmk: fix static build
+a59665930b87d7510002dcf1f292b290673a47d3 Arnamoy: fix OMP
+085d794c5f54512bf76e8bc9f83b9fd5f5e97130 Pete: make data member static
+96716e6749c31493f5a3b57685d4686ba9cdd8fe yhegde: OMP semantic check
 95193ac5ba60b5ffd1af43bc561ce2b745437f94 Asher: gtestify character tests (modified)
 31bb8efd698304a8385ff79229ffbaa5613efdfb River: call destructor
 868187df2132d54f7c282b7ca2ead4682631bf2a Pete: Handle TBP with alt returns
