@@ -611,9 +611,11 @@ bool AllCookedSources::Precedes(CharBlock x, CharBlock y) const {
     } else {
       return true; // by fiat, all cooked source < anything outside
     }
-  } else {
-    CHECK(ySource); // at least one string must be in a CookedSource
+  } else if (ySource) {
     return false;
+  } else {
+    // Both names are compiler-created (SaveTempName).
+    return x < y;
   }
 }
 
