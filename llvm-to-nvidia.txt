@@ -43,6 +43,10 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit fe990ee8159616d0739b315d0a961adb9c5695eb
 
 Log of cherry-picked commits in reverse order (latest first):
+410f09af09b9261f51663773bee01ec7b37e8fd4 Mike Rice: interop directive
+1d7960a601fc83b3847f83681573019271e7516f Praveen: OMP thing
+8ca16e9778628ea5d587d600e956660e92a3baf7 Sourabh: fir thing
+539bbbe7b516ed8478cf5dc27797cb06c42283f9 fix build error
 92d27b969ae16bab23d2ccb1be2c350a26739bd0 Jean: save more typedExprs
 bcf95cbb2ce428d7b6d41d29a198889dc02617a7 Tim: fix...
 566a2c18bf1f061bd45867e741ea61da3e2f3b8f Tim: create intrinsics module directory
