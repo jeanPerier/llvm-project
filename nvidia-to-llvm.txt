@@ -46,6 +46,7 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+9b81ec0332f933633635e89ccd5a4d6ae90e1d0e Refine symbol sorting
 1a4f05f181e84b01575efed2167a53bb688198b1 two fixes merged with ...
 9f37b0ed950ad6591304d7b1ed5d43231fcefab3 ... provenance-based symbol ordering
 d0a0f2f309bd0e125f3063f38d41d0ad9edba1ac gtestified unit tests for INDEX

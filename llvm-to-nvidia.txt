@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit fe990ee8159616d0739b315d0a961adb9c5695eb
+with llvm-project commit 0d8331c06be6981da5341bdcbbc6dd867002da08
 
 Log of cherry-picked commits in reverse order (latest first):
+168b206cd8efb59438a1db65d8e1639ae2c9f662 Asher: unit test for Terminator
+eefda605fe1701937a8fe5379357e0990ad2fb4e Andrezj: -fget-symbols-sources
+c615927c8e38d8608d7b5fa294a25dc44df0eb68 Mike Rice: use clause
 410f09af09b9261f51663773bee01ec7b37e8fd4 Mike Rice: interop directive
 1d7960a601fc83b3847f83681573019271e7516f Praveen: OMP thing
 8ca16e9778628ea5d587d600e956660e92a3baf7 Sourabh: fir thing
