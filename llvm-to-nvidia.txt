@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 0d8331c06be6981da5341bdcbbc6dd867002da08
+with llvm-project commit 5da55bfc18f64b7171be150913e2f5eac6e0f184
 
 Log of cherry-picked commits in reverse order (latest first):
+a7afc8a51471bdfd0c597f8e885dbddada7f590a Pete: fix CHECK()s on erroneous procedure decls
+e8515ca8478f96f7d2eddadc4d310ac29bb04abe Asher: gtestify output formatting test
+d0d92fee6f41c0f3c18a1644d4d7ac5d58f63586 Arnamoy: driver
+d811c829af616fd0bec08c7bebbe946e9bc96eea me: fix crash on TRIM('')
+fcf629d76a49781c131cbbd442dea84b27c9ff28 Andrezj: typos
+61a55c8812e790842799ba1de5bd81fe8afb3b16 Tim: fix mac build
+27899112c69836cb1e7bbb58df2f3471a882292c Jean: fold LOGICAL()
+4c7ebf79e923072e8d298134e6ca04618fe4eba9 Arnamoy: -std=f2018
+502f27e66fd9fe44cd45ec5acae3e18f15f2d8c6 Kiran: fix build
+97d8972c9cd1295fe838b0d0d1be4cefe2dd0b1c Eric: pre-code gen rewrite pass
+5da55bfc18f64b7171be150913e2f5eac6e0f184 me: fix output buffering problem
+5d3249e9af9086a29214312af18651ebb769eb71 Tim: save binding labels
+76f3c2f3f34a2be05e5970f7413c6929541fd219 River: mlir
+cd4abc5242c03804b3d88277b03b52215a899f75 Arnamoy: -fintrinsic-modules-path
+2f8e614df8832abde3d123bed8b67f901b7b6966 Andrezj: fix oot build
+af8056889ac9913c587293fd68503b4883dab558 Andrezj: cmake thing
+e97d92f0bb998e7d93b4e91d550ba0492d9c414b Pete: Another specific check
+5727df2714985f53b2794e9672865554612cc155 Pete: Specific procedure and derived type same name
+e27654f737da8e3a80d8c1e3509868ab7fb4265b Arnamoy: semantic checks
 168b206cd8efb59438a1db65d8e1639ae2c9f662 Asher: unit test for Terminator
 eefda605fe1701937a8fe5379357e0990ad2fb4e Andrezj: -fget-symbols-sources
 c615927c8e38d8608d7b5fa294a25dc44df0eb68 Mike Rice: use clause
