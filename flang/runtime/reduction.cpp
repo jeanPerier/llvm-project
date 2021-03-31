@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Implements ALL, ANY, MAXLOC, MAXVAL, MINLOC, MINVAL, PRODUCT, and SUM
+// Implements ALL, ANY, COUNT, MAXLOC, MAXVAL, MINLOC, MINVAL, PRODUCT, and SUM
 // for all required operand types and shapes and (for MAXLOC & MINLOC) kinds of
 // results.
 //
@@ -27,6 +27,7 @@
 #include "cpp-type.h"
 #include "terminator.h"
 #include "tools.h"
+#include "flang/Common/long-double.h"
 #include <cinttypes>
 #include <complex>
 #include <limits>
@@ -1335,10 +1336,11 @@ void RTNAME(MinvalDim)(Descriptor &result, const Descriptor &x, int dim,
 
 } // extern "C"
 
-// ALL and ANY
+// ALL, ANY, & COUNT
 
 template <bool IS_ALL> class LogicalAccumulator {
 public:
+  using Type = bool;
   explicit LogicalAccumulator(const Descriptor &array) : array_{array} {}
   bool Result() const { return result_; }
   bool Accumulate(bool x) {
@@ -1360,14 +1362,13 @@ private:
 };
 
 template <typename ACCUMULATOR>
-inline bool GetTotalLogicalReduction(const Descriptor &x, const char *source,
-    int line, int dim, TypeCode typeCode, ACCUMULATOR &&accumulator,
-    const char *intrinsic) {
+inline auto GetTotalLogicalReduction(const Descriptor &x, const char *source,
+    int line, int dim, ACCUMULATOR &&accumulator, const char *intrinsic) ->
+    typename ACCUMULATOR::Type {
   Terminator terminator{source, line};
   if (dim < 0 || dim > 1) {
     terminator.Crash("%s: bad DIM=%d", intrinsic, dim);
   }
-  RUNTIME_CHECK(terminator, typeCode == x.type());
   SubscriptValue xAt[maxRank];
   x.GetLowerBounds(xAt);
   for (auto elements{x.Elements()}; elements--; x.IncrementSubscripts(xAt)) {
@@ -1379,8 +1380,8 @@ inline bool GetTotalLogicalReduction(const Descriptor &x, const char *source,
 }
 
 template <typename ACCUMULATOR>
-inline bool ReduceLogicalDimToScalar(
-    const Descriptor &x, int zeroBasedDim, SubscriptValue subscripts[]) {
+inline auto ReduceLogicalDimToScalar(const Descriptor &x, int zeroBasedDim,
+    SubscriptValue subscripts[]) -> typename ACCUMULATOR::Type {
   ACCUMULATOR accumulator{x};
   SubscriptValue xAt[maxRank];
   GetExpandedSubscripts(xAt, x, zeroBasedDim, subscripts);
@@ -1434,23 +1435,46 @@ inline void DoReduceLogicalDimension(Descriptor &result, const Descriptor &x,
   }
 }
 
+// COUNT
+
+class CountAccumulator {
+public:
+  using Type = std::int64_t;
+  explicit CountAccumulator(const Descriptor &array) : array_{array} {}
+  Type Result() const { return result_; }
+  template <typename IGNORED = void>
+  bool AccumulateAt(const SubscriptValue at[]) {
+    if (IsLogicalElementTrue(array_, at)) {
+      ++result_;
+    }
+    return true;
+  }
+
+private:
+  const Descriptor &array_;
+  Type result_{0};
+};
+
+template <int KIND>
+inline void CountDimension(
+    Descriptor &result, const Descriptor &x, int dim, Terminator &terminator) {
+  CreatePartialReductionResult(result, x, dim, terminator, "COUNT",
+      TypeCode{TypeCategory::Integer, KIND});
+  SubscriptValue at[maxRank];
+  result.GetLowerBounds(at);
+  INTERNAL_CHECK(at[0] == 1);
+  using CppType = CppTypeFor<TypeCategory::Integer, KIND>;
+  for (auto n{result.Elements()}; n-- > 0; result.IncrementSubscripts(at)) {
+    *result.Element<CppType>(at) =
+        ReduceLogicalDimToScalar<CountAccumulator>(x, dim - 1, at);
+  }
+}
+
 extern "C" {
 
-bool RTNAME(All1)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 1}, LogicalAccumulator<true>{x}, "ALL");
-}
-bool RTNAME(All2)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 2}, LogicalAccumulator<true>{x}, "ALL");
-}
-bool RTNAME(All4)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 4}, LogicalAccumulator<true>{x}, "ALL");
-}
-bool RTNAME(All8)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 8}, LogicalAccumulator<true>{x}, "ALL");
+bool RTNAME(All)(const Descriptor &x, const char *source, int line, int dim) {
+  return GetTotalLogicalReduction(
+      x, source, line, dim, LogicalAccumulator<true>{x}, "ALL");
 }
 void RTNAME(AllDim)(Descriptor &result, const Descriptor &x, int dim,
     const char *source, int line) {
@@ -1458,26 +1482,43 @@ void RTNAME(AllDim)(Descriptor &result, const Descriptor &x, int dim,
   DoReduceLogicalDimension<true>(result, x, dim, terminator, "ALL");
 }
 
-bool RTNAME(Any1)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 1}, LogicalAccumulator<false>{x}, "ANY");
-}
-bool RTNAME(Any2)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 2}, LogicalAccumulator<false>{x}, "ANY");
-}
-bool RTNAME(Any4)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 4}, LogicalAccumulator<false>{x}, "ANY");
-}
-bool RTNAME(Any8)(const Descriptor &x, const char *source, int line, int dim) {
-  return GetTotalLogicalReduction(x, source, line, dim,
-      TypeCode{TypeCategory::Logical, 8}, LogicalAccumulator<false>{x}, "ANY");
+bool RTNAME(Any)(const Descriptor &x, const char *source, int line, int dim) {
+  return GetTotalLogicalReduction(
+      x, source, line, dim, LogicalAccumulator<false>{x}, "ANY");
 }
 void RTNAME(AnyDim)(Descriptor &result, const Descriptor &x, int dim,
     const char *source, int line) {
   Terminator terminator{source, line};
   DoReduceLogicalDimension<false>(result, x, dim, terminator, "ANY");
+}
+
+std::int64_t RTNAME(Count)(
+    const Descriptor &x, const char *source, int line, int dim) {
+  return GetTotalLogicalReduction(
+      x, source, line, dim, CountAccumulator{x}, "COUNT");
+}
+void RTNAME(CountDim)(Descriptor &result, const Descriptor &x, int dim,
+    int kind, const char *source, int line) {
+  Terminator terminator{source, line};
+  switch (kind) {
+  case 1:
+    CountDimension<1>(result, x, dim, terminator);
+    break;
+  case 2:
+    CountDimension<2>(result, x, dim, terminator);
+    break;
+  case 4:
+    CountDimension<4>(result, x, dim, terminator);
+    break;
+  case 8:
+    CountDimension<8>(result, x, dim, terminator);
+    break;
+  case 16:
+    CountDimension<16>(result, x, dim, terminator);
+    break;
+  default:
+    terminator.Crash("COUNT: bad KIND=%d", kind);
+  }
 }
 
 } // extern "C"

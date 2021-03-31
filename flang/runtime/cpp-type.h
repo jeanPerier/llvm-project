@@ -12,7 +12,6 @@
 #define FORTRAN_RUNTIME_CPP_TYPE_H_
 
 #include "flang/Common/Fortran.h"
-#include "flang/Common/long-double.h"
 #include "flang/Common/uint128.h"
 #include <complex>
 #include <cstdint>
@@ -36,15 +35,12 @@ template <> struct CppTypeForHelper<TypeCategory::Real, 4> {
 template <> struct CppTypeForHelper<TypeCategory::Real, 8> {
   using type = double;
 };
-#if LONG_DOUBLE == 80
 template <> struct CppTypeForHelper<TypeCategory::Real, 10> {
   using type = long double;
 };
-#elif LONG_DOUBLE == 128
 template <> struct CppTypeForHelper<TypeCategory::Real, 16> {
   using type = long double;
 };
-#endif
 
 template <int KIND> struct CppTypeForHelper<TypeCategory::Complex, KIND> {
   using type = std::complex<CppTypeFor<TypeCategory::Real, KIND>>;
