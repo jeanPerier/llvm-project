@@ -681,7 +681,9 @@ public:
   bool isAbstract() const;
 
 protected:
-  GenericDetails &GetGenericDetails();
+  Symbol &GetGenericSymbol() {
+    return DEREF(genericInfo_.top().symbol);
+  }
   // Add to generic the symbol for the subprogram with the same name
   void CheckGenericProcedures(Symbol &);
 
@@ -1514,19 +1516,26 @@ bool AttrsVisitor::SetPassNameOn(Symbol &symbol) {
 }
 
 bool AttrsVisitor::SetBindNameOn(Symbol &symbol) {
-  if (!bindName_) {
+  if (!attrs_ || !attrs_->test(Attr::BIND_C)) {
     return false;
   }
-  std::visit(
-      common::visitors{
-          [&](EntityDetails &x) { x.set_bindName(std::move(bindName_)); },
-          [&](ObjectEntityDetails &x) { x.set_bindName(std::move(bindName_)); },
-          [&](ProcEntityDetails &x) { x.set_bindName(std::move(bindName_)); },
-          [&](SubprogramDetails &x) { x.set_bindName(std::move(bindName_)); },
-          [&](CommonBlockDetails &x) { x.set_bindName(std::move(bindName_)); },
-          [](auto &) { common::die("unexpected bind name"); },
-      },
-      symbol.details());
+  std::optional<std::string> label{evaluate::GetScalarConstantValue<
+      evaluate::Type<TypeCategory::Character, 1>>(bindName_)};
+  // 18.9.2(2): discard leading and trailing blanks, ignore if all blank
+  if (label) {
+    auto first{label->find_first_not_of(" ")};
+    auto last{label->find_last_not_of(" ")};
+    if (first == std::string::npos) {
+      Say(currStmtSource().value(), "Blank binding label ignored"_en_US);
+      label.reset();
+    } else {
+      label = label->substr(first, last - first + 1);
+    }
+  }
+  if (!label) {
+    label = parser::ToLowerCaseLetters(symbol.name().ToString());
+  }
+  symbol.SetBindName(std::move(*label));
   return true;
 }
 
@@ -2660,9 +2669,6 @@ bool InterfaceVisitor::isGeneric() const {
 bool InterfaceVisitor::isAbstract() const {
   return !genericInfo_.empty() && GetGenericInfo().isAbstract;
 }
-GenericDetails &InterfaceVisitor::GetGenericDetails() {
-  return GetGenericInfo().symbol->get<GenericDetails>();
-}
 
 void InterfaceVisitor::AddSpecificProcs(
     const std::list<parser::Name> &names, ProcedureKind kind) {
@@ -2864,7 +2870,9 @@ void SubprogramVisitor::Post(const parser::ImplicitPart &) {
   if (funcInfo_.parsedType) {
     messageHandler().set_currStmtSource(funcInfo_.source);
     if (const auto *type{ProcessTypeSpec(*funcInfo_.parsedType, true)}) {
-      funcInfo_.resultSymbol->SetType(*type);
+      if (!context().HasError(funcInfo_.resultSymbol)) {
+        funcInfo_.resultSymbol->SetType(*type);
+      }
     }
   }
   funcInfo_ = {};
@@ -2924,11 +2932,16 @@ void SubprogramVisitor::Post(const parser::FunctionStmt &stmt) {
     funcResultName = &name;
   }
   // add function result to function scope
-  EntityDetails funcResultDetails;
-  funcResultDetails.set_funcResult(true);
-  funcInfo_.resultSymbol =
-      &MakeSymbol(*funcResultName, std::move(funcResultDetails));
-  details.set_result(*funcInfo_.resultSymbol);
+  if (details.isFunction()) {
+    CHECK(context().HasError(currScope().symbol()));
+  } else {
+    // add function result to function scope
+    EntityDetails funcResultDetails;
+    funcResultDetails.set_funcResult(true);
+    funcInfo_.resultSymbol =
+        &MakeSymbol(*funcResultName, std::move(funcResultDetails));
+    details.set_result(*funcInfo_.resultSymbol);
+  }
 
   // C1560.
   if (funcInfo_.resultName && funcInfo_.resultName->source == name.source) {
@@ -3202,7 +3215,13 @@ Symbol &SubprogramVisitor::PushSubprogramScope(
       MakeExternal(*symbol);
     }
     if (isGeneric()) {
-      GetGenericDetails().AddSpecificProc(*symbol, name.source);
+      Symbol &genericSymbol{GetGenericSymbol()};
+      if (genericSymbol.has<GenericDetails>()) {
+        genericSymbol.get<GenericDetails>().AddSpecificProc(
+            *symbol, name.source);
+      } else {
+        CHECK(context().HasError(genericSymbol));
+      }
     }
     set_inheritFromParent(false);
   }
