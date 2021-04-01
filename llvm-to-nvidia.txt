@@ -40,9 +40,11 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 5da55bfc18f64b7171be150913e2f5eac6e0f184
+with llvm-project commit e372e0f906194cb051ad71305e00f4634860bdf3
 
 Log of cherry-picked commits in reverse order (latest first):
+e372e0f906194cb051ad71305e00f4634860bdf3 me: updates to reductions added in llvm merge
+dc14e89a1fab6a840c5d8bc3f2bd29f1d1b190be Andrezj: .f77 is fixed form
 a7afc8a51471bdfd0c597f8e885dbddada7f590a Pete: fix CHECK()s on erroneous procedure decls
 e8515ca8478f96f7d2eddadc4d310ac29bb04abe Asher: gtestify output formatting test
 d0d92fee6f41c0f3c18a1644d4d7ac5d58f63586 Arnamoy: driver

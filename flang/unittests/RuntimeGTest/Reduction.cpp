@@ -45,12 +45,9 @@ static OwningPtr<Descriptor> MakeArray(const std::vector<int> &shape,
   EXPECT_EQ(stat, 0) << stat;
   EXPECT_LE(data.size(), result->Elements());
   char *p{result->OffsetElement<char>()};
-  auto elements{result->Elements()};
   for (const auto &x : data) {
-    EXPECT_GT(elements, 0);
     StoreElement(p, x, elemLen);
     p += elemLen;
-    --elements;
   }
   return result;
 }
@@ -242,9 +239,10 @@ TEST(Reductions, Logical) {
   std::vector<int> shape{2, 2};
   auto array{MakeArray<TypeCategory::Logical, 4>(
       shape, std::vector<std::int32_t>{false, false, true, true})};
-  ASSERT_EQ(array->ElementBytes(), 4);
-  EXPECT_EQ(RTNAME(All4)(*array, __FILE__, __LINE__), false);
-  EXPECT_EQ(RTNAME(Any4)(*array, __FILE__, __LINE__), true);
+  ASSERT_EQ(array->ElementBytes(), std::size_t{4});
+  EXPECT_EQ(RTNAME(All)(*array, __FILE__, __LINE__), false);
+  EXPECT_EQ(RTNAME(Any)(*array, __FILE__, __LINE__), true);
+  EXPECT_EQ(RTNAME(Count)(*array, __FILE__, __LINE__), 2);
   StaticDescriptor<2> statDesc;
   Descriptor &res{statDesc.descriptor()};
   RTNAME(AllDim)(res, *array, /*DIM=*/1, __FILE__, __LINE__);
@@ -278,5 +276,21 @@ TEST(Reductions, Logical) {
   EXPECT_EQ(res.GetDimension(0).Extent(), 2);
   EXPECT_EQ(*res.ZeroBasedIndexedElement<std::int32_t>(0), 1);
   EXPECT_EQ(*res.ZeroBasedIndexedElement<std::int32_t>(1), 1);
+  res.Destroy();
+  RTNAME(CountDim)(res, *array, /*DIM=*/1, /*KIND=*/4, __FILE__, __LINE__);
+  EXPECT_EQ(res.rank(), 1);
+  EXPECT_EQ(res.type().raw(), (TypeCode{TypeCategory::Integer, 4}.raw()));
+  EXPECT_EQ(res.GetDimension(0).LowerBound(), 1);
+  EXPECT_EQ(res.GetDimension(0).Extent(), 2);
+  EXPECT_EQ(*res.ZeroBasedIndexedElement<std::int32_t>(0), 0);
+  EXPECT_EQ(*res.ZeroBasedIndexedElement<std::int32_t>(1), 2);
+  res.Destroy();
+  RTNAME(CountDim)(res, *array, /*DIM=*/2, /*KIND=*/8, __FILE__, __LINE__);
+  EXPECT_EQ(res.rank(), 1);
+  EXPECT_EQ(res.type().raw(), (TypeCode{TypeCategory::Integer, 8}.raw()));
+  EXPECT_EQ(res.GetDimension(0).LowerBound(), 1);
+  EXPECT_EQ(res.GetDimension(0).Extent(), 2);
+  EXPECT_EQ(*res.ZeroBasedIndexedElement<std::int64_t>(0), 1);
+  EXPECT_EQ(*res.ZeroBasedIndexedElement<std::int64_t>(1), 1);
   res.Destroy();
 }

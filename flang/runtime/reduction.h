@@ -32,8 +32,9 @@ extern "C" {
 //
 // Reductions that return arrays are the remaining cases in which
 // the argument rank is greater than one and there is a DIM=
-// argument present.  These cases allocate and return a pointer to
-// an allocatable's descriptor.
+// argument present.  These cases establish and allocate their
+// results in a caller-supplied descriptor, which is assumed to
+// be large enough.
 //
 // Complex-valued SUM and PRODUCT reductions have their API
 // entry points defined in complex-reduction.h; these are C wrappers
@@ -157,7 +158,6 @@ void RTNAME(MinlocDim)(Descriptor &, const Descriptor &, int kind, int dim,
     bool back = false);
 
 // MAXVAL and MINVAL
-
 std::int8_t RTNAME(MaxvalInteger1)(const Descriptor &, const char *source,
     int line, int dim = 0, const Descriptor *mask = nullptr);
 std::int16_t RTNAME(MaxvalInteger2)(const Descriptor &, const char *source,
@@ -213,27 +213,16 @@ void RTNAME(MaxvalDim)(Descriptor &, const Descriptor &, int dim,
 void RTNAME(MinvalDim)(Descriptor &, const Descriptor &, int dim,
     const char *source, int line, const Descriptor *mask = nullptr);
 
-// ALL and ANY logical reductions
-
-bool RTNAME(All1)(
-    const Descriptor &, const char *source, int line, int dim = 0);
-bool RTNAME(All2)(
-    const Descriptor &, const char *source, int line, int dim = 0);
-bool RTNAME(All4)(
-    const Descriptor &, const char *source, int line, int dim = 0);
-bool RTNAME(All8)(
-    const Descriptor &, const char *source, int line, int dim = 0);
+// ALL, ANY, & COUNT logical reductions
+bool RTNAME(All)(const Descriptor &, const char *source, int line, int dim = 0);
 void RTNAME(AllDim)(Descriptor &result, const Descriptor &, int dim,
     const char *source, int line);
-bool RTNAME(Any1)(
-    const Descriptor &, const char *source, int line, int dim = 0);
-bool RTNAME(Any2)(
-    const Descriptor &, const char *source, int line, int dim = 0);
-bool RTNAME(Any4)(
-    const Descriptor &, const char *source, int line, int dim = 0);
-bool RTNAME(Any8)(
-    const Descriptor &, const char *source, int line, int dim = 0);
+bool RTNAME(Any)(const Descriptor &, const char *source, int line, int dim = 0);
 void RTNAME(AnyDim)(Descriptor &result, const Descriptor &, int dim,
+    const char *source, int line);
+std::int64_t RTNAME(Count)(
+    const Descriptor &, const char *source, int line, int dim = 0);
+void RTNAME(CountDim)(Descriptor &result, const Descriptor &, int dim, int kind,
     const char *source, int line);
 
 } // extern "C"
