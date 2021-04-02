@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit e372e0f906194cb051ad71305e00f4634860bdf3
+with llvm-project commit 3f8c6f493b06d72312757102f8277d367409bcdd
 
 Log of cherry-picked commits in reverse order (latest first):
+dd43e13c005806be06bf09c735353a3d8707c8c8 me: fix MSVC build breakage (long double)
+273416231b1477503cd5281ef2587c40efae2747 me: make unit test expected results less x86-specific
+287c93c1321b4342608f28e1a2816300780502e1 me: fix unit test failure on POWER
+1b88df1c8e4aa03cf3102ab0b4f8688fe79864ed me: build fix: don't depend on clang >= 12
 e372e0f906194cb051ad71305e00f4634860bdf3 me: updates to reductions added in llvm merge
 dc14e89a1fab6a840c5d8bc3f2bd29f1d1b190be Andrezj: .f77 is fixed form
 a7afc8a51471bdfd0c597f8e885dbddada7f590a Pete: fix CHECK()s on erroneous procedure decls

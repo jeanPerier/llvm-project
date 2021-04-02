@@ -46,7 +46,9 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
-f78a2a711fd964299e887f3745ceba3023c4e82a reductions
+d0b4148075ab3f607dc6d59ec4b42d619274461e TRANSFER
+df485848e8d67c45960111f0b2160ba5aae9cd6e numeric intrinsics
+f78a2a711fd964299e887f3745ceba3023c4e82a reduction intrinsics
 6f3f8cfd78fe49673e1d1fd09486c5cee6f0e5d0 refine pointer initialization targets
 9b81ec0332f933633635e89ccd5a4d6ae90e1d0e Refine symbol sorting
 1a4f05f181e84b01575efed2167a53bb688198b1 two fixes merged with ...
