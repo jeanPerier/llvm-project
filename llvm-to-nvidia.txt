@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 3f8c6f493b06d72312757102f8277d367409bcdd
+with llvm-project commit c115c28914a005cc8d0d3ee67eb9071560ebb55a
 
 Log of cherry-picked commits in reverse order (latest first):
+c115c28914a005cc8d0d3ee67eb9071560ebb55a me: MSVC patches for Mehdi C.
+cb424fee3d6b27dbd38de666382b702100935286 Jennifer: OMP: novariants clause
+78a39d2a41661719e8d973830568571d75cd4b09 me: TRANSFER (edits)
 dd43e13c005806be06bf09c735353a3d8707c8c8 me: fix MSVC build breakage (long double)
 273416231b1477503cd5281ef2587c40efae2747 me: make unit test expected results less x86-specific
 287c93c1321b4342608f28e1a2816300780502e1 me: fix unit test failure on POWER
