@@ -45,7 +45,7 @@ static OwningPtr<Descriptor> MakeArray(const std::vector<int> &shape,
   EXPECT_EQ(stat, 0) << stat;
   EXPECT_LE(data.size(), result->Elements());
   char *p{result->OffsetElement<char>()};
-  for (const auto &x : data) {
+  for (A x : data) {
     StoreElement(p, x, elemLen);
     p += elemLen;
   }
