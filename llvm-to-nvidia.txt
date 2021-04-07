@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit c115c28914a005cc8d0d3ee67eb9071560ebb55a
+with llvm-project commit 48fa06f70b07fc195a07bfb67ee42cfd307ca450
 
 Log of cherry-picked commits in reverse order (latest first):
+85b86c6f43ab50ba70571ed49da7e81f7d52ffd2 Andrezj: arm driver -fdebug-dump-provenance
+b83a4450c216879d76d78c21a2a0b864fdc2eb3d Andrezj: arm driver -cpp/-nocpp
+52cc9df1c14cf34dbfe491cf2b4079c920a2190e Pete: type parameter inquiry folding fix
+82b3e28e836d2f5c8cfd6e1047b93c088522365a Abhina@IBM: windows OF_TextWithCRLF flag
+7078ef47225091a9a42357b9ebf92e83a5665d43 Jennifer: nocontext clause
+31ad5c14fefa66085eff3629c0cc8393556ba849 Arnamoy: modify tests, no -Mstandard
+7416e8a8431a0f2711be9d16e111d1781b74df96 Arnamoy: -Werror
 c115c28914a005cc8d0d3ee67eb9071560ebb55a me: MSVC patches for Mehdi C.
 cb424fee3d6b27dbd38de666382b702100935286 Jennifer: OMP: novariants clause
 78a39d2a41661719e8d973830568571d75cd4b09 me: TRANSFER (edits)
