@@ -235,7 +235,7 @@ int NoUnitIoStatementState::EndIoStatement() {
 
 template <Direction DIR> int ExternalIoStatementState<DIR>::EndIoStatement() {
   if constexpr (DIR == Direction::Input) {
-    BeginReadingRecord(); // in case of READ with no data items
+    BeginReadingRecord(); // in case there were no I/O items
     if (!unit().nonAdvancing) {
       FinishReadingRecord();
     }
@@ -315,12 +315,13 @@ void ExternalIoStatementState<DIR>::HandleRelativePosition(std::int64_t n) {
 }
 
 template <Direction DIR>
-void ExternalIoStatementState<DIR>::BeginReadingRecord() {
+bool ExternalIoStatementState<DIR>::BeginReadingRecord() {
   if constexpr (DIR == Direction::Input) {
-    unit().BeginReadingRecord(*this);
+    return unit().BeginReadingRecord(*this);
   } else {
     Crash("ExternalIoStatementState<Direction::Output>::BeginReadingRecord() "
           "called");
+    return false;
   }
 }
 
@@ -389,8 +390,8 @@ MutableModes &IoStatementState::mutableModes() {
       [](auto &x) -> MutableModes & { return x.get().mutableModes(); }, u_);
 }
 
-void IoStatementState::BeginReadingRecord() {
-  std::visit([](auto &x) { return x.get().BeginReadingRecord(); }, u_);
+bool IoStatementState::BeginReadingRecord() {
+  return std::visit([](auto &x) { return x.get().BeginReadingRecord(); }, u_);
 }
 
 IoErrorHandler &IoStatementState::GetIoErrorHandler() const {
