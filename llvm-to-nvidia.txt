@@ -40,9 +40,19 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 48fa06f70b07fc195a07bfb67ee42cfd307ca450
+with llvm-project commit f1812a284f28e5b142e63d5deeb340be3ca5d4b3
 
 Log of cherry-picked commits in reverse order (latest first):
+808a5a2534cd1f9471e247bde7aef240e488078d Andrezj: remove %flang-new from lit config
+4217e6bf95f56d7c11684403687d20a7ef79ba09 Andrezj: Fix $s -> %s in test
+5fe83b048a23ab1dabba047bfc551a0c2ac78e1b me: fix TypeCode::IsLogical()
+50386fe1db3ce57f762c9621b83445a4ffd80b26 Tim: fix macos warning
+8f16101c703e7d9995dc238ba0f03be52bdf4528 me: tweaks to IEEE_SELECTED_REAL_KIND
+1a43fd27691c6ae5c3d725ca7c6f4fd19357f4b8 cchen: OMP masked directive, filter clause
+9da35814e5fb71d8610ed7888d1f05703bfa8b54 Eric: changes to mangling
+3a4c0354b6eb5484b9b0cff6f6a7df982b49414e Arnamoy: OMP close nesting check
+4b273b19826515e47837c0e5c1e5abf625615080 Andrezj: rename some test files
+e81b3401177a67481605447ea5250d8345cb4341 Andrezj: more debug options
 85b86c6f43ab50ba70571ed49da7e81f7d52ffd2 Andrezj: arm driver -fdebug-dump-provenance
 b83a4450c216879d76d78c21a2a0b864fdc2eb3d Andrezj: arm driver -cpp/-nocpp
 52cc9df1c14cf34dbfe491cf2b4079c920a2190e Pete: type parameter inquiry folding fix

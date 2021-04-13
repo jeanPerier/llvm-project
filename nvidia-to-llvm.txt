@@ -46,6 +46,10 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+de960200ecf9e7eae354428786b041309b1af5ab ieee_selected_real_kind
+0f6b56d5ba2b0763978aa6335a2263cc0ad8d9da check for BIND(C) name conflict
+a85735fca8304cb89d56d3c9780cc6ebb5fadd05 PDT instantiation limit
+ba937ee4fff77b86d2086312c6e9a6f646cb4d7d random_number
 d0b4148075ab3f607dc6d59ec4b42d619274461e TRANSFER
 df485848e8d67c45960111f0b2160ba5aae9cd6e numeric intrinsics
 f78a2a711fd964299e887f3745ceba3023c4e82a reduction intrinsics
