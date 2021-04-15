@@ -46,6 +46,9 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+854002f3c6ce6b7d79cf9dafc19bc854138d7bcc Fix BIND(C,NAME='') interpretation
+afba451319ccf0d900ce3818df071503ee1c5055 Fix END= handling on input
+11d0a4ea4f6ffd2fa112802dad4a776e855f4d22 Fix Boolean flags in I/O runtime arguments
 de960200ecf9e7eae354428786b041309b1af5ab ieee_selected_real_kind
 0f6b56d5ba2b0763978aa6335a2263cc0ad8d9da check for BIND(C) name conflict
 a85735fca8304cb89d56d3c9780cc6ebb5fadd05 PDT instantiation limit
