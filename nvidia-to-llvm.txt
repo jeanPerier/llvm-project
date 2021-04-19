@@ -46,6 +46,7 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+f645145798850d8b39d1ab96850d88cf6b674d0e Define some missing IEEE_ARITHMETIC symbols
 854002f3c6ce6b7d79cf9dafc19bc854138d7bcc Fix BIND(C,NAME='') interpretation
 afba451319ccf0d900ce3818df071503ee1c5055 Fix END= handling on input
 11d0a4ea4f6ffd2fa112802dad4a776e855f4d22 Fix Boolean flags in I/O runtime arguments
