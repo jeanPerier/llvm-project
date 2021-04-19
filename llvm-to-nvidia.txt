@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit f1812a284f28e5b142e63d5deeb340be3ca5d4b3
+with llvm-project commit 29916a7afc68ee33f49017189298d3ba7cc3c31c
 
 Log of cherry-picked commits in reverse order (latest first):
+5064a34165ccadf4718b2c159eff41f008261681 Sourabh: remove OmpEndLoopDirective handles
+ccef0adc59680cf307fcb3334f15d4e2cba62de7 Asher: add list-directed input test
+e7be90bd27051c3dcd9a344cb1b347a0c9454c21 Andrezj: update regression tests
 e51939eca63c33e4a57c9c1f4b7d3cd8216369d6 me: fix typo (& clang build warning)
 f4ecd5a128dc74d7048711d07a658d1b91c8251f me: fix open(existing unit) check of STATUS=
 162b463d85d3b6d253479b2b3b87fca786e61258 Arnamoy: OMP modify semantics of 'ordered'
