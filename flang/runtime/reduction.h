@@ -24,8 +24,8 @@ namespace Fortran::runtime {
 extern "C" {
 
 // Reductions that are known to return scalars have per-type entry
-// points.  These cover the casse that either have no DIM=
-// argument, or have an argument rank of 1.  Pass 0 for no DIM=
+// points.  These cover the cases that either have no DIM=
+// argument or have an argument rank of 1.  Pass 0 for no DIM=
 // or the value of the DIM= argument so that it may be checked.
 // The data type in the descriptor is checked against the expected
 // return type.
