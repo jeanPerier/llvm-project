@@ -200,7 +200,7 @@ private:
   evaluate::FoldingContext &foldingContext() {
     return context().foldingContext();
   }
-  template <typename T> T Fold(T &&expr) {
+  template <typename A> A Fold(A &&expr) {
     return evaluate::Fold(foldingContext(), std::move(expr));
   }
   void InstantiateComponent(const Symbol &);
@@ -365,7 +365,7 @@ void InstantiateHelper::InstantiateComponent(const Symbol &oldSymbol) {
       // in PARAMETER structure constructors.
       auto restorer{foldingContext().messages().SetLocation(newSymbol.name())};
       init = IsPointer(newSymbol)
-          ? evaluate::Fold(foldingContext(), std::move(*init))
+          ? Fold(std::move(*init))
           : evaluate::NonPointerInitializationExpr(
                 newSymbol, std::move(*init), foldingContext());
     }
