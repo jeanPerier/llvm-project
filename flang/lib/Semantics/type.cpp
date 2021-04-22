@@ -10,6 +10,7 @@
 #include "check-declarations.h"
 #include "compute-offsets.h"
 #include "flang/Evaluate/fold.h"
+#include "flang/Evaluate/tools.h"
 #include "flang/Parser/characters.h"
 #include "flang/Semantics/scope.h"
 #include "flang/Semantics/symbol.h"
@@ -187,6 +188,17 @@ bool DerivedTypeSpec::HasDefaultInitialization() const {
 ParamValue *DerivedTypeSpec::FindParameter(SourceName target) {
   return const_cast<ParamValue *>(
       const_cast<const DerivedTypeSpec *>(this)->FindParameter(target));
+}
+
+// Objects of derived types might be assignment compatible if they are equal
+// with respect to everything other than their instantiated type parameters
+// and their constant instantiated type parameters have the same values.
+bool DerivedTypeSpec::MightBeAssignmentCompatibleWith(
+    const DerivedTypeSpec &that) const {
+  if (!RawEquals(that)) {
+    return false;
+  }
+  return AreTypeParamCompatible(*this, that);
 }
 
 class InstantiateHelper {

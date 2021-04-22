@@ -517,11 +517,6 @@ int main(int argc, char *const argv[]) {
     } else if (arg.find("-W") != std::string::npos) {
       if (arg == "-Werror")
         driver.warningsAreErrors = true;
-      else {
-        // Only -Werror is supported currently
-        llvm::errs() << "Only `-Werror` is supported currently.\n";
-        return EXIT_FAILURE;
-      }
     } else if (arg == "-ed") {
       options.features.Enable(Fortran::common::LanguageFeature::OldDebugLines);
     } else if (arg == "-E") {
@@ -661,8 +656,8 @@ int main(int argc, char *const argv[]) {
         }
         arguments[i] = std::strtol(args.front().c_str(), &endptr, 10);
         if (*endptr != '\0') {
-          llvm::errs() << "Invalid argument to -fget-definitions: "
-                       << args.front() << '\n';
+          llvm::errs() << "error: invalid value '" << args.front()
+                       << "' in 'fget-definition'" << '\n';
           return EXIT_FAILURE;
         }
         args.pop_front();

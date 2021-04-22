@@ -1,4 +1,4 @@
-<!--===- docs/FortranFeatures.md
+<!--===- docs/FortranFeatureHistory.md
 
    Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
    See https://llvm.org/LICENSE.txt for license information.
@@ -15,7 +15,7 @@
 
 ## Original IBM 704 FORTRAN
 
-Features marked with asterisks (*) were gone by FORTRAN IV.
+Features marked with asterisks `*` were gone by FORTRAN IV.
 
 * Fixed form input with comment and continuation cards
 * INTEGER and REAL types, implicit naming conventions
@@ -28,17 +28,17 @@ Features marked with asterisks (*) were gone by FORTRAN IV.
 * extended DO loop ranges
 * PAUSE, STOP, and CONTINUE statements
 * Formatted I/O: FORMAT, READ, WRITE, PRINT, PUNCH
-   and * READ INPUT / WRITE OUTPUT TAPE
-* Unformatted I/O: READ/WRITE *TAPE/DRUM
+   and `*` READ INPUT / WRITE OUTPUT TAPE
+* Unformatted I/O: READ/WRITE `*` TAPE/DRUM
 * ENDFILE, REWIND, and BACKSPACE statements
 * FREQUENCY statement (optimization hint - survived into FORTRAN IV)
 * Hollerith constants
-* Intrinsic functions (all names ending in F*)
-* statement functions (names ending in F only*)
+* Intrinsic functions (all names ending in F`*`)
+* statement functions (names ending in F only`*`)
 
 ## FORTRAN II
 * SUBROUTINE and FUNCTION subprograms
-* END statement (with five Sense Switch override arguments*)
+* END statement (with five Sense Switch override argument`*`)
    (Sense Switch 4, if on: "Causes FORTRAN II to produce a program optimized
     with respect to index registers.")
 * CALL and RETURN statements
@@ -53,20 +53,16 @@ Features marked with asterisks (*) were gone by FORTRAN IV.
 * labeled COMMON
 * BLOCK DATA subprograms
 * LOGICAL type and expressions, logical IF statement
-* Removal of weird original features (* above)
+* Removal of weird original features (`*` above)
 * Quoted character strings
 * NAMELIST
 * EXTERNAL subprograms for use as actual arguments
-* &666 label actual arg (for assigned GO TO alternate return)
 * alternate RETURN, ENTRY
+* &666 label actual arguments for assigned GO TO alternate return
 * implicit RETURN at END
 
-## Unknown, but were in place by FORTRAN IV at the latest:
-* no INT**REAL (or D.P.); promotion on [+-*/] only REAL -> COMPLEX or D.P.
-* trig and transcendentals are externals, not intrinsics
-
 ## FORTRAN 66
-* max 3 array dimensions; subscripts only like C*V+K; lower bounds all 1
+* max 3 array dimensions; subscripts only like `C*V+K`; lower bounds all 1
 * adjustable array dummy arguments (dimension of dummy array is dummy argument)
 
 ## FORTRAN 77
@@ -115,7 +111,7 @@ Features marked with asterisks (*) were gone by FORTRAN IV.
 * INTENT on arguments
 * Obsolescent features beyond those removed in Fortran 95 below: alternate
    return, computed GO TO, statement functions, intermixed DATA,
-   CHARACTER*x form, assumed-length CHARACTER*(*) functions, fixed form source
+   `CHARACTER*x` form, assumed-length `CHARACTER*(*)` functions, fixed form source
 
 ## Fortran 95 (acquiring some HPF features)
 * FORALL construct
@@ -192,7 +188,7 @@ Features marked with asterisks (*) were gone by FORTRAN IV.
 * Maximum rank now 15
 * 64-bit INTEGER required as SELECTED_INT_KIND(18)
 * ALLOCATABLE members with recursive types
-* Implied-shape array declarations, e.g. INTEGER :: x(0:*) = [0, 1, 2]
+* Implied-shape array declarations, e.g. `INTEGER :: x(0:*) = [0, 1, 2]`
 * Pointer association initialization in declaration with => to SAVE target
 * Generalization of expressions allowed in DATA statement subscripts
    and implied DO subexpressions
@@ -207,7 +203,7 @@ Features marked with asterisks (*) were gone by FORTRAN IV.
 * POINTER-valued functions as variables suitable for LHS of =, &c.
 * OPEN(NEWUNIT=u)
 * G0 edit descriptor
-* (*(...)) format item unlimited repetition
+* `(*(...))` format item unlimited repetition
 * Recursive I/O
 * BLOCK construct
 * EXIT statement for constructs other than DO
