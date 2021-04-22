@@ -43,6 +43,19 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 29916a7afc68ee33f49017189298d3ba7cc3c31c
 
 Log of cherry-picked commits in reverse order (latest first):
+47283e15565a51758409573d9b1ac00372d9a10d me: Fortran feature history
+43831d6279ab4539cb23e95d6dca1d5d1f76fd1a Andrezj: update new OMP tests
+123ae425669e3e06f173958cc686ef6f81e498a8 Irina: OMP semantic checks for ALLOCATE
+e9be1e7d843bed90f1270c113823534bdb308eb0 Pete: fix PDT argument passing
+4299ab6c5daf62c01a74bef1fe18920dbb13c83e Arnamoy: some -W thing
+0a7d2b5f50a1e3e900ade773021879ff13399653 Mehdi: MSVC porting
+861eff24df64dab8f3c3ef8e16530b9eeff2ed6b Nico: iwyu fixes
+dc256a443a456a8e0e4d72736fee1c9442bcf4bd Andrezj: -fget-definition
+080d48f279e2b70e4e9fc65bc4947a53ffc982f3 Mehdi: tweak tests
+d667b96c98438edcc00ec85a3b151ac2dae862f3 Pete: fix assignments of PDTs
+8d672c0b3e70b060e215cbd13536a10b50f6fab2 me: iparity, parity, findloc
+6d0fef48609cbec9579716b77998059501969352 Andrezj: refactoring
+c2e452fb05a714a3826275f038d201f87e9ba2d5 Andrezj: port 2 tests
 5064a34165ccadf4718b2c159eff41f008261681 Sourabh: remove OmpEndLoopDirective handles
 ccef0adc59680cf307fcb3334f15d4e2cba62de7 Asher: add list-directed input test
 e7be90bd27051c3dcd9a344cb1b347a0c9454c21 Andrezj: update regression tests
