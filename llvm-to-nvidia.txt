@@ -43,6 +43,18 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 29916a7afc68ee33f49017189298d3ba7cc3c31c
 
 Log of cherry-picked commits in reverse order (latest first):
+5112bd6b6e10b27b81aa83cfdbe3588973a6f1f5 Diana: Fix character runtime bug (# of copied bytes)
+aaab70407beb9526722b04ae3dd14def4eaab540 Diana: Fix CFI_establish elem_len handling
+32f901bdf9b59a1cf43946ac7bb6c9382bc69600 Diana: use CFI_TYPE_LAST not obsolete CFI_type_struct
+8989268dae30d38bd6799038e14e6e33ee5528ad Pete: Allow KIND type parameters as LEN parameters of components
+8f5a2a5836cc8e4c1def2bdeb022e7b496623439 Arnamoy: fix worksharing nesting check
+79f7d3b7b123faa80daf265277b32ac77998190f Arnamoy: semantic checks for strict aliasing in OMP teams
+a58f362fb5dd61328fddd70f0e45451a760c3959 Diana: Remove dead APIs from character.h header
+8b550af7a9cf363d382b7042f12ab24aa13711fc Pete: structure c'tors with forward PDT references
+4abba775a39af7f5be5d4573011930b639d69b63 Asher: add format test
+f9c0859e9687294a3b6b2e797faf4b7ee62c60ce Pete: check for INTENT on non-dummy
+499f1ed5485383e8e7bf3aacbc6d34560d0668df Andrezj: tweak -fdebug-dump-symbols
+2f67267a93c87261414a4aa4c6cb9d20a489a0df Andrezj: tweak test
 47283e15565a51758409573d9b1ac00372d9a10d me: Fortran feature history
 43831d6279ab4539cb23e95d6dca1d5d1f76fd1a Andrezj: update new OMP tests
 123ae425669e3e06f173958cc686ef6f81e498a8 Irina: OMP semantic checks for ALLOCATE
