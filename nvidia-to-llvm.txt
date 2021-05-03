@@ -44,8 +44,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+9ef59fc62a0fbc01356119d86aadfdfd6ec73b28 Val adds accessor
 
 Done (oldest last, omitting no-ops):
+6fe81d7fb2a54eba6a2b75069d29c2de339aa452 fix crash on -DEMPTY=
+8e1d6f42044cbb424fecbdc4962e98b84b3f9f51 break up flang/runtime/reduction.cpp
 dfb286ddcdef664dec75e459496a999eb5e01b17 add FortranFeatureHistory.md
 48acc1f1a33f71d52436fd985d0dc288f74e8854 Fix up bogus errors from table construction
 ba39bbb5e542a59aecd4de1e067eb9f46a49332d IPARITY, PARITY, & FINDLOC
