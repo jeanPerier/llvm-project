@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 29916a7afc68ee33f49017189298d3ba7cc3c31c
+with llvm-project commit 08d18af26105fb77665199365c5f3124e0278826
 
 Log of cherry-picked commits in reverse order (latest first):
+2ea36e94927ccbc1f8e915a4e5c932531e69f02d Diana: remove redundant reallocation in character min/max
+778487a221496e92795afab147c3a030c74ad356 Diana: more character array MIN tests
+a40b609958828960ce55a5e266c157491772a67e Arnamoy: OMP semantic check
+65cd0d6be47730cefdd5be26c12f02ec59b4d08e Andrezj: remove %f18 from LIT configurations
+aefbfbcbd776f5549b18cd6083d6408f661efacc Nick D. @ google: mess with test extensions
 5112bd6b6e10b27b81aa83cfdbe3588973a6f1f5 Diana: Fix character runtime bug (# of copied bytes)
 aaab70407beb9526722b04ae3dd14def4eaab540 Diana: Fix CFI_establish elem_len handling
 32f901bdf9b59a1cf43946ac7bb6c9382bc69600 Diana: use CFI_TYPE_LAST not obsolete CFI_type_struct
