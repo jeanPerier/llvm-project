@@ -44,9 +44,13 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-9ef59fc62a0fbc01356119d86aadfdfd6ec73b28 Val adds accessor
 
 Done (oldest last, omitting no-ops):
+5dea53b9ec794b7c279608706ebc15d928f0426d NORM2
+c6d9577771112cdf4de526f0afe1de4669938a24 NAMELIST runtime
+75580af3f8a2fbdcb44391e903e3ae64df4ed358 defer formatted/unformmated connection to first I/O
+9ef59fc62a0fbc01356119d86aadfdfd6ec73b28 Val adds accessor
+527eafc8ed596c9e73a20e5a56809e6ebbaa4552 fix race condition on units 5 & 6
 6fe81d7fb2a54eba6a2b75069d29c2de339aa452 fix crash on -DEMPTY=
 8e1d6f42044cbb424fecbdc4962e98b84b3f9f51 break up flang/runtime/reduction.cpp
 dfb286ddcdef664dec75e459496a999eb5e01b17 add FortranFeatureHistory.md
