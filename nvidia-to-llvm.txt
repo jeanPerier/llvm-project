@@ -46,6 +46,9 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+31c465911d5fe0f0e3bcdc03a3861fc6b63118c3 add tool for Val
+50f56d5369ee08d3537b7af5b0353fd4aff8e06f DOT_PRODUCT
+adcb4594db216de6d811d0ef1e0245447d8ddaf9 OPEN(ACCESS='APPEND')
 5dea53b9ec794b7c279608706ebc15d928f0426d NORM2
 c6d9577771112cdf4de526f0afe1de4669938a24 NAMELIST runtime
 75580af3f8a2fbdcb44391e903e3ae64df4ed358 defer formatted/unformmated connection to first I/O
