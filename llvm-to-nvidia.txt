@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 08d18af26105fb77665199365c5f3124e0278826
+with llvm-project commit 72abc199772c30ea2cffaa5dd4a8aa2bb2b7f18c
 
 Log of cherry-picked commits in reverse order (latest first):
+30b7dfafdb620420ad3498aae01130bc7e2fb9cd Shoaib@FM: fix...
+56f7e5a822b43578e086c40d063af2a2c0d214ee Shoaib@FB: support multiple distributions
+5a9497d6890145da74325dfcb032ad2963b5da3f Pete: large &/or bad ac-implied-dos
+04adfb660987072ad31756e0d04803f96c3c39f7 Andrezj: Enable build of new driver by default
+1e11616a071d07d0f3cdae1140b5c8685eb564a2 Renaud: export FIR includes
 2ea36e94927ccbc1f8e915a4e5c932531e69f02d Diana: remove redundant reallocation in character min/max
 778487a221496e92795afab147c3a030c74ad356 Diana: more character array MIN tests
 a40b609958828960ce55a5e266c157491772a67e Arnamoy: OMP semantic check
