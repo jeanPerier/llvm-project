@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 72abc199772c30ea2cffaa5dd4a8aa2bb2b7f18c
+with llvm-project commit 18cb17ce4cd54b9971550840b6f0b872de0d4c8c
 
 Log of cherry-picked commits in reverse order (latest first):
+05de4b413930418b60c0dd1e72681b476b50e7fb Benny.Kra: fix...
+17ef1017f0dc4b32abc5f8b4747429a0b9c7c949 Benny.Kra: fix...
+d4d80a2903c1d074008cac653cdb0b5fe39b8a00 Benny.Kra: googletest 1.10.0
+b766576d38d304c630de5430053d06dfc7784628 Arnamoy: semantic check for close nesting of master region
 30b7dfafdb620420ad3498aae01130bc7e2fb9cd Shoaib@FM: fix...
 56f7e5a822b43578e086c40d063af2a2c0d214ee Shoaib@FB: support multiple distributions
 5a9497d6890145da74325dfcb032ad2963b5da3f Pete: large &/or bad ac-implied-dos
