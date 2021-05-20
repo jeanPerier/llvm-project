@@ -100,7 +100,8 @@ TEST(Transformational, Pack) {
   EXPECT_EQ(result.GetDimension(0).Extent(), 3);
   static std::int32_t packExpect1[3]{2, 3, 6};
   for (int j{0}; j < 3; ++j) {
-    EXPECT_EQ(*result.ZeroBasedIndexedElement<std::int32_t>(j), packExpect1[j]);
+    EXPECT_EQ(*result.ZeroBasedIndexedElement<std::int32_t>(j), packExpect1[j])
+        << " at " << j;
   }
   result.Destroy();
 
@@ -113,7 +114,8 @@ TEST(Transformational, Pack) {
   EXPECT_EQ(result.GetDimension(0).Extent(), 5);
   static std::int32_t packExpect2[5]{2, 3, 6, -4, -5};
   for (int j{0}; j < 5; ++j) {
-    EXPECT_EQ(*result.ZeroBasedIndexedElement<std::int32_t>(j), packExpect2[j]);
+    EXPECT_EQ(*result.ZeroBasedIndexedElement<std::int32_t>(j), packExpect2[j])
+        << " at " << j;
   }
   result.Destroy();
 }
