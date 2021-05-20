@@ -323,10 +323,12 @@ void RTNAME(Pack)(Descriptor &result, const Descriptor &source,
   SubscriptValue sourceAt[maxRank], resultAt{1};
   source.GetLowerBounds(sourceAt);
   if (mask.rank() == 0) {
-    for (SubscriptValue n{trues}; n > 0; --n) {
-      CopyElement(result, &resultAt, source, sourceAt, terminator);
-      ++resultAt;
-      source.IncrementSubscripts(sourceAt);
+    if (IsLogicalElementTrue(mask, nullptr)) {
+      for (SubscriptValue n{trues}; n > 0; --n) {
+        CopyElement(result, &resultAt, source, sourceAt, terminator);
+        ++resultAt;
+        source.IncrementSubscripts(sourceAt);
+      }
     }
   } else {
     SubscriptValue maskAt[maxRank];
@@ -343,7 +345,7 @@ void RTNAME(Pack)(Descriptor &result, const Descriptor &source,
   if (vector) {
     SubscriptValue vectorAt{
         vector->GetDimension(0).LowerBound() + resultAt - 1};
-    for (; resultAt < extent; ++resultAt, ++vectorAt) {
+    for (; resultAt <= extent; ++resultAt, ++vectorAt) {
       CopyElement(result, &resultAt, *vector, &vectorAt, terminator);
     }
   }
