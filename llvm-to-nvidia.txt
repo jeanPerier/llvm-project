@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 18cb17ce4cd54b9971550840b6f0b872de0d4c8c
+with llvm-project commit 27c3db32c033663dbdfa8b92ed962a990b99f21e
 
 Log of cherry-picked commits in reverse order (latest first):
+27c3db32c033663dbdfa8b92ed962a990b99f21e patch to fix build w/ clang (unused variable)
+854367240d62802a547d25fb6027b2c3956e8cbf patch to fix build w/ clang from extern "C" in transformational.cpp
+c1db35f0c232a8672d44f2531d178d4da35b5b3c tweaks in press to PACK
+943839870a0be356c40629c75d4583976cb9e812 Jean: simplify derived type info tables
+941269133e77498693a584aab0ecaad4695904cc Andrezj: update teleconference info
 05de4b413930418b60c0dd1e72681b476b50e7fb Benny.Kra: fix...
 17ef1017f0dc4b32abc5f8b4747429a0b9c7c949 Benny.Kra: fix...
 d4d80a2903c1d074008cac653cdb0b5fe39b8a00 Benny.Kra: googletest 1.10.0
