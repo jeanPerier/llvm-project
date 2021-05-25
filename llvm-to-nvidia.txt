@@ -43,6 +43,9 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 27c3db32c033663dbdfa8b92ed962a990b99f21e
 
 Log of cherry-picked commits in reverse order (latest first):
+97a71ae6259191c09de644c55deb4448a259a1b1 Andrezj: set default for FLANG_BUILD_NEW_DRIVER
+0f140ce33d64b2a8f4f0866debf5fdd36e49b3ad Thorsten S.: #include <limits>
+8eb18a0f3ecc6cad534fab27f7653f2ed46c7f01 Nicolas V.: MLIR NFC
 27c3db32c033663dbdfa8b92ed962a990b99f21e patch to fix build w/ clang (unused variable)
 854367240d62802a547d25fb6027b2c3956e8cbf patch to fix build w/ clang from extern "C" in transformational.cpp
 c1db35f0c232a8672d44f2531d178d4da35b5b3c tweaks in press to PACK
