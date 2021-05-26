@@ -98,14 +98,20 @@ template <typename A> inline bool PointeeComparison(const A *x, const A *y) {
 
 bool DynamicType::operator==(const DynamicType &that) const {
   return category_ == that.category_ && kind_ == that.kind_ &&
-      PointeeComparison(charLength_, that.charLength_) &&
+      PointeeComparison(charLengthParamValue_, that.charLengthParamValue_) &&
+      (!knownLength_ || !that.knownLength_ ||
+          *knownLength_ == *that.knownLength_) &&
       PointeeComparison(derived_, that.derived_);
 }
 
 std::optional<Expr<SubscriptInteger>> DynamicType::GetCharLength() const {
-  if (category_ == TypeCategory::Character && charLength_) {
-    if (auto length{charLength_->GetExplicit()}) {
-      return ConvertToType<SubscriptInteger>(std::move(*length));
+  if (category_ == TypeCategory::Character) {
+    if (knownLength_) {
+      return AsExpr(Constant<SubscriptInteger>(*knownLength_));
+    } else if (charLengthParamValue_) {
+      if (auto length{charLengthParamValue_->GetExplicit()}) {
+        return ConvertToType<SubscriptInteger>(std::move(*length));
+      }
     }
   }
   return std::nullopt;
@@ -171,16 +177,18 @@ std::optional<Expr<SubscriptInteger>> DynamicType::MeasureSizeInBytes(
 }
 
 bool DynamicType::IsAssumedLengthCharacter() const {
-  return category_ == TypeCategory::Character && charLength_ &&
-      charLength_->isAssumed();
+  return category_ == TypeCategory::Character && charLengthParamValue_ &&
+      charLengthParamValue_->isAssumed();
 }
 
 bool DynamicType::IsNonConstantLengthCharacter() const {
   if (category_ != TypeCategory::Character) {
     return false;
-  } else if (!charLength_) {
+  } else if (knownLength_) {
+    return false;
+  } else if (!charLengthParamValue_) {
     return true;
-  } else if (const auto &expr{charLength_->GetExplicit()}) {
+  } else if (const auto &expr{charLengthParamValue_->GetExplicit()}) {
     return !IsConstantExpr(*expr);
   } else {
     return true;
@@ -427,7 +435,7 @@ bool DynamicType::HasDeferredTypeParameter() const {
       }
     }
   }
-  return charLength_ && charLength_->isDeferred();
+  return charLengthParamValue_ && charLengthParamValue_->isDeferred();
 }
 
 bool SomeKind<TypeCategory::Derived>::operator==(
