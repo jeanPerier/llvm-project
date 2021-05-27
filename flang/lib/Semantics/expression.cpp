@@ -55,13 +55,9 @@ struct DynamicTypeWithLength : public DynamicType {
 std::optional<Expr<SubscriptInteger>> DynamicTypeWithLength::LEN() const {
   if (length) {
     return length;
+  } else {
+    return GetCharLength();
   }
-  if (auto *lengthParam{charLength()}) {
-    if (const auto &len{lengthParam->GetExplicit()}) {
-      return ConvertToType<SubscriptInteger>(common::Clone(*len));
-    }
-  }
-  return std::nullopt; // assumed or deferred length
 }
 
 static std::optional<DynamicTypeWithLength> AnalyzeTypeSpec(
@@ -1171,9 +1167,7 @@ public:
   template <typename T> Result Test() {
     if (type_ && type_->category() == T::category) {
       if constexpr (T::category == TypeCategory::Derived) {
-        if (type_->IsUnlimitedPolymorphic()) {
-          return std::nullopt;
-        } else {
+        if (!type_->IsUnlimitedPolymorphic()) {
           return AsMaybeExpr(ArrayConstructor<T>{type_->GetDerivedTypeSpec(),
               MakeSpecific<T>(std::move(values_))});
         }
