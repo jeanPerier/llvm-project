@@ -1256,8 +1256,8 @@ void ArrayConstructorContext::Push(MaybeExpr &&x) {
       constantLength_ = ToInt64(type_->length);
       values_.Push(std::move(*x));
     } else if (!explicitType_) {
-      if (static_cast<const DynamicType &>(*type_) ==
-          static_cast<const DynamicType &>(xType)) {
+      if (type_->IsTkCompatibleWith(xType) &&
+          xType.IsTkCompatibleWith(*type_)) {
         values_.Push(std::move(*x));
         if (auto thisLen{ToInt64(xType.LEN())}) {
           if (constantLength_) {

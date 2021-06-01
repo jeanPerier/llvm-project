@@ -478,7 +478,7 @@ std::string DynamicType::AsFortran() const {
   } else if (charLengthParamValue_ || knownLength_) {
     std::string result{"CHARACTER(KIND="s + std::to_string(kind_) + ",LEN="};
     if (knownLength_) {
-      result += *knownLength_;
+      result += std::to_string(*knownLength_) + "_8";
     } else if (charLengthParamValue_->isAssumed()) {
       result += '*';
     } else if (charLengthParamValue_->isDeferred()) {
