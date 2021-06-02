@@ -92,6 +92,16 @@ bool IsDescriptor(const Symbol &symbol) {
 
 namespace Fortran::evaluate {
 
+DynamicType::DynamicType(int k, const semantics::ParamValue &pv)
+    : category_{TypeCategory::Character}, kind_{k} {
+  CHECK(IsValidKindOfIntrinsicType(category_, kind_));
+  if (auto n{ToInt64(pv.GetExplicit())}) {
+    knownLength_ = *n;
+  } else {
+    charLengthParamValue_ = &pv;
+  }
+}
+
 template <typename A> inline bool PointeeComparison(const A *x, const A *y) {
   return x == y || (x && y && *x == *y);
 }
@@ -99,8 +109,8 @@ template <typename A> inline bool PointeeComparison(const A *x, const A *y) {
 bool DynamicType::operator==(const DynamicType &that) const {
   return category_ == that.category_ && kind_ == that.kind_ &&
       PointeeComparison(charLengthParamValue_, that.charLengthParamValue_) &&
-      (!knownLength_ || !that.knownLength_ ||
-          *knownLength_ == *that.knownLength_) &&
+      knownLength_.has_value() == that.knownLength_.has_value() &&
+      (!knownLength_ || *knownLength_ == *that.knownLength_) &&
       PointeeComparison(derived_, that.derived_);
 }
 

@@ -88,11 +88,7 @@ public:
   constexpr DynamicType(TypeCategory cat, int k) : category_{cat}, kind_{k} {
     CHECK(IsValidKindOfIntrinsicType(category_, kind_));
   }
-  constexpr DynamicType(int k, const semantics::ParamValue &pv)
-      : category_{TypeCategory::Character}, kind_{k}, charLengthParamValue_{
-                                                          &pv} {
-    CHECK(IsValidKindOfIntrinsicType(category_, kind_));
-  }
+  DynamicType(int charKind, const semantics::ParamValue &len);
   constexpr DynamicType(int k, std::int64_t len)
       : category_{TypeCategory::Character}, kind_{k}, knownLength_{len} {
     CHECK(IsValidKindOfIntrinsicType(category_, kind_));
