@@ -46,6 +46,17 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+4e5c1ae79832ca05c79f36d36d4bc69463688d15 tristate-ify CheckConformance
+74ce3b4778cc881e2ddc39f5fb2a1902d902acaa INTERFACE symbol resolution
+dfc95b70419de4e1c130de0485ab39113e62c770 characterize EntityDetails dummy arguments
+ca0c70ceeb9bb108ce19807efe7cb8ab3a6081f7 missing interface error
+8aa2d11a24cd94587767c2e6c29105fdcd3df350 struct constr as selector
+f915997807749a4d8d8b4aa40a29418b48923d7f fix ac bug found with...
+343c5e57f404a3a7e5b2e7f299fb0abbf0d10d87 ... known constant lengths
+5e37cbe072ec7cec31722d2d3061bc5cbfb214be catch proc ptr interface error
+96f566b6fab70c6ea0e09221b1ed0f0bddbf7331 accept BOZ in ac's w/o explicit types
+2ed4ccb42c71fc8544863137fed440bd8cdd4572 fix folding of CMPLX
+a052097df4ca6122fe96db2fd6a668d06b78ed81 fix crash from failed source->scope mapping
 3d2d194554afa39afae0f9836d81639afb6d4fe2 fix regression with...
 e67552e09a03907e35e21dbd22253886a3b2618f Fix 2 symbol table bugs with ENTRY
 27c3db32c033663dbdfa8b92ed962a990b99f21e patch...
