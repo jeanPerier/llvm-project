@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 27c3db32c033663dbdfa8b92ed962a990b99f21e
+with llvm-project commit 69a82d7c08be4c7d7ab6f3de7711944a00d3e4cc
 
 Log of cherry-picked commits in reverse order (latest first):
+22d7e298dc35a2319d7b71ee78732b0a3a86893d Pete: Check for dup defs of defined I/O procs
+5f25145306e7f05a468b4520e31e05aaae66b2a0 Diana: REPEAT tests
+6b8bf9494c4601da44f432b13c644615a91edce5 Valentin: OACC semantics
+aae7eb809e41d9e1e95175a017ca0fdccc87dedd Isaac Perry: OMP allocate directive
+5f8810d7b463e085ab24d5443cde7143cae08ddc naromero77: test documentation
+bc56620b8b765b5720dbc1849511fb783e05b8cc Pete: defined I/O procedure checks
 97a71ae6259191c09de644c55deb4448a259a1b1 Andrezj: set default for FLANG_BUILD_NEW_DRIVER
 0f140ce33d64b2a8f4f0866debf5fdd36e49b3ad Thorsten S.: #include <limits>
 8eb18a0f3ecc6cad534fab27f7653f2ed46c7f01 Nicolas V.: MLIR NFC
