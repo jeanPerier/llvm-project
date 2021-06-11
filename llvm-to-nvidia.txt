@@ -43,6 +43,7 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit a67780f7db26f0b3588e9366cd6b66ec1434ab1c
 
 Log of cherry-picked commits in reverse order (latest first):
+5bdb13adac7acc95756c06c024016b6a6bab897f me: patch CharacterTest.cpp
 7836d058c7e115eace62e324ef6c01670326f518 Kruse: Fix build after D99459
 a0bd24453b14d04666ed29f856387ead5c87205b Zach: fix runtime typo
 0112f6ac71517de7767296eda1db26cc4bdb14ee Kruse: escape special regex character from...
