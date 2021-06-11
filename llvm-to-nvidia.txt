@@ -40,9 +40,23 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 69a82d7c08be4c7d7ab6f3de7711944a00d3e4cc
+with llvm-project commit a67780f7db26f0b3588e9366cd6b66ec1434ab1c
 
 Log of cherry-picked commits in reverse order (latest first):
+7836d058c7e115eace62e324ef6c01670326f518 Kruse: Fix build after D99459
+a0bd24453b14d04666ed29f856387ead5c87205b Zach: fix runtime typo
+0112f6ac71517de7767296eda1db26cc4bdb14ee Kruse: escape special regex character from...
+58c3f20bbf51f454ffb38ddb700a1d5ad374dc7b Kruse: regression tests under Windows
+35b0ddab0ee8064d23c6f390e30da14e756b5ba6 Diana: CPU_TIME API
+49454ebc56ecf8b11f4b6c328c9fdb7b92307684 Blaikie: more...
+c5d56fec502f36a0c994835ca23bc93a6c682d95 Blaikie: .clang-tidy disable misc-no-recursion
+e1da3297d253b33be1ff941cf9ed9091dd332ea5 Stuart E.: -init-only option
+2b795ec682ff4a9afbfe4e5c102a51689b270ecc Pete: check for undefined derived types
+f2622a150adea31290daee0d04bf385d387fbc04 Arnamoy: OMP semantic check
+2b4c9bc4d489a4be1c5aa1924fba542dc80ab0c9 Andrezj: add checks for missing option arguments
+20bd2142d46536f4ffd61f28a029d6bda68f1a7f Andrezj: -module-suffix
+1971960a6fed78d250c66906c804c6c41c86e3ec Jean: fix scope of created symbols for type descriptions
+263a89c9b788b4c6bc174dc169dca2a3b729ea02 Diana: fix entry point capitalization on adjustl/r
 22d7e298dc35a2319d7b71ee78732b0a3a86893d Pete: Check for dup defs of defined I/O procs
 5f25145306e7f05a468b4520e31e05aaae66b2a0 Diana: REPEAT tests
 6b8bf9494c4601da44f432b13c644615a91edce5 Valentin: OACC semantics

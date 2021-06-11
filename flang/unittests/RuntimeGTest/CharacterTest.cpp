@@ -30,10 +30,12 @@ OwningPtr<Descriptor> CreateDescriptor(const std::vector<SubscriptValue> &shape,
 
   OwningPtr<Descriptor> descriptor{Descriptor::Create(sizeof(CHAR), length,
       nullptr, shape.size(), nullptr, CFI_attribute_allocatable)};
-  if ((shape.empty() ? descriptor->Allocate()
-                     : descriptor->Allocate(
-                           std::vector<SubscriptValue>(shape.size(), 1).data(),
-                           shape.data())) != 0) {
+  int rank{static_cast<int>(shape.size())};
+  // Use a weird lower bound of 2 to flush out subscripting bugs
+  for (int j{0}; j < rank; ++j) {
+    descriptor->GetDimension(j).SetBounds(2, shape[j] + 1);
+  }
+  if (descriptor->Allocate() != 0) {
     return nullptr;
   }
 
@@ -227,35 +229,6 @@ struct ExtremumTestCase {
   std::vector<SubscriptValue> shape; // Empty = scalar, non-empty = array.
   std::vector<const char *> x, y, expect;
 };
-
-// Helper for creating, allocating and filling up a descriptor with data from
-// raw character literals, converted to the CHAR type used by the test.
-template <typename CHAR>
-OwningPtr<Descriptor> CreateDescriptor(const std::vector<SubscriptValue> &shape,
-    const std::vector<const char *> &raw_strings) {
-  std::size_t length{std::strlen(raw_strings[0])};
-
-  OwningPtr<Descriptor> descriptor{Descriptor::Create(sizeof(CHAR), length,
-      nullptr, shape.size(), nullptr, CFI_attribute_allocatable)};
-  int rank{static_cast<int>(shape.size())};
-  // Use a weird lower bound of 2 to flush out subscripting bugs
-  for (int j{0}; j < rank; ++j) {
-    descriptor->GetDimension(j).SetBounds(2, shape[j] + 1);
-  }
-  if (descriptor->Allocate() != 0) {
-    return nullptr;
-  }
-
-  std::size_t offset = 0;
-  for (const char *raw : raw_strings) {
-    std::basic_string<CHAR> converted{raw, raw + length};
-    std::copy(converted.begin(), converted.end(),
-        descriptor->OffsetElement<CHAR>(offset * length * sizeof(CHAR)));
-    ++offset;
-  }
-
-  return descriptor;
-}
 
 template <typename CHAR>
 void RunExtremumTests(const char *which,
