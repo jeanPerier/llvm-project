@@ -40,9 +40,27 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a67780f7db26f0b3588e9366cd6b66ec1434ab1c
+with llvm-project commit dc3bd11e5b6be7a5430b32dc8155e2435a542918
 
 Log of cherry-picked commits in reverse order (latest first):
+fc4f457fcc531871e86ecaaffc46ef98249b8e6a me: fix arm/power test failure
+46446e398b5202303280d9e18676c07529f1d0b0 Andrezj: fix broken test
+8ba9ee46e465a56a54f8361703d3af7f4bc98d63 me: fix typo
+0ad051b5fc22b4e7334635b2bdc54eca8ee7c4c4 Diana: C++ lib depd check take 2
+dfa0f3ee0ea1b72b81b469736e9271098e4129b3 Diana: revert C++ lib depd check
+10ae933b0b1af00a04a251cf560bb935f1a9f18a Diana: fix C++ lib depd check
+45cd405dc07bbc259ea251c8f5f5e2bca7a6112c Diana: clang-tidy for braced ifs
+7ddbf2633911a5c378ad6af01e250f6f252b9032 Diana: check for runtime depd's on C++ libs
+062644bb399bd05fd0aeb3cb9d52fa0014db0bdd Andrezj: move external-hello-world to examples
+a6be6e31f1810012922e50dab0d4c15cdf990d2e Andrezj: -fdebug-dump-all
+bda1f2936e379e418156444d8d9f3fba2c60687c Pete: RANDOM_SEED semantic checks
+80ea006ef9e08364854394b633b904fa85e38e4e Isaac P.: OMP allocate semantic checks
+c58cf692f4197bf1f8ea7e0efb95c1afd2d6d81f Asher: move buffer runtime test to GTest
+b88fa0e39fa7b8906562b7044d06bba094c8b688 Pete: fix build MemRefDataFlow
+166192eb78cdeb41ee25a37e920259fb13f82f6a Diana: POSIX CPU_TIME
+57e85622bbdb2eb18cc03df2ea457019c58f6912 Diana: CPU_TIME
+dbc262968f8ed4b25281d5855eda8f5a699b95c6 Kruse: fix Windows build
+1b241b9b400bdfc5b8e0d157f0f46436677927b8 Pete: multiple USE statements from same module
 5bdb13adac7acc95756c06c024016b6a6bab897f me: patch CharacterTest.cpp
 7836d058c7e115eace62e324ef6c01670326f518 Kruse: Fix build after D99459
 a0bd24453b14d04666ed29f856387ead5c87205b Zach: fix runtime typo
