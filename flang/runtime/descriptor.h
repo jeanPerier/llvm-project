@@ -306,7 +306,7 @@ public:
 
   // Allocate() assumes Elements() and ElementBytes() work;
   // define the extents of the dimensions and the element length
-  // before calling.  It computes (re)the byte strides after
+  // before calling.  It (re)computes the byte strides after
   // allocation.
   // TODO: SOURCE= and MOLD=
   int Allocate();
