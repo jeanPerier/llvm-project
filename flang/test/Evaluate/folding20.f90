@@ -1,6 +1,6 @@
 ! RUN: %S/test_folding.sh %s %t %flang_fc1
-! Tests reduction intrinsic function folding
 ! REQUIRES: shell
+! Tests reduction intrinsic function folding
 module m
   implicit none
   integer, parameter :: intmatrix(*,*) = reshape([1, 2, 3, 4, 5, 6], [2, 3])
