@@ -44,9 +44,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+b9d36f6b3ca0ee710cd649ff6192abcf53ad213f fold more reductions (all, any, iall, iany, iparity, product, sum)
 
 Done (oldest last, omitting no-ops):
-8196eafea5214f8afc85ce870368146881072ead iall & iany
+ca42b73e36435fe5b456dbec5d4c34d37c40fb0d default derived type I/O
+8196eafea5214f8afc85ce870368146881072ead iall & iany in runtime
 15d1be83521743b4ba1c8c1f21848ae11c61c5bb Kahan summation
 ee460fa7b905abf4104522b2e30a13079d09dda2 fold maxval & minval
 377416edea8c42a2794ac460c7f8c44e96e6fac0 array c'tor error recovery
