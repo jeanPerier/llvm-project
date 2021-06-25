@@ -43,6 +43,20 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit dc3bd11e5b6be7a5430b32dc8155e2435a542918
 
 Log of cherry-picked commits in reverse order (latest first):
+c3ebb53eabb7f851687f66ada88aa16f768d76ce Andrezj: fix shared lib build breakage from...
+2a7bb8494e9c58b44ad7142d8d309455cd669603 Andrezj: new driver -fno-analyzed-objects-for-unparse
+a1034022888cadca5f2a4700f60beda4f7053c08 Mark: change RESHAPE runtime API
+f1e2d5851bf869685971d5acb894b39a89ea2d49 Fangrui Song: rename -> printHelp
+2716c6faa46f346b66fe7af5219d611b369d42e9 Storsjo: tweak my GCC 7 work-around
+00c93d8801f13058a4cd9b70a2747b5a9908e2a4 River: fix flang build
+e3b2f1b6823f4f06da222545857809e6ee7962b6 me: fix GCC 7 build
+503c085e3bcd0a031a363ee89c91b1f1e41bfa4b me: fold more intrinsics (tweak test header)
+e7f78fb9171768a514611304caf42eb034ec9247 Pete: fold NOT()
+f075760317663d60181183ad1643953f91b07be3 Kruse: fix Windows buildbot
+b3c1f53c989f6aefad581955e3add222cfb5d890 me: recode switch to dodge bogus warning
+8fdd475c85634c4a5e5cd83d7dc15ff56c458813 Arnamoy: OMP checks nested barriers
+4498137bd7857c07921b4cd6313baac62ead24e2 Diana: rewrite CPU_TIME test
+1a4af2e45ee59cff3d577986b9b7f3f5bd5ab01f Jean: avoid GetUltimate in DescriptorInquiry
 fc4f457fcc531871e86ecaaffc46ef98249b8e6a me: fix arm/power test failure
 46446e398b5202303280d9e18676c07529f1d0b0 Andrezj: fix broken test
 8ba9ee46e465a56a54f8361703d3af7f4bc98d63 me: fix typo
