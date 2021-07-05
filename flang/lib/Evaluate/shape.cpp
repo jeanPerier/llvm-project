@@ -10,6 +10,7 @@
 #include "flang/Common/idioms.h"
 #include "flang/Common/template.h"
 #include "flang/Evaluate/characteristics.h"
+#include "flang/Evaluate/check-expression.h"
 #include "flang/Evaluate/fold.h"
 #include "flang/Evaluate/intrinsics.h"
 #include "flang/Evaluate/tools.h"
@@ -232,7 +233,8 @@ public:
   using Result = ExtentExpr;
   using Base = Traverse<GetLowerBoundHelper, ExtentExpr>;
   using Base::operator();
-  explicit GetLowerBoundHelper(int d) : Base{*this}, dimension_{d} {}
+  explicit GetLowerBoundHelper(int d, bool b)
+      : Base{*this}, dimension_{d}, useNonConstantExplicitBounds_{b} {}
   static ExtentExpr Default() { return ExtentExpr{1}; }
   static ExtentExpr Combine(Result &&, Result &&) { return Default(); }
   ExtentExpr operator()(const Symbol &);
@@ -240,7 +242,18 @@ public:
 
 private:
   int dimension_;
+  bool useNonConstantExplicitBounds_;
 };
+
+static const ExtentExpr *GetIfConstantExpr(
+    const semantics::Bound &bound, bool useNonConstantExplicitBounds = false) {
+  if (const auto &expr{bound.GetExplicit()}) {
+    if (useNonConstantExplicitBounds || IsConstantExpr(*expr)) {
+      return &*expr;
+    }
+  }
+  return nullptr;
+}
 
 auto GetLowerBoundHelper::operator()(const Symbol &symbol0) -> Result {
   const Symbol &symbol{symbol0.GetUltimate()};
@@ -248,7 +261,8 @@ auto GetLowerBoundHelper::operator()(const Symbol &symbol0) -> Result {
     int j{0};
     for (const auto &shapeSpec : details->shape()) {
       if (j++ == dimension_) {
-        if (const auto &bound{shapeSpec.lbound().GetExplicit()}) {
+        if (const auto *bound{GetIfConstantExpr(
+                shapeSpec.lbound(), useNonConstantExplicitBounds_)}) {
           return *bound;
         } else if (IsDescriptor(symbol)) {
           return ExtentExpr{DescriptorInquiry{NamedEntity{symbol0},
@@ -273,7 +287,8 @@ auto GetLowerBoundHelper::operator()(const Component &component) -> Result {
       int j{0};
       for (const auto &shapeSpec : details->shape()) {
         if (j++ == dimension_) {
-          if (const auto &bound{shapeSpec.lbound().GetExplicit()}) {
+          if (const auto *bound{GetIfConstantExpr(
+                  shapeSpec.lbound(), useNonConstantExplicitBounds_)}) {
             return *bound;
           } else if (IsDescriptor(symbol)) {
             return ExtentExpr{
@@ -289,13 +304,15 @@ auto GetLowerBoundHelper::operator()(const Component &component) -> Result {
   return Default();
 }
 
-ExtentExpr GetLowerBound(const NamedEntity &base, int dimension) {
-  return GetLowerBoundHelper{dimension}(base);
+ExtentExpr GetLowerBound(
+    const NamedEntity &base, int dimension, bool useNonConstantExplicitBounds) {
+  return GetLowerBoundHelper{dimension, useNonConstantExplicitBounds}(base);
 }
 
-ExtentExpr GetLowerBound(
-    FoldingContext &context, const NamedEntity &base, int dimension) {
-  return Fold(context, GetLowerBound(base, dimension));
+ExtentExpr GetLowerBound(FoldingContext &context, const NamedEntity &base,
+    int dimension, bool useNonConstantExplicitBounds) {
+  return Fold(
+      context, GetLowerBound(base, dimension, useNonConstantExplicitBounds));
 }
 
 Shape GetLowerBounds(const NamedEntity &base) {
@@ -330,15 +347,13 @@ MaybeExtentExpr GetExtent(const NamedEntity &base, int dimension) {
       int j{0};
       for (const auto &shapeSpec : details->shape()) {
         if (j++ == dimension) {
-          if (shapeSpec.ubound().isExplicit()) {
-            if (const auto &ubound{shapeSpec.ubound().GetExplicit()}) {
-              if (const auto &lbound{shapeSpec.lbound().GetExplicit()}) {
-                return common::Clone(ubound.value()) -
-                    common::Clone(lbound.value()) + ExtentExpr{1};
-              } else {
-                return ubound.value();
-              }
-            }
+          const auto *ubound{GetIfConstantExpr(shapeSpec.ubound())};
+          const auto *lbound{GetIfConstantExpr(shapeSpec.lbound())};
+          if (ubound && lbound) {
+            return common::Clone(*ubound) - common::Clone(*lbound) +
+                ExtentExpr{1};
+          } else if (ubound && !shapeSpec.lbound().isExplicit()) {
+            return *ubound;
           } else if (details->IsAssumedSize() && j == symbol.Rank()) {
             return std::nullopt;
           } else if (semantics::IsDescriptor(symbol)) {
@@ -412,13 +427,15 @@ MaybeExtentExpr ComputeUpperBound(
   return Fold(context, ComputeUpperBound(std::move(lower), std::move(extent)));
 }
 
-MaybeExtentExpr GetUpperBound(const NamedEntity &base, int dimension) {
+MaybeExtentExpr GetUpperBound(
+    const NamedEntity &base, int dimension, bool useNonConstantExplicitBounds) {
   const Symbol &symbol{ResolveAssociations(base.GetLastSymbol())};
   if (const auto *details{symbol.detailsIf<semantics::ObjectEntityDetails>()}) {
     int j{0};
     for (const auto &shapeSpec : details->shape()) {
       if (j++ == dimension) {
-        if (const auto &bound{shapeSpec.ubound().GetExplicit()}) {
+        if (const auto *bound{GetIfConstantExpr(
+                shapeSpec.ubound(), useNonConstantExplicitBounds)}) {
           return *bound;
         } else if (details->IsAssumedSize() && dimension + 1 == symbol.Rank()) {
           break;
@@ -440,9 +457,10 @@ MaybeExtentExpr GetUpperBound(const NamedEntity &base, int dimension) {
   return std::nullopt;
 }
 
-MaybeExtentExpr GetUpperBound(
-    FoldingContext &context, const NamedEntity &base, int dimension) {
-  return Fold(context, GetUpperBound(base, dimension));
+MaybeExtentExpr GetUpperBound(FoldingContext &context, const NamedEntity &base,
+    int dimension, bool useNonConstantExplicitBounds) {
+  return Fold(
+      context, GetUpperBound(base, dimension, useNonConstantExplicitBounds));
 }
 
 Shape GetUpperBounds(const NamedEntity &base) {
@@ -451,7 +469,7 @@ Shape GetUpperBounds(const NamedEntity &base) {
     Shape result;
     int dim{0};
     for (const auto &shapeSpec : details->shape()) {
-      if (const auto &bound{shapeSpec.ubound().GetExplicit()}) {
+      if (const auto *bound{GetIfConstantExpr(shapeSpec.ubound())}) {
         result.push_back(*bound);
       } else if (details->IsAssumedSize()) {
         CHECK(dim + 1 == base.Rank());

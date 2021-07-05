@@ -60,13 +60,25 @@ template <typename A>
 std::optional<Shape> GetShape(FoldingContext &, const A &);
 template <typename A> std::optional<Shape> GetShape(const A &);
 
-// The dimension argument to these inquiries is zero-based,
-// unlike the DIM= arguments to many intrinsics.
-ExtentExpr GetLowerBound(const NamedEntity &, int dimension);
-ExtentExpr GetLowerBound(FoldingContext &, const NamedEntity &, int dimension);
-MaybeExtentExpr GetUpperBound(const NamedEntity &, int dimension);
-MaybeExtentExpr GetUpperBound(
-    FoldingContext &, const NamedEntity &, int dimension);
+// Notes about GetLowerBound and GetUpperBound:
+// - The dimension argument to these inquiries is zero-based,
+//   unlike the DIM= arguments to many intrinsics.
+// - Shape analysis results might be used outside of the specification part,
+//   in which case it is not possible to inject a non constant specification
+//   expression because it may evaluate to a different value than it did in
+//   the specification part. In context where it is known to be possible to
+//   use such non constant specification expressions, the flag
+//   useNonConstantExplicitBounds can be set to true. Otherwise,
+//   evaluate::DescriptorInquiry will be returned for non constant explicit
+//   bounds.
+ExtentExpr GetLowerBound(const NamedEntity &, int dimension,
+    bool useNonConstantExplicitBounds = false);
+ExtentExpr GetLowerBound(FoldingContext &, const NamedEntity &, int dimension,
+    bool useNonConstantExplicitBounds = false);
+MaybeExtentExpr GetUpperBound(const NamedEntity &, int dimension,
+    bool useNonConstantExplicitBounds = false);
+MaybeExtentExpr GetUpperBound(FoldingContext &, const NamedEntity &,
+    int dimension, bool useNonConstantExplicitBounds = false);
 MaybeExtentExpr ComputeUpperBound(ExtentExpr &&lower, MaybeExtentExpr &&extent);
 MaybeExtentExpr ComputeUpperBound(
     FoldingContext &, ExtentExpr &&lower, MaybeExtentExpr &&extent);

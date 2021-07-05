@@ -702,11 +702,18 @@ evaluate::StructureConstructor RuntimeTableBuilder::DescribeComponent(
     std::vector<evaluate::StructureConstructor> bounds;
     evaluate::NamedEntity entity{symbol};
     for (int j{0}; j < rank; ++j) {
-      bounds.emplace_back(GetValue(std::make_optional(evaluate::GetLowerBound(
-                                       foldingContext, entity, j)),
+      // Force usage of length parameters in bound expressions instead of
+      // replacing their appearances by evaluate::DescriptorInquiry.
+      // Bounds dependency on length parameters will be translated in
+      // the generated type-info.
+      const bool useNonConstantExplicitExpr{true};
+      bounds.emplace_back(
+          GetValue(std::make_optional(evaluate::GetLowerBound(
+                       foldingContext, entity, j, useNonConstantExplicitExpr)),
+              parameters));
+      bounds.emplace_back(GetValue(evaluate::GetUpperBound(foldingContext,
+                                       entity, j, useNonConstantExplicitExpr),
           parameters));
-      bounds.emplace_back(GetValue(
-          evaluate::GetUpperBound(foldingContext, entity, j), parameters));
     }
     AddValue(values, componentSchema_, "bounds"s,
         SaveDerivedPointerTarget(scope,
