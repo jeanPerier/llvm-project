@@ -1022,8 +1022,7 @@ Expr<T> FoldOperation(FoldingContext &context, FunctionRef<T> &&funcRef) {
     } else if (name == "unpack") {
       return Folder<T>{context}.UNPACK(std::move(funcRef));
     }
-    // TODO: spread
-    // TODO: extends_type_of, same_type_as
+    // TODO: spread, extends_type_of, same_type_as
     if constexpr (!std::is_same_v<T, SomeDerived>) {
       return FoldIntrinsicFunction(context, std::move(funcRef));
     }
