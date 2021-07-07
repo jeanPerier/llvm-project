@@ -690,9 +690,8 @@ Expr<Type<TypeCategory::Integer, KIND>> FoldIntrinsicFunction(
     return UBOUND(context, std::move(funcRef));
   }
   // TODO:
-  // cshift, dot_product, eoshift, findloc, ibits, image_status, ishftc,
-  // matmul, maxloc, minloc, pack, sign, spread, transfer, transpose,
-  // unpack
+  // count(w/ dim), dot_product, findloc, ibits, image_status, ishftc,
+  // matmul, maxloc, minloc, sign, transfer
   return Expr<T>{std::move(funcRef)};
 }
 
