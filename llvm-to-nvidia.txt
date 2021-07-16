@@ -40,9 +40,24 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit dc3bd11e5b6be7a5430b32dc8155e2435a542918
+with llvm-project commit fbc3e69f58d0e2e8e143c2a098cc7443bae2fdbb
 
 Log of cherry-picked commits in reverse order (latest first):
+9f6ff37a36ffb7601fd9e23f0b6ae2156ae3ff77 Andrexj: flang script fixes
+67002b5f20c2c4c9bd5e89f79077ae8d6e165aae Peixin: OMP taskloop checking
+fe892114e33b8f98bf3537a0dd6d6798821cb849 Andrezj: CMake simplification
+739f49ed12a4d94cef07c7071e2ad6dbb93834f3 Andrezj: flang script fixes
+d8fc4e9c0d697b0a3569c2652a2eff284c4d38c8 Johannes: update meeting doc
+c2d4d6a1fde127316aae2fdd48b4322857987be3 Jean: HostAssociationDetails symbols for misparsed ArrayRef
+45e5214b4354d4f9150fcc1ea1997280f709b3dc Andrezj: more flang script
+e77191c35e334bbdbb72aeaecb44c7b5f6bfd31b Andrezj: flang script rewrite
+c1f068b8f1d5f6ca75acc07fdedf2e7416e834ec Andrezj: Revert Ellis' patch...
+ea3698ded34419310a92e441e92be1c85444140d Andrezj: document driver
+788a5d4afe6407e647454a9832a7b4a27fba06bf Stuart Ellis: some driver thing
+5d933c0b0c741767f2af8218d55581557903a254 Kruse: fix Windows test
+b8bac6b33c576dec88add0e6a68e96219e278c8a Diana: SYSTEM_CLOCK API
+57e53f013087d68305fe278aca0a92efc9b0e899 Pete: intrinsic argument conformability
+d6cb0143cccedaaddcfa274b25e9696dd1de5ab1 Romero: update test suite docs
 c3ebb53eabb7f851687f66ada88aa16f768d76ce Andrezj: fix shared lib build breakage from...
 2a7bb8494e9c58b44ad7142d8d309455cd669603 Andrezj: new driver -fno-analyzed-objects-for-unparse
 a1034022888cadca5f2a4700f60beda4f7053c08 Mark: change RESHAPE runtime API
