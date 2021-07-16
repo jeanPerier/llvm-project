@@ -44,9 +44,12 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-b9d36f6b3ca0ee710cd649ff6192abcf53ad213f fold more reductions (all, any, iall, iany, iparity, product, sum)
 
 Done (oldest last, omitting no-ops):
+bfeecace2e0024fb8231513ab0f3af1d2b2d46c9 non-advancing I/O, $
+cfd9852a2b5f6a7477d28e1eff058f40cf70e4de user-defined derived type I/O
+dd4833a2c938d439bb3ae796fc9a1ba7dbd7929e fix generic/specific confusion
+b9d36f6b3ca0ee710cd649ff6192abcf53ad213f fold more reductions (all, any, iall, iany, iparity, product, sum)
 ca42b73e36435fe5b456dbec5d4c34d37c40fb0d default derived type I/O
 8196eafea5214f8afc85ce870368146881072ead iall & iany in runtime
 15d1be83521743b4ba1c8c1f21848ae11c61c5bb Kahan summation
