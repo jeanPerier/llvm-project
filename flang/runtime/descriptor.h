@@ -113,7 +113,6 @@ public:
 
 private:
   const typeInfo::DerivedType *derivedType_;
-  std::uint64_t __unused_flags_{0}; // TODO: delete
   typeInfo::TypeParameterValue len_[1]; // must be the last component
   // The LEN type parameter values can also include captured values of
   // specification expressions that were used for bounds and for LEN type
@@ -135,12 +134,6 @@ public:
   // Create() static member functions otherwise to dynamically allocate a
   // descriptor.
 
-  Descriptor() {
-    // Minimal initialization to prevent the destructor from running amuck
-    // later if the descriptor is never established.
-    raw_.base_addr = nullptr;
-    raw_.f18Addendum = false;
-  }
   Descriptor(const Descriptor &);
   Descriptor &operator=(const Descriptor &);
 
