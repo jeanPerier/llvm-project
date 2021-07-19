@@ -113,6 +113,7 @@ public:
 
 private:
   const typeInfo::DerivedType *derivedType_;
+  std::uint64_t __unused_flags_{0}; // TODO: delete
   typeInfo::TypeParameterValue len_[1]; // must be the last component
   // The LEN type parameter values can also include captured values of
   // specification expressions that were used for bounds and for LEN type
@@ -141,7 +142,6 @@ public:
     raw_.f18Addendum = false;
   }
   Descriptor(const Descriptor &);
-  ~Descriptor();
   Descriptor &operator=(const Descriptor &);
 
   static constexpr std::size_t BytesFor(TypeCategory category, int kind) {
@@ -297,11 +297,17 @@ public:
   // Allocate() assumes Elements() and ElementBytes() work;
   // define the extents of the dimensions and the element length
   // before calling.  It (re)computes the byte strides after
-  // allocation.
-  // TODO: SOURCE= and MOLD=
+  // allocation.  Does not allocate automatic components or
+  // perform default component initialization.
   int Allocate();
-  int Deallocate(bool finalize = true);
-  void Destroy(bool finalize = true) const;
+
+  // Deallocates storage; does not call FINAL subroutines or
+  // deallocate allocatable/automatic components.
+  int Deallocate();
+
+  // Deallocates storage, including allocatable and automatic
+  // components.  Optionally invokes FINAL subroutines.
+  int Destroy(bool finalize = false);
 
   bool IsContiguous(int leadingDimensions = maxRank) const {
     auto bytes{static_cast<SubscriptValue>(ElementBytes())};
@@ -345,12 +351,8 @@ public:
   static constexpr int maxRank{MAX_RANK};
   static constexpr int maxLengthTypeParameters{MAX_LEN_PARMS};
   static constexpr bool hasAddendum{ADDENDUM || MAX_LEN_PARMS > 0};
-  static constexpr std::size_t byteSize{std::max(sizeof(Descriptor),
-      Descriptor::SizeInBytes(maxRank, hasAddendum, maxLengthTypeParameters))};
-
-  StaticDescriptor() { new (storage_) Descriptor{}; }
-
-  ~StaticDescriptor() { descriptor().~Descriptor(); }
+  static constexpr std::size_t byteSize{
+      Descriptor::SizeInBytes(maxRank, hasAddendum, maxLengthTypeParameters)};
 
   Descriptor &descriptor() { return *reinterpret_cast<Descriptor *>(storage_); }
   const Descriptor &descriptor() const {
@@ -371,7 +373,7 @@ public:
   }
 
 private:
-  char storage_[byteSize];
+  char storage_[byteSize]{};
 };
 } // namespace Fortran::runtime
 #endif // FORTRAN_RUNTIME_DESCRIPTOR_H_
