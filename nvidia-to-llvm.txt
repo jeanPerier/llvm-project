@@ -16,7 +16,7 @@ For each change to merge:
   git checkout main
   git pull
   git checkout -b $BRANCH
-  git -c merge.renameLimit=1 cherry-pick -n $COMMIT
+  git cherry-pick -n $COMMIT
   git commit
 # build and test
   if arc works
@@ -46,6 +46,7 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+9e3ffa0144ac85c7860c3bc493575913493a9a7d data pointers in runtime
 bfeecace2e0024fb8231513ab0f3af1d2b2d46c9 non-advancing I/O, $
 cfd9852a2b5f6a7477d28e1eff058f40cf70e4de user-defined derived type I/O
 dd4833a2c938d439bb3ae796fc9a1ba7dbd7929e fix generic/specific confusion

@@ -22,7 +22,7 @@ Add them to the "Log of cherry-picked commits" list below
 
 For each commit that you want to pick:
   $EDITOR llvm-to-nvidia.txt
-  git cherry-pick -x $COMMIT
+  git cherry-pick $COMMIT
   # If the commit modifies files outside f18 (e.g., llvm/* & mlir/*),
   # the cherry-pick will fail.  Use "git rm -r -f llvm" or "mlir"
   # to clean up, then "git cherry-pick --continue".
@@ -43,6 +43,9 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit fbc3e69f58d0e2e8e143c2a098cc7443bae2fdbb
 
 Log of cherry-picked commits in reverse order (latest first):
+ad424cf1ed2a191b3e93f60ca591104dbf4b79a2 me: runtime pointer API
+d0f1ae6eb6eab82d2f67c61260087353a46d48ec Mark: add scalar test for SPREAD
+aa06f34dac65cbfcbffd7cb3b033eadcd103ffdf Andrezj: fix flang script output filename
 9f6ff37a36ffb7601fd9e23f0b6ae2156ae3ff77 Andrexj: flang script fixes
 67002b5f20c2c4c9bd5e89f79077ae8d6e165aae Peixin: OMP taskloop checking
 fe892114e33b8f98bf3537a0dd6d6798821cb849 Andrezj: CMake simplification
