@@ -410,11 +410,14 @@ void ExternalFileUnit::FinishReadingRecord(IoErrorHandler &handler) {
         recordOffsetInFrame_ = sizeof(std::uint32_t);
         recordLength.reset();
       } else { // formatted
-        if (Frame()[recordOffsetInFrame_ + *recordLength] == '\r') {
+        if (FrameLength() > recordOffsetInFrame_ + *recordLength &&
+            Frame()[recordOffsetInFrame_ + *recordLength] == '\r') {
           ++recordOffsetInFrame_;
         }
         recordOffsetInFrame_ += *recordLength + 1;
-        RUNTIME_CHECK(handler, Frame()[recordOffsetInFrame_ - 1] == '\n');
+        RUNTIME_CHECK(handler,
+            FrameLength() >= recordOffsetInFrame_ &&
+                Frame()[recordOffsetInFrame_ - 1] == '\n');
         recordLength.reset();
       }
     }
@@ -465,6 +468,9 @@ bool ExternalFileUnit::AdvanceRecord(IoErrorHandler &handler) {
     CommitWrites();
     impliedEndfile_ = true;
     ++currentRecordNumber;
+    if (endfileRecordNumber && currentRecordNumber >= *endfileRecordNumber) {
+      endfileRecordNumber.reset();
+    }
     return ok;
   }
 }
@@ -475,7 +481,8 @@ void ExternalFileUnit::BackspaceRecord(IoErrorHandler &handler) {
         "BACKSPACE(UNIT=%d) on non-sequential file", unitNumber());
   } else {
     if (endfileRecordNumber && currentRecordNumber > *endfileRecordNumber) {
-      // BACKSPACE after ENDFILE
+      // BACKSPACE after explicit ENDFILE
+      currentRecordNumber = *endfileRecordNumber;
     } else {
       DoImpliedEndfile(handler);
       if (frameOffsetInFile_ + recordOffsetInFrame_ > 0) {
@@ -529,7 +536,9 @@ void ExternalFileUnit::Endfile(IoErrorHandler &handler) {
     // ENDFILE after ENDFILE
   } else {
     DoEndfile(handler);
-    ++currentRecordNumber;
+    // Explicit ENDFILE leaves position *after* the endfile record
+    RUNTIME_CHECK(handler, endfileRecordNumber.has_value());
+    currentRecordNumber = *endfileRecordNumber + 1;
   }
 }
 
