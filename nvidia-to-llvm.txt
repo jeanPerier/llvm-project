@@ -44,6 +44,7 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+bad7ee9a4a29c18e3def86c58745dabee325db90 run-time derived type init & final
 
 Done (oldest last, omitting no-ops):
 9e3ffa0144ac85c7860c3bc493575913493a9a7d data pointers in runtime

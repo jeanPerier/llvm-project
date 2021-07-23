@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit fbc3e69f58d0e2e8e143c2a098cc7443bae2fdbb
+with llvm-project commit 2aa0cf19e7fe17c9eb5eb2555e10184061b933f1
 
 Log of cherry-picked commits in reverse order (latest first):
+7898e7c82d98fabc8c87a5b7b4a4f7786df69314 Pete: CSHIFT change
+ece9aa29ff65dac90727810e2f72fc586b86de45 Pete: UNPACK change
+13e08de91da64ce969b14a0caa46dc4712bcf388 me: fix buildbots
+0fab5369000b5aeff5d20b8baace2eaf7564ddf3 me: remove flags from DescriptorAddendum
+b43e083bb6b145905cac576b728f238a692a0048 me: don't require newline when reading last record
+a48e41683ae1a9b9a5bde750d3b418a205c28cc8 me: edits to derived type init & finalization
+4e92962127a30ee8958858b9a354490ba36924b2 me: fix warning from new gcc
 ad424cf1ed2a191b3e93f60ca591104dbf4b79a2 me: runtime pointer API
 d0f1ae6eb6eab82d2f67c61260087353a46d48ec Mark: add scalar test for SPREAD
 aa06f34dac65cbfcbffd7cb3b033eadcd103ffdf Andrezj: fix flang script output filename
