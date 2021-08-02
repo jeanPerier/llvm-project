@@ -43,6 +43,22 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 2aa0cf19e7fe17c9eb5eb2555e10184061b933f1
 
 Log of cherry-picked commits in reverse order (latest first):
+23d4c4f3fb12e127a5f07a7082f33b02082bb3f5 Andrezj: nfc naming fix
+3338ef93b02837edf69abc203e15a42fa55aa1b3 me: proper -E output
+65436e6ba12786dd27785b21e9436ded750ce8e3 Asher: move more runtime tests to gtest
+1a7ed9561a0391986a1a4861ce589bf3923a6a0b Andrezj: fix bug in flang script
+dfe9895a52cda716867201b321242c136ec60163 Mark: fix recent build warnings
+2ca8295c860f1e8e300c2fde5c4e84b72d8248aa Mark: fix recent bad tests
+1dbc9b534b2a4903af0f98bde72b8f6da797bc19 Mark: tweak assert in runtime intrinsics
+72a83674dd3a13b59442cd7cb07b53902f7d6a33 Fangrui: [[noreturn]]
+8bf0a406087e8747383134847ab0f165e6475a97 Andrezj: forward -fopenmp/-fopenacc
+f8479d9de59d0f2f3997319b0ec189eb086aa85a River: mlir thing
+571673ce390a2f4973946c06801dfb2037115750 Pete: disallow BOZ output list items
+cad2affb789201f0d7ccb4b5542f652b37c51c3a Andrezj: ignore -Mfixed/-Mfree
+dc721064b43a40ed57454caebd533f89df16da7e Diana: NFC
+a5b2ec9c26db124dd7e7b576fff70ba94dc07842 Diana: fix CPU_TIME test
+8f41431654fedac4a5ad2751056a611bfc7751f0 Pete: Disallow BOZ literals as actuals to implicit interfaces
+cbad57613e769d0653e13cf877d80eae421b2314 Kruse: fix external I/O unittest (Windows)
 7898e7c82d98fabc8c87a5b7b4a4f7786df69314 Pete: CSHIFT change
 ece9aa29ff65dac90727810e2f72fc586b86de45 Pete: UNPACK change
 13e08de91da64ce969b14a0caa46dc4712bcf388 me: fix buildbots
