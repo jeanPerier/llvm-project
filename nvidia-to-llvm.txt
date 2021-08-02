@@ -16,8 +16,7 @@ For each change to merge:
   git checkout main
   git pull
   git checkout -b $BRANCH
-  git cherry-pick -n $COMMIT
-  git commit
+  git cherry-pick $COMMIT
 # build and test
   if arc works
   then arc diff
@@ -44,9 +43,13 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-bad7ee9a4a29c18e3def86c58745dabee325db90 run-time derived type init & final
 
 Done (oldest last, omitting no-ops):
+acb00fbdf56b7e4dad0bac68f98aba49daa33bc6 represent dummy SubprogramDetails
+7eda149e615c506ea21c1e95068bc9c71c5371d6 fix IsSimplyContiguous for pointer component ref
+6578893a0453384346f149479f8574dfff977ace fix I/O bugs around EOF and delimited chars
+1bba6436c16dda0815f8a6722318ed081ac3d39a reset list-directed input state for each NAMELIST item
+bad7ee9a4a29c18e3def86c58745dabee325db90 run-time derived type init & final
 9e3ffa0144ac85c7860c3bc493575913493a9a7d data pointers in runtime
 bfeecace2e0024fb8231513ab0f3af1d2b2d46c9 non-advancing I/O, $
 cfd9852a2b5f6a7477d28e1eff058f40cf70e4de user-defined derived type I/O
