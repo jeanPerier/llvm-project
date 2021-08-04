@@ -45,6 +45,8 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+3dde9a7b515862757d7de37f33e6627056df10b9 fix Fw.d output looping
+02722d7b3340e7117286d14567fe06fed9d29633 dfloat
 acb00fbdf56b7e4dad0bac68f98aba49daa33bc6 represent dummy SubprogramDetails
 7eda149e615c506ea21c1e95068bc9c71c5371d6 fix IsSimplyContiguous for pointer component ref
 6578893a0453384346f149479f8574dfff977ace fix I/O bugs around EOF and delimited chars
