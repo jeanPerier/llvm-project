@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit fb27e8c76e04e093dcd378b8a76341a7b6ed3b0c
+with llvm-project commit dfce2909ee1ea1523ec27b834a0e56429e9c2beb
 
 Log of cherry-picked commits in reverse order (latest first):
+dfce2909ee1ea1523ec27b834a0e56429e9c2beb Asher: move -Werror checks around
+3709822d2602b8b7db2d9bcc0e856f676582f25d Andrezj: documentation
+7b73ca3043fecfc5fa6bbf5b28edfee61a83ff9f Andrezj: delete f18 (PARTIALLY APPLIED)
+55a96155995465416118774add8ef09c30dbebda Andrezj: refactor "boolean" options
 b44eb5a149a3d78b164a3e9f5c9cf52b44ce0163 springerm: add header missing after mlir change
 77ebfba68b9aa89e9ccbcdf8e285afa0661c8ca4 Chirag: OMP upgrade taskgroup to 5.0
 ad2e830fe2f791ef37faa2238caed0a73e0cc51d Andrezj: add regression test
