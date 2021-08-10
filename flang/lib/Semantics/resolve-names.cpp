@@ -6168,6 +6168,7 @@ void ResolveNamesVisitor::HandleProcedureName(
   } else if (CheckUseError(name)) {
     // error was reported
   } else {
+    auto &nonUltimateSymbol = *symbol;
     symbol = &Resolve(name, symbol)->GetUltimate();
     bool convertedToProcEntity{ConvertToProcEntity(*symbol)};
     if (convertedToProcEntity && !symbol->attrs().test(Attr::EXTERNAL) &&
@@ -6192,8 +6193,10 @@ void ResolveNamesVisitor::HandleProcedureName(
       // a mis-parsed array references that will be fixed later. Ensure that if
       // this is a symbol from a host procedure, a symbol with HostAssocDetails
       // is created for the current scope.
-      if (IsUplevelReference(*symbol)) {
-        MakeHostAssocSymbol(name, *symbol);
+      // Operate on non ultimate symbol so that HostAssocDetails are also
+      // created for symbols used associated in the host procedure.
+      if (IsUplevelReference(nonUltimateSymbol)) {
+        MakeHostAssocSymbol(name, nonUltimateSymbol);
       }
     } else if (symbol->test(Symbol::Flag::Implicit)) {
       Say(name,
@@ -6594,7 +6597,8 @@ bool ResolveNamesVisitor::Pre(const parser::PointerAssignmentStmt &x) {
       // If the name is known because it is an object entity from a host
       // procedure, create a host associated symbol.
       if (Symbol * symbol{name->symbol}; symbol &&
-          symbol->has<ObjectEntityDetails>() && IsUplevelReference(*symbol)) {
+          symbol->GetUltimate().has<ObjectEntityDetails>() &&
+          IsUplevelReference(*symbol)) {
         MakeHostAssocSymbol(*name, *symbol);
       }
       return false;
