@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit dfce2909ee1ea1523ec27b834a0e56429e9c2beb
+with llvm-project commit f94da67f4906e2e17e212e869b6692e5fc04b513
 
 Log of cherry-picked commits in reverse order (latest first):
+3ad9826dcd480d04480ebb98dae426f435a2c135 Pete: fix extent calculation for empty dimension
+f2f6190960ee77e132b75ea2d92ce362e9a74b9a Jean: create more HostAssocDetails
+511ac6f8b4a0ca0178104bc57e960a846f4867b3 me: silence build warning
+41f4d47484db69848d3cd65fc7f81237b17bdfd4 Andrezj: flang script -Mfixed/free
+eabae4cf57b9e7429db27fdfd3016d31901fa2ea Ivan Z.: port test_symbols.sh to python
 dfce2909ee1ea1523ec27b834a0e56429e9c2beb Asher: move -Werror checks around
 3709822d2602b8b7db2d9bcc0e856f676582f25d Andrezj: documentation
 7b73ca3043fecfc5fa6bbf5b28edfee61a83ff9f Andrezj: delete f18 (PARTIALLY APPLIED)
