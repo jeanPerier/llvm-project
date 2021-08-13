@@ -4,6 +4,7 @@ get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 add_flang_library(FortranLower
   Allocatable.cpp
   Bridge.cpp
+  BoxValue.cpp
   CallInterface.cpp
   CharacterExpr.cpp
   CharacterRuntime.cpp

@@ -60,6 +60,23 @@ mlir::Type Fortran::lower::FirOpBuilder::getVarLenSeqTy(mlir::Type eleTy,
   return fir::SequenceType::get(shape, eleTy);
 }
 
+mlir::Type Fortran::lower::FirOpBuilder::getRealType(int kind) {
+ switch (kindMap.getRealTypeID(kind)) {
+  case llvm::Type::TypeID::HalfTyID:
+    return mlir::FloatType::getF16(getContext());
+  case llvm::Type::TypeID::FloatTyID:
+    return mlir::FloatType::getF32(getContext());
+  case llvm::Type::TypeID::DoubleTyID:
+    return mlir::FloatType::getF64(getContext());
+  case llvm::Type::TypeID::X86_FP80TyID:
+    return mlir::FloatType::getF80(getContext());
+  case llvm::Type::TypeID::FP128TyID:
+    return mlir::FloatType::getF128(getContext());
+  default:
+    fir::emitFatalError(UnknownLoc::get(getContext()), "unsupported type !fir.real<kind>");
+  }
+}
+
 mlir::Value
 Fortran::lower::FirOpBuilder::createNullConstant(mlir::Location loc,
                                                  mlir::Type ptrType) {

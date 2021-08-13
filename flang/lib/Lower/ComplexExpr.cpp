@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Lower/ComplexExpr.h"
-#include "flang/Lower/ConvertType.h"
 
 //===----------------------------------------------------------------------===//
 // ComplexExprHelper implementation
@@ -15,8 +14,7 @@
 
 mlir::Type
 Fortran::lower::ComplexExprHelper::getComplexPartType(mlir::Type complexType) {
-  return Fortran::lower::convertReal(
-      builder.getContext(), complexType.cast<fir::ComplexType>().getFKind());
+  return builder.getRealType(complexType.cast<fir::ComplexType>().getFKind());
 }
 
 mlir::Type

@@ -92,6 +92,9 @@ public:
     return getI64Type();
   }
 
+  /// Get the mlir real type that implements fortran REAL(kind).
+  mlir::Type getRealType(int kind);
+
   /// Create a null constant memory reference of type \p ptrType.
   /// If \p ptrType is not provided, !fir.ref<none> type will be used.
   mlir::Value createNullConstant(mlir::Location loc, mlir::Type ptrType = {});
