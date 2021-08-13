@@ -416,18 +416,13 @@ public:
     return createCharCompare(pred, genval(ex.left()), genval(ex.right()));
   }
 
-  Fortran::lower::SymbolBox
-  genAllocatableOrPointerUnbox(const fir::MutableBoxValue &box) {
-    return Fortran::lower::genMutableBoxRead(builder, getLoc(), box);
-  }
-
   /// Returns a reference to a symbol or its box/boxChar descriptor if it has
   /// one.
   ExtValue gen(Fortran::semantics::SymbolRef sym) {
     if (auto val = symMap.lookupSymbol(sym))
       return val.match(
           [&](const Fortran::lower::SymbolBox::PointerOrAllocatable &boxAddr) {
-            return genAllocatableOrPointerUnbox(boxAddr).toExtendedValue();
+            return fir::factory::genMutableBoxRead(builder, getLoc(), boxAddr);
           },
           [&val](auto &) { return val.toExtendedValue(); });
     LLVM_DEBUG(llvm::dbgs()
@@ -1336,9 +1331,8 @@ public:
     // mutable aspect, genMutableBoxValue should be used.
     return genComponent(cmpt).match(
         [&](const fir::MutableBoxValue &mutableBox) {
-          return Fortran::lower::genMutableBoxRead(builder, getLoc(),
-                                                   mutableBox)
-              .toExtendedValue();
+          return fir::factory::genMutableBoxRead(builder, getLoc(),
+                                                   mutableBox);
         },
         [](auto &box) -> ExtValue { return box; });
   }
@@ -1779,8 +1773,7 @@ public:
     // allocatables). The few context where this can happen must call
     // genRawProcedureRef directly.
     if (const auto *box = res.getBoxOf<fir::MutableBoxValue>())
-      return Fortran::lower::genMutableBoxRead(builder, getLoc(), *box)
-          .toExtendedValue();
+      return fir::factory::genMutableBoxRead(builder, getLoc(), *box);
     return res;
   }
 
@@ -1837,14 +1830,14 @@ public:
           assert(boxTy && boxTy.isa<fir::BoxType>() &&
                  "must be a fir.box type");
           auto boxStorage = builder.createTemporary(loc, boxTy);
-          auto nullBox = Fortran::lower::createUnallocatedBox(
+          auto nullBox = fir::factory::createUnallocatedBox(
               builder, loc, boxTy, /*nonDeferredParams=*/{});
           builder.create<fir::StoreOp>(loc, nullBox, boxStorage);
           caller.placeInput(arg, boxStorage);
           continue;
         }
         auto mutableBox = genMutableBoxValue(*expr);
-        auto irBox = Fortran::lower::getMutableIRBox(builder, loc, mutableBox);
+        auto irBox = fir::factory::getMutableIRBox(builder, loc, mutableBox);
         caller.placeInput(arg, irBox);
         if (arg.mayBeModifiedByCall())
           mutableModifiedByCall.emplace_back(std::move(mutableBox));
@@ -1907,7 +1900,7 @@ public:
           // nothing has to be done to generate an absent argument in this case,
           // and it is OK to unconditionally read the mutable box here.
           auto mutableBox = genMutableBoxValue(*expr);
-          auto isAllocated = Fortran::lower::genIsAllocatedOrAssociatedTest(
+          auto isAllocated = fir::factory::genIsAllocatedOrAssociatedTest(
               builder, loc, mutableBox);
           auto absent = builder.create<fir::AbsentOp>(loc, argTy);
           /// For now, assume it is not OK to pass the allocatable/pointer
@@ -1915,8 +1908,7 @@ public:
           /// interpretation of 18.3.6 point 4 that stipulates the descriptor
           /// has the dummy attributes in BIND(C) contexts.
           auto box = builder.createBox(
-              loc, Fortran::lower::genMutableBoxRead(builder, loc, mutableBox)
-                       .toExtendedValue());
+              loc, fir::factory::genMutableBoxRead(builder, loc, mutableBox));
           // Need the box types to be exactly similar for the selectOp.
           auto convertedBox = builder.createConvert(loc, argTy, box);
           caller.placeInput(arg, builder.create<mlir::SelectOp>(
@@ -2087,7 +2079,7 @@ public:
     // Sync pointers and allocatables that may have been modified during the
     // call.
     for (const auto &mutableBox : mutableModifiedByCall)
-      Fortran::lower::syncMutableBoxFromIRBox(builder, loc, mutableBox);
+      fir::factory::syncMutableBoxFromIRBox(builder, loc, mutableBox);
     // Handle case where result was passed as argument
 
     // Copy-out temps that were created for non contiguous variable arguments if
@@ -2102,7 +2094,7 @@ public:
               // 9.7.3.2 point 4. Finalize allocatables.
               auto *bldr = &converter.getFirOpBuilder();
               stmtCtx.attachCleanup(
-                  [=]() { Fortran::lower::genFinalization(*bldr, loc, box); });
+                  [=]() { fir::factory::genFinalization(*bldr, loc, box); });
             }
           },
           [](const auto &) {});
@@ -2576,12 +2568,11 @@ public:
       auto lbs = fir::factory::getOrigins(arrayOperandLoads[0].shape());
       lbounds.append(lbs.begin(), lbs.end());
     }
-    Fortran::lower::genReallocIfNeeded(builder, loc, mutableBox, lbounds,
+    fir::factory::genReallocIfNeeded(builder, loc, mutableBox, lbounds,
                                        destShape, lengthParams);
     // Create ArrayLoad for the mutable box and save it into `destination`.
     PushSemantics(ConstituentSemantics::ProjectedCopyInCopyOut);
-    ccDest = genarr(Fortran::lower::genMutableBoxRead(builder, loc, mutableBox)
-                        .toExtendedValue());
+    ccDest = genarr(fir::factory::genMutableBoxRead(builder, loc, mutableBox));
     // If the rhs is scalar, get shape from the allocatable ArrayLoad.
     if (destShape.empty())
       destShape = getShape(destination);

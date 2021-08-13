@@ -182,7 +182,7 @@ mlir::Value Fortran::lower::genInitialDataTarget(
   auto &builder = converter.getFirOpBuilder();
   if (Fortran::evaluate::UnwrapExpr<Fortran::evaluate::NullPointer>(
           initialTarget))
-    return Fortran::lower::createUnallocatedBox(
+    return fir::factory::createUnallocatedBox(
         builder, loc, boxType, /*nonDeferredParams=*/llvm::None);
   // Pointer initial data target, and NULL(mold).
   if (const auto *sym = Fortran::evaluate::GetFirstSymbol(initialTarget)) {
@@ -301,7 +301,7 @@ static mlir::Value genDefaultInitializerValue(
         // From a standard point of view, pointer without initialization do not
         // need to be disassociated, but for sanity and simplicity, do it in
         // global constructor since this has no runtime cost.
-        componentValue = Fortran::lower::createUnallocatedBox(
+        componentValue = fir::factory::createUnallocatedBox(
             builder, loc, componentTy, llvm::None);
       } else if (hasDefaultInitialization(component)) {
         // Component type has default initialization.
@@ -377,7 +377,7 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
       // Create unallocated/disassociated descriptor if no explicit init
       auto init = [&](Fortran::lower::FirOpBuilder &b) {
         auto box =
-            Fortran::lower::createUnallocatedBox(b, loc, symTy, llvm::None);
+            fir::factory::createUnallocatedBox(b, loc, symTy, llvm::None);
         b.create<fir::HasValueOp>(loc, box);
       };
       global =

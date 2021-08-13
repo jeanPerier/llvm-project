@@ -376,8 +376,7 @@ public:
     auto getExtendedValue = [&](Fortran::lower::SymbolBox sb) {
       return sb.match(
           [&](const Fortran::lower::SymbolBox::PointerOrAllocatable &box) {
-            return Fortran::lower::genMutableBoxRead(*builder, loc, box)
-                .toExtendedValue();
+            return fir::factory::genMutableBoxRead(*builder, loc, box);
           },
           [&sb](auto &) { return sb.toExtendedValue(); });
     };
@@ -1657,7 +1656,7 @@ private:
       const auto *expr = Fortran::semantics::GetExpr(pointerObject);
       assert(expr);
       auto box = genExprMutableBox(loc, *expr);
-      Fortran::lower::disassociateMutableBox(*builder, loc, box);
+      fir::factory::disassociateMutableBox(*builder, loc, box);
     }
   }
 
@@ -1860,15 +1859,14 @@ private:
                 else if (lhs.isDerivedWithLengthParameters())
                   TODO(loc, "assignment to derived type allocatable with "
                             "length parameters");
-                Fortran::lower::genReallocIfNeeded(
+                fir::factory::genReallocIfNeeded(
                     *builder, loc, lhs, /*lbounds=*/llvm::None,
                     /*shape=*/llvm::None, lengthParams);
                 // Assume lhs is not polymorphic for now given TODO above,
                 // otherwise, the read would is conservative and returns
                 // BoxValue for derived types.
-                return Fortran::lower::genMutableBoxRead(
-                           *builder, loc, lhs, /*mayBePolymorphic=*/false)
-                    .toExtendedValue();
+                return fir::factory::genMutableBoxRead(
+                           *builder, loc, lhs, /*mayBePolymorphic=*/false);
               };
               auto lhs = isWholeAllocatable(assign.lhs)
                              ? lowerAllocatableLHS()
@@ -1942,7 +1940,7 @@ private:
               auto lhs = genExprMutableBox(loc, assign.lhs);
               if (Fortran::evaluate::UnwrapExpr<Fortran::evaluate::NullPointer>(
                       assign.rhs)) {
-                Fortran::lower::disassociateMutableBox(*builder, loc, lhs);
+                fir::factory::disassociateMutableBox(*builder, loc, lhs);
                 return;
               }
               auto lhsType = assign.lhs.GetType();
@@ -1964,7 +1962,7 @@ private:
                              ? Fortran::lower::createSomeArrayBox(
                                    *this, assign.rhs, localSymbols, stmtCtx)
                              : genExprAddr(assign.rhs, stmtCtx);
-              Fortran::lower::associateMutableBoxWithRemap(
+              fir::factory::associateMutableBoxWithRemap(
                   *builder, loc, lhs, rhs, lbounds, ubounds);
             },
         },

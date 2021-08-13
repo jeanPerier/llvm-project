@@ -418,7 +418,7 @@ Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
       },
       [&](const fir::MutableBoxValue &x) -> mlir::Value {
         return create<fir::LoadOp>(
-            loc, Fortran::lower::getMutableIRBox(*this, loc, x));
+            loc, fir::factory::getMutableIRBox(*this, loc, x));
       },
       [&](const auto &) -> mlir::Value {
         return create<fir::EmboxOp>(loc, boxTy, itemAddr);
@@ -558,8 +558,7 @@ Fortran::lower::getExtents(Fortran::lower::FirOpBuilder &builder,
         return Fortran::lower::readExtents(builder, loc, x);
       },
       [&](const fir::MutableBoxValue &x) -> llvm::SmallVector<mlir::Value> {
-        auto load = Fortran::lower::genMutableBoxRead(builder, loc, x)
-                        .toExtendedValue();
+        auto load = fir::factory::genMutableBoxRead(builder, loc, x);
         return Fortran::lower::getExtents(builder, loc, load);
       },
       [&](const auto &) -> llvm::SmallVector<mlir::Value> { return {}; });

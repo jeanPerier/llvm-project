@@ -312,16 +312,16 @@ public:
           loc, builder.getI1Type(), fir::getBase(args.hostValue));
       builder.genIfThenElse(loc, isPresent)
           .genThen([&]() {
-            Fortran::lower::associateMutableBox(builder, loc, boxInTuple,
+            fir::factory::associateMutableBox(builder, loc, boxInTuple,
                                                 args.hostValue,
                                                 /*lbounds=*/llvm::None);
           })
           .genElse([&]() {
-            Fortran::lower::disassociateMutableBox(builder, loc, boxInTuple);
+            fir::factory::disassociateMutableBox(builder, loc, boxInTuple);
           })
           .end();
     } else {
-      Fortran::lower::associateMutableBox(
+      fir::factory::associateMutableBox(
           builder, loc, boxInTuple, args.hostValue, /*lbounds=*/llvm::None);
     }
   }
