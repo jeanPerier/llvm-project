@@ -17,14 +17,14 @@
 #include "flang/Lower/AbstractConverter.h"
 #include "flang/Lower/Allocatable.h"
 #include "flang/Lower/CallInterface.h"
-#include "flang/Lower/CharacterExpr.h"
 #include "flang/Lower/ConvertExpr.h"
 #include "flang/Lower/DerivedRuntime.h"
-#include "flang/Lower/FIRBuilder.h"
 #include "flang/Lower/Mangler.h"
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Support/Utils.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
@@ -182,8 +182,8 @@ mlir::Value Fortran::lower::genInitialDataTarget(
   auto &builder = converter.getFirOpBuilder();
   if (Fortran::evaluate::UnwrapExpr<Fortran::evaluate::NullPointer>(
           initialTarget))
-    return Fortran::lower::createUnallocatedBox(
-        builder, loc, boxType, /*nonDeferredParams=*/llvm::None);
+    return fir::factory::createUnallocatedBox(builder, loc, boxType,
+                                              /*nonDeferredParams=*/llvm::None);
   // Pointer initial data target, and NULL(mold).
   if (const auto *sym = Fortran::evaluate::GetFirstSymbol(initialTarget)) {
     // Length parameters processing will need care in global initializer
@@ -301,7 +301,7 @@ static mlir::Value genDefaultInitializerValue(
         // From a standard point of view, pointer without initialization do not
         // need to be disassociated, but for sanity and simplicity, do it in
         // global constructor since this has no runtime cost.
-        componentValue = Fortran::lower::createUnallocatedBox(
+        componentValue = fir::factory::createUnallocatedBox(
             builder, loc, componentTy, llvm::None);
       } else if (hasDefaultInitialization(component)) {
         // Component type has default initialization.
@@ -366,7 +366,7 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
         sym.detailsIf<Fortran::semantics::ObjectEntityDetails>();
     if (details && details->init()) {
       auto expr = *details->init();
-      auto init = [&](Fortran::lower::FirOpBuilder &b) {
+      auto init = [&](fir::FirOpBuilder &b) {
         auto box =
             Fortran::lower::genInitialDataTarget(converter, loc, symTy, expr);
         b.create<fir::HasValueOp>(loc, box);
@@ -375,9 +375,9 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
           builder.createGlobal(loc, symTy, globalName, isConst, init, linkage);
     } else {
       // Create unallocated/disassociated descriptor if no explicit init
-      auto init = [&](Fortran::lower::FirOpBuilder &b) {
+      auto init = [&](fir::FirOpBuilder &b) {
         auto box =
-            Fortran::lower::createUnallocatedBox(b, loc, symTy, llvm::None);
+            fir::factory::createUnallocatedBox(b, loc, symTy, llvm::None);
         b.create<fir::HasValueOp>(loc, box);
       };
       global =
@@ -400,7 +400,7 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
       } else {
         global = builder.createGlobal(
             loc, symTy, globalName, isConst,
-            [&](Fortran::lower::FirOpBuilder &builder) {
+            [&](fir::FirOpBuilder &builder) {
               Fortran::lower::StatementContext stmtCtx(/*prohibited=*/true);
               auto initVal = genInitializerExprValue(
                   converter, loc, details->init().value(), stmtCtx);
@@ -415,7 +415,7 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
       auto symTy = converter.genType(var);
       global = builder.createGlobal(
           loc, symTy, globalName, isConst,
-          [&](Fortran::lower::FirOpBuilder &builder) {
+          [&](fir::FirOpBuilder &builder) {
             Fortran::lower::StatementContext stmtCtx(/*prohibited=*/true);
             auto initVal =
                 genDefaultInitializerValue(converter, loc, sym, symTy, stmtCtx);
@@ -436,7 +436,7 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
     auto symTy = converter.genType(var);
     global = builder.createGlobal(
         loc, symTy, globalName, isConst,
-        [&](Fortran::lower::FirOpBuilder &builder) {
+        [&](fir::FirOpBuilder &builder) {
           builder.create<fir::HasValueOp>(
               loc, builder.create<fir::UndefOp>(loc, symTy));
         },
@@ -747,7 +747,7 @@ static fir::GlobalOp defineGlobalAggregateStore(
   auto loc = converter.getCurrentLocation();
   auto idxTy = builder.getIndexType();
   mlir::TupleType aggTy = getAggregateType(converter, aggregate);
-  auto initFunc = [&](Fortran::lower::FirOpBuilder &builder) {
+  auto initFunc = [&](fir::FirOpBuilder &builder) {
     mlir::Value cb = builder.create<fir::UndefOp>(loc, aggTy);
     unsigned tupIdx = 0;
     std::size_t offset = std::get<0>(aggregate.interval);
@@ -1035,7 +1035,7 @@ defineCommonBlock(Fortran::lower::AbstractConverter &converter,
   std::sort(cmnBlkMems.begin(), cmnBlkMems.end(),
             [](auto &s1, auto &s2) { return s1->offset() < s2->offset(); });
   auto commonTy = getTypeOfCommonWithInit(converter, cmnBlkMems, common.size());
-  auto initFunc = [&](Fortran::lower::FirOpBuilder &builder) {
+  auto initFunc = [&](fir::FirOpBuilder &builder) {
     mlir::Value cb = builder.create<fir::UndefOp>(loc, commonTy);
     unsigned tupIdx = 0;
     std::size_t offset = 0;
@@ -1138,9 +1138,8 @@ static bool lowerToBoxValue(const Fortran::semantics::Symbol &sym,
 }
 
 /// Compute extent from lower and upper bound.
-static mlir::Value computeExtent(Fortran::lower::FirOpBuilder &builder,
-                                 mlir::Location loc, mlir::Value lb,
-                                 mlir::Value ub) {
+static mlir::Value computeExtent(fir::FirOpBuilder &builder, mlir::Location loc,
+                                 mlir::Value lb, mlir::Value ub) {
   auto idxTy = builder.getIndexType();
   // Let the folder deal with the common `ub - <const> + 1` case.
   auto diff = builder.create<mlir::SubIOp>(loc, idxTy, ub, lb);
@@ -1250,7 +1249,7 @@ void Fortran::lower::mapSymbolAttributes(
   const auto isDummy = Fortran::semantics::IsDummy(sym);
   const auto isResult = Fortran::semantics::IsFunctionResult(sym);
   const auto replace = isDummy || isResult;
-  Fortran::lower::CharacterExprHelper charHelp{builder, loc};
+  fir::factory::CharacterExprHelper charHelp{builder, loc};
   Fortran::lower::BoxAnalyzer ba;
   ba.analyze(sym);
 

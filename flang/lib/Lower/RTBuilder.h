@@ -18,7 +18,7 @@
 #define FORTRAN_LOWER_RTBUILDER_H
 
 #include "flang/Lower/ConvertType.h"
-#include "flang/Lower/FIRBuilder.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
@@ -367,7 +367,7 @@ struct RuntimeTableEntry<RuntimeTableKey<KT>, RuntimeIdentifier<Cs...>> {
 /// in order to use this function.
 template <typename RuntimeEntry>
 static mlir::FuncOp getRuntimeFunc(mlir::Location loc,
-                                   Fortran::lower::FirOpBuilder &builder) {
+                                   fir::FirOpBuilder &builder) {
   auto name = RuntimeEntry::name;
   auto func = builder.getNamedFunction(name);
   if (func)
@@ -381,14 +381,14 @@ static mlir::FuncOp getRuntimeFunc(mlir::Location loc,
 namespace helper {
 template <int N, typename A>
 void createArguments(llvm::SmallVectorImpl<mlir::Value> &result,
-                     Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+                     fir::FirOpBuilder &builder, mlir::Location loc,
                      mlir::FunctionType fTy, A arg) {
   result.emplace_back(builder.createConvert(loc, fTy.getInput(N), arg));
 }
 
 template <int N, typename A, typename... As>
 void createArguments(llvm::SmallVectorImpl<mlir::Value> &result,
-                     Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+                     fir::FirOpBuilder &builder, mlir::Location loc,
                      mlir::FunctionType fTy, A arg, As... args) {
   result.emplace_back(builder.createConvert(loc, fTy.getInput(N), arg));
   createArguments<N + 1>(result, builder, loc, fTy, args...);
@@ -398,7 +398,7 @@ void createArguments(llvm::SmallVectorImpl<mlir::Value> &result,
 /// Create a SmallVector of arguments for a runtime call.
 template <typename... As>
 llvm::SmallVector<mlir::Value>
-createArguments(Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+createArguments(fir::FirOpBuilder &builder, mlir::Location loc,
                 mlir::FunctionType fTy, As... args) {
   llvm::SmallVector<mlir::Value> result;
   helper::createArguments<0>(result, builder, loc, fTy, args...);

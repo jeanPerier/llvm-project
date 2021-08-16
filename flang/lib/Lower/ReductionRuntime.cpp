@@ -10,10 +10,10 @@
 #include "../../runtime/reduction.h"
 #include "RTBuilder.h"
 #include "flang/Lower/Bridge.h"
-#include "flang/Lower/CharacterExpr.h"
-#include "flang/Lower/FIRBuilder.h"
-#include "flang/Lower/Support/BoxValue.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 using namespace Fortran::runtime;
@@ -245,8 +245,8 @@ struct ForcedDotProductComplex10 {
       auto strTy = fir::ReferenceType::get(mlir::IntegerType::get(ctx, 8));
       auto intTy = mlir::IntegerType::get(ctx, 8 * sizeof(int));
       auto resTy = fir::ReferenceType::get(ty);
-      return mlir::FunctionType::get(
-          ctx, {resTy, boxTy, boxTy, strTy, intTy}, {});
+      return mlir::FunctionType::get(ctx, {resTy, boxTy, boxTy, strTy, intTy},
+                                     {});
     };
   }
 };
@@ -263,8 +263,8 @@ struct ForcedDotProductComplex16 {
       auto strTy = fir::ReferenceType::get(mlir::IntegerType::get(ctx, 8));
       auto intTy = mlir::IntegerType::get(ctx, 8 * sizeof(int));
       auto resTy = fir::ReferenceType::get(ty);
-      return mlir::FunctionType::get(
-          ctx, {resTy, boxTy, boxTy, strTy, intTy}, {});
+      return mlir::FunctionType::get(ctx, {resTy, boxTy, boxTy, strTy, intTy},
+                                     {});
     };
   }
 };
@@ -372,13 +372,13 @@ struct ForcedSumComplex16 {
 /// Generate call to specialized runtime function that takes a mask and
 /// dim argument. The All, Any, and Count intrinsics use this pattern.
 template <typename FN>
-mlir::Value genSpecial2Args(FN func, Fortran::lower::FirOpBuilder &builder,
+mlir::Value genSpecial2Args(FN func, fir::FirOpBuilder &builder,
                             mlir::Location loc, mlir::Value maskBox,
                             mlir::Value dim) {
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(2));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(2));
   auto args = Fortran::lower::createArguments(builder, loc, fTy, maskBox,
                                               sourceFile, sourceLine, dim);
   return builder.create<fir::CallOp>(loc, func, args).getResult(0);
@@ -388,13 +388,13 @@ mlir::Value genSpecial2Args(FN func, Fortran::lower::FirOpBuilder &builder,
 /// These are the descriptor based implementations that take two
 /// arguments (mask, dim).
 template <typename FN>
-static void genReduction2Args(FN func, Fortran::lower::FirOpBuilder &builder,
+static void genReduction2Args(FN func, fir::FirOpBuilder &builder,
                               mlir::Location loc, mlir::Value resultBox,
                               mlir::Value maskBox, mlir::Value dim) {
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(4));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(4));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, resultBox, maskBox, dim, sourceFile, sourceLine);
   builder.create<fir::CallOp>(loc, func, args);
@@ -403,15 +403,15 @@ static void genReduction2Args(FN func, Fortran::lower::FirOpBuilder &builder,
 /// Generate calls to reduction intrinsics such as Maxval and Minval.
 /// These take arguments such as (array, dim, mask).
 template <typename FN>
-static void genReduction3Args(FN func, Fortran::lower::FirOpBuilder &builder,
+static void genReduction3Args(FN func, fir::FirOpBuilder &builder,
                               mlir::Location loc, mlir::Value resultBox,
                               mlir::Value arrayBox, mlir::Value dim,
                               mlir::Value maskBox) {
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(4));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(4));
   auto args =
       Fortran::lower::createArguments(builder, loc, fTy, resultBox, arrayBox,
                                       dim, sourceFile, sourceLine, maskBox);
@@ -421,14 +421,14 @@ static void genReduction3Args(FN func, Fortran::lower::FirOpBuilder &builder,
 /// Generate calls to reduction intrinsics such as Maxloc and Minloc.
 /// These take arguments such as (array, mask, kind, back).
 template <typename FN>
-static void genReduction4Args(FN func, Fortran::lower::FirOpBuilder &builder,
+static void genReduction4Args(FN func, fir::FirOpBuilder &builder,
                               mlir::Location loc, mlir::Value resultBox,
                               mlir::Value arrayBox, mlir::Value maskBox,
                               mlir::Value kind, mlir::Value back) {
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(4));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(4));
   auto args = Fortran::lower::createArguments(builder, loc, fTy, resultBox,
                                               arrayBox, kind, sourceFile,
                                               sourceLine, maskBox, back);
@@ -438,15 +438,14 @@ static void genReduction4Args(FN func, Fortran::lower::FirOpBuilder &builder,
 /// Generate calls to reduction intrinsics such as Maxloc and Minloc.
 /// These take arguments such as (array, dim, mask, kind, back).
 template <typename FN>
-static void genReduction5Args(FN func, Fortran::lower::FirOpBuilder &builder,
-                              mlir::Location loc, mlir::Value resultBox,
-                              mlir::Value arrayBox, mlir::Value dim,
-                              mlir::Value maskBox, mlir::Value kind,
-                              mlir::Value back) {
+static void
+genReduction5Args(FN func, fir::FirOpBuilder &builder, mlir::Location loc,
+                  mlir::Value resultBox, mlir::Value arrayBox, mlir::Value dim,
+                  mlir::Value maskBox, mlir::Value kind, mlir::Value back) {
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(5));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(5));
   auto args = Fortran::lower::createArguments(builder, loc, fTy, resultBox,
                                               arrayBox, kind, dim, sourceFile,
                                               sourceLine, maskBox, back);
@@ -456,7 +455,7 @@ static void genReduction5Args(FN func, Fortran::lower::FirOpBuilder &builder,
 /// Generate call to all runtime routine.
 /// This calls the descriptor based runtime call implementation of the all
 /// intrinsic.
-void Fortran::lower::genAllDescriptor(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genAllDescriptor(fir::FirOpBuilder &builder,
                                       mlir::Location loc, mlir::Value resultBox,
                                       mlir::Value maskBox, mlir::Value dim) {
   auto allFunc = Fortran::lower::getRuntimeFunc<mkRTKey(AllDim)>(loc, builder);
@@ -466,7 +465,7 @@ void Fortran::lower::genAllDescriptor(Fortran::lower::FirOpBuilder &builder,
 /// Generate call to any runtime routine.
 /// This calls the descriptor based runtime call implementation of the any
 /// intrinsic.
-void Fortran::lower::genAnyDescriptor(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genAnyDescriptor(fir::FirOpBuilder &builder,
                                       mlir::Location loc, mlir::Value resultBox,
                                       mlir::Value maskBox, mlir::Value dim) {
   auto anyFunc = Fortran::lower::getRuntimeFunc<mkRTKey(AnyDim)>(loc, builder);
@@ -475,7 +474,7 @@ void Fortran::lower::genAnyDescriptor(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to All intrinsic runtime routine. This routine is
 /// specialized for mask arguments with rank == 1.
-mlir::Value Fortran::lower::genAll(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genAll(fir::FirOpBuilder &builder,
                                    mlir::Location loc, mlir::Value maskBox,
                                    mlir::Value dim) {
   auto allFunc = Fortran::lower::getRuntimeFunc<mkRTKey(All)>(loc, builder);
@@ -484,7 +483,7 @@ mlir::Value Fortran::lower::genAll(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Any intrinsic runtime routine. This routine is
 /// specialized for mask arguments with rank == 1.
-mlir::Value Fortran::lower::genAny(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genAny(fir::FirOpBuilder &builder,
                                    mlir::Location loc, mlir::Value maskBox,
                                    mlir::Value dim) {
   auto anyFunc = Fortran::lower::getRuntimeFunc<mkRTKey(Any)>(loc, builder);
@@ -494,7 +493,7 @@ mlir::Value Fortran::lower::genAny(Fortran::lower::FirOpBuilder &builder,
 /// Generate call to Count runtime routine. This routine is a specialized
 /// version when mask is a rank one array or the dim argument is not
 /// specified by the user.
-mlir::Value Fortran::lower::genCount(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genCount(fir::FirOpBuilder &builder,
                                      mlir::Location loc, mlir::Value maskBox,
                                      mlir::Value dim) {
   auto countFunc = Fortran::lower::getRuntimeFunc<mkRTKey(Count)>(loc, builder);
@@ -503,15 +502,14 @@ mlir::Value Fortran::lower::genCount(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to general CountDim runtime routine. This routine has a
 /// descriptor result.
-void Fortran::lower::genCountDim(Fortran::lower::FirOpBuilder &builder,
-                                 mlir::Location loc, mlir::Value resultBox,
-                                 mlir::Value maskBox, mlir::Value dim,
-                                 mlir::Value kind) {
+void Fortran::lower::genCountDim(fir::FirOpBuilder &builder, mlir::Location loc,
+                                 mlir::Value resultBox, mlir::Value maskBox,
+                                 mlir::Value dim, mlir::Value kind) {
   auto func = Fortran::lower::getRuntimeFunc<mkRTKey(CountDim)>(loc, builder);
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(5));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(5));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, resultBox, maskBox, dim, kind, sourceFile, sourceLine);
   builder.create<fir::CallOp>(loc, func, args);
@@ -519,10 +517,10 @@ void Fortran::lower::genCountDim(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Maxloc intrinsic runtime routine. This is the version
 /// that does not take a dim argument.
-void Fortran::lower::genMaxloc(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::Value resultBox,
-                               mlir::Value arrayBox, mlir::Value maskBox,
-                               mlir::Value kind, mlir::Value back) {
+void Fortran::lower::genMaxloc(fir::FirOpBuilder &builder, mlir::Location loc,
+                               mlir::Value resultBox, mlir::Value arrayBox,
+                               mlir::Value maskBox, mlir::Value kind,
+                               mlir::Value back) {
   auto func = Fortran::lower::getRuntimeFunc<mkRTKey(Maxloc)>(loc, builder);
   genReduction4Args(func, builder, loc, resultBox, arrayBox, maskBox, kind,
                     back);
@@ -530,7 +528,7 @@ void Fortran::lower::genMaxloc(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Maxloc intrinsic runtime routine. This is the version
 /// that takes a dim argument.
-void Fortran::lower::genMaxlocDim(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genMaxlocDim(fir::FirOpBuilder &builder,
                                   mlir::Location loc, mlir::Value resultBox,
                                   mlir::Value arrayBox, mlir::Value dim,
                                   mlir::Value maskBox, mlir::Value kind,
@@ -542,7 +540,7 @@ void Fortran::lower::genMaxlocDim(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Maxval intrinsic runtime routine. This is the version
 /// that does not take a dim argument.
-mlir::Value Fortran::lower::genMaxval(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genMaxval(fir::FirOpBuilder &builder,
                                       mlir::Location loc, mlir::Value arrayBox,
                                       mlir::Value maskBox) {
   mlir::FuncOp func;
@@ -582,9 +580,9 @@ mlir::Value Fortran::lower::genMaxval(Fortran::lower::FirOpBuilder &builder,
     fir::emitFatalError(loc, "invalid type in Maxval lowering");
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(2));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(2));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, arrayBox, sourceFile, sourceLine, dim, maskBox);
 
@@ -593,7 +591,7 @@ mlir::Value Fortran::lower::genMaxval(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Maxval intrinsic runtime routine. This is the version
 /// that handles any rank array with the dim argument specified.
-void Fortran::lower::genMaxvalDim(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genMaxvalDim(fir::FirOpBuilder &builder,
                                   mlir::Location loc, mlir::Value resultBox,
                                   mlir::Value arrayBox, mlir::Value dim,
                                   mlir::Value maskBox) {
@@ -603,15 +601,15 @@ void Fortran::lower::genMaxvalDim(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Maxval intrinsic runtime routine. This is the version
 /// that handles character arrays of rank 1 and without a DIM argument.
-void Fortran::lower::genMaxvalChar(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genMaxvalChar(fir::FirOpBuilder &builder,
                                    mlir::Location loc, mlir::Value resultBox,
                                    mlir::Value arrayBox, mlir::Value maskBox) {
   auto func =
       Fortran::lower::getRuntimeFunc<mkRTKey(MaxvalCharacter)>(loc, builder);
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, resultBox, arrayBox, sourceFile, sourceLine, maskBox);
   builder.create<fir::CallOp>(loc, func, args);
@@ -619,10 +617,10 @@ void Fortran::lower::genMaxvalChar(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Minloc intrinsic runtime routine. This is the version
 /// that does not take a dim argument.
-void Fortran::lower::genMinloc(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::Value resultBox,
-                               mlir::Value arrayBox, mlir::Value maskBox,
-                               mlir::Value kind, mlir::Value back) {
+void Fortran::lower::genMinloc(fir::FirOpBuilder &builder, mlir::Location loc,
+                               mlir::Value resultBox, mlir::Value arrayBox,
+                               mlir::Value maskBox, mlir::Value kind,
+                               mlir::Value back) {
   auto func = Fortran::lower::getRuntimeFunc<mkRTKey(Minloc)>(loc, builder);
   genReduction4Args(func, builder, loc, resultBox, arrayBox, maskBox, kind,
                     back);
@@ -630,7 +628,7 @@ void Fortran::lower::genMinloc(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Minloc intrinsic runtime routine. This is the version
 /// that takes a dim argument.
-void Fortran::lower::genMinlocDim(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genMinlocDim(fir::FirOpBuilder &builder,
                                   mlir::Location loc, mlir::Value resultBox,
                                   mlir::Value arrayBox, mlir::Value dim,
                                   mlir::Value maskBox, mlir::Value kind,
@@ -642,7 +640,7 @@ void Fortran::lower::genMinlocDim(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Minval intrinsic runtime routine. This is the version
 /// that handles any rank array with the dim argument specified.
-void Fortran::lower::genMinvalDim(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genMinvalDim(fir::FirOpBuilder &builder,
                                   mlir::Location loc, mlir::Value resultBox,
                                   mlir::Value arrayBox, mlir::Value dim,
                                   mlir::Value maskBox) {
@@ -652,15 +650,15 @@ void Fortran::lower::genMinvalDim(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Minval intrinsic runtime routine. This is the version
 /// that handles character arrays of rank 1 and without a DIM argument.
-void Fortran::lower::genMinvalChar(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genMinvalChar(fir::FirOpBuilder &builder,
                                    mlir::Location loc, mlir::Value resultBox,
                                    mlir::Value arrayBox, mlir::Value maskBox) {
   auto func =
       Fortran::lower::getRuntimeFunc<mkRTKey(MinvalCharacter)>(loc, builder);
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, resultBox, arrayBox, sourceFile, sourceLine, maskBox);
   builder.create<fir::CallOp>(loc, func, args);
@@ -668,7 +666,7 @@ void Fortran::lower::genMinvalChar(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Minval intrinsic runtime routine. This is the version
 /// that does not take a dim argument.
-mlir::Value Fortran::lower::genMinval(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genMinval(fir::FirOpBuilder &builder,
                                       mlir::Location loc, mlir::Value arrayBox,
                                       mlir::Value maskBox) {
   mlir::FuncOp func;
@@ -708,9 +706,9 @@ mlir::Value Fortran::lower::genMinval(Fortran::lower::FirOpBuilder &builder,
     fir::emitFatalError(loc, "invalid type in Minval lowering");
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(2));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(2));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, arrayBox, sourceFile, sourceLine, dim, maskBox);
 
@@ -719,7 +717,7 @@ mlir::Value Fortran::lower::genMinval(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Product intrinsic runtime routine. This is the version
 /// that handles any rank array with the dim argument specified.
-void Fortran::lower::genProductDim(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genProductDim(fir::FirOpBuilder &builder,
                                    mlir::Location loc, mlir::Value resultBox,
                                    mlir::Value arrayBox, mlir::Value dim,
                                    mlir::Value maskBox) {
@@ -729,7 +727,7 @@ void Fortran::lower::genProductDim(Fortran::lower::FirOpBuilder &builder,
 
 /// Generate call to Product intrinsic runtime routine. This is the version
 /// that does not take a dim argument.
-mlir::Value Fortran::lower::genProduct(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genProduct(fir::FirOpBuilder &builder,
                                        mlir::Location loc, mlir::Value arrayBox,
                                        mlir::Value maskBox,
                                        mlir::Value resultBox) {
@@ -780,10 +778,10 @@ mlir::Value Fortran::lower::genProduct(Fortran::lower::FirOpBuilder &builder,
     fir::emitFatalError(loc, "invalid type in Product lowering");
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   if (fir::isa_complex(eleTy)) {
     auto sourceLine =
-        Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+        fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
     auto args =
         Fortran::lower::createArguments(builder, loc, fTy, resultBox, arrayBox,
                                         sourceFile, sourceLine, dim, maskBox);
@@ -792,14 +790,14 @@ mlir::Value Fortran::lower::genProduct(Fortran::lower::FirOpBuilder &builder,
   }
 
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(2));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(2));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, arrayBox, sourceFile, sourceLine, dim, maskBox);
 
   return builder.create<fir::CallOp>(loc, func, args).getResult(0);
 }
 
-mlir::Value Fortran::lower::genDotProduct(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genDotProduct(fir::FirOpBuilder &builder,
                                           mlir::Location loc,
                                           mlir::Value vectorABox,
                                           mlir::Value vectorBBox,
@@ -858,11 +856,11 @@ mlir::Value Fortran::lower::genDotProduct(Fortran::lower::FirOpBuilder &builder,
     fir::emitFatalError(loc, "invalid type in DotProduct lowering");
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
 
   if (fir::isa_complex(eleTy)) {
     auto sourceLine =
-        Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(4));
+        fir::factory::locationToLineNo(builder, loc, fTy.getInput(4));
     auto args = Fortran::lower::createArguments(builder, loc, fTy, resultBox,
                                                 vectorABox, vectorBBox,
                                                 sourceFile, sourceLine);
@@ -871,24 +869,23 @@ mlir::Value Fortran::lower::genDotProduct(Fortran::lower::FirOpBuilder &builder,
   }
 
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, vectorABox, vectorBBox, sourceFile, sourceLine);
   return builder.create<fir::CallOp>(loc, func, args).getResult(0);
 }
 /// Generate call to Sum intrinsic runtime routine. This is the version
 /// that handles any rank array with the dim argument specified.
-void Fortran::lower::genSumDim(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::Value resultBox,
-                               mlir::Value arrayBox, mlir::Value dim,
-                               mlir::Value maskBox) {
+void Fortran::lower::genSumDim(fir::FirOpBuilder &builder, mlir::Location loc,
+                               mlir::Value resultBox, mlir::Value arrayBox,
+                               mlir::Value dim, mlir::Value maskBox) {
   auto func = Fortran::lower::getRuntimeFunc<mkRTKey(SumDim)>(loc, builder);
   genReduction3Args(func, builder, loc, resultBox, arrayBox, dim, maskBox);
 }
 
 /// Generate call to Sum intrinsic runtime routine. This is the version
 /// that does not take a dim argument.
-mlir::Value Fortran::lower::genSum(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genSum(fir::FirOpBuilder &builder,
                                    mlir::Location loc, mlir::Value arrayBox,
                                    mlir::Value maskBox, mlir::Value resultBox) {
   mlir::FuncOp func;
@@ -934,10 +931,10 @@ mlir::Value Fortran::lower::genSum(Fortran::lower::FirOpBuilder &builder,
     fir::emitFatalError(loc, "invalid type in Sum lowering");
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   if (fir::isa_complex(eleTy)) {
     auto sourceLine =
-        Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+        fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
     auto args =
         Fortran::lower::createArguments(builder, loc, fTy, resultBox, arrayBox,
                                         sourceFile, sourceLine, dim, maskBox);
@@ -946,7 +943,7 @@ mlir::Value Fortran::lower::genSum(Fortran::lower::FirOpBuilder &builder,
   }
 
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(2));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(2));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, arrayBox, sourceFile, sourceLine, dim, maskBox);
 

@@ -18,7 +18,7 @@
 #define FORTRAN_LOWER_CONVERTEXPR_H
 
 #include "flang/Evaluate/shape.h"
-#include "flang/Lower/Support/BoxValue.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
 
 namespace mlir {
 class Location;

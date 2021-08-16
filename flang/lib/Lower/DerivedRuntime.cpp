@@ -9,42 +9,42 @@
 #include "flang/Lower/DerivedRuntime.h"
 #include "../../runtime/derived-api.h"
 #include "RTBuilder.h"
-#include "flang/Lower/FIRBuilder.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 
 using namespace Fortran::runtime;
 
-void Fortran::lower::genDerivedTypeInitialize(
-    Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
-    mlir::Value box) {
+void Fortran::lower::genDerivedTypeInitialize(fir::FirOpBuilder &builder,
+                                              mlir::Location loc,
+                                              mlir::Value box) {
   auto func = getRuntimeFunc<mkRTKey(Initialize)>(loc, builder);
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(2));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(2));
   auto args = Fortran::lower::createArguments(builder, loc, fTy, box,
                                               sourceFile, sourceLine);
   builder.create<fir::CallOp>(loc, func, args);
 }
 
-void Fortran::lower::genDerivedTypeDestroy(
-    Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
-    mlir::Value box) {
+void Fortran::lower::genDerivedTypeDestroy(fir::FirOpBuilder &builder,
+                                           mlir::Location loc,
+                                           mlir::Value box) {
   auto func = getRuntimeFunc<mkRTKey(Destroy)>(loc, builder);
   auto fTy = func.getType();
   auto args = Fortran::lower::createArguments(builder, loc, fTy, box);
   builder.create<fir::CallOp>(loc, func, args);
 }
 
-void Fortran::lower::genDerivedTypeAssign(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genDerivedTypeAssign(fir::FirOpBuilder &builder,
                                           mlir::Location loc,
                                           mlir::Value destinationBox,
                                           mlir::Value sourceBox) {
   auto func = getRuntimeFunc<mkRTKey(Assign)>(loc, builder);
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, destinationBox, sourceBox, sourceFile, sourceLine);
   builder.create<fir::CallOp>(loc, func, args);

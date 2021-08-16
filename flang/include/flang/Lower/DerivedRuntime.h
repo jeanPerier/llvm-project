@@ -14,24 +14,26 @@ class Value;
 class Location;
 } // namespace mlir
 
-namespace Fortran::lower {
+namespace fir {
 class FirOpBuilder;
+}
+
+namespace Fortran::lower {
 
 /// Generate call to derived type initialization runtime routine to
 /// default initialize \p box.
-void genDerivedTypeInitialize(Fortran::lower::FirOpBuilder &builder,
-                              mlir::Location loc, mlir::Value box);
+void genDerivedTypeInitialize(fir::FirOpBuilder &builder, mlir::Location loc,
+                              mlir::Value box);
 
 /// Generate call to derived type destruction runtime routine to
 /// destroy \p box.
-void genDerivedTypeDestroy(Fortran::lower::FirOpBuilder &builder,
-                           mlir::Location loc, mlir::Value box);
+void genDerivedTypeDestroy(fir::FirOpBuilder &builder, mlir::Location loc,
+                           mlir::Value box);
 
 /// Generate call to derived type assignment runtime routine to
 /// assign \p sourceBox to \p destinationBox.
-void genDerivedTypeAssign(Fortran::lower::FirOpBuilder &builder,
-                          mlir::Location loc, mlir::Value destinationBox,
-                          mlir::Value sourceBox);
+void genDerivedTypeAssign(fir::FirOpBuilder &builder, mlir::Location loc,
+                          mlir::Value destinationBox, mlir::Value sourceBox);
 
 } // namespace Fortran::lower
 #endif

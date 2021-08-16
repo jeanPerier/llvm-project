@@ -11,10 +11,10 @@
 #include "flang/Evaluate/characteristics.h"
 #include "flang/Evaluate/fold.h"
 #include "flang/Lower/Bridge.h"
-#include "flang/Lower/FIRBuilder.h"
 #include "flang/Lower/Mangler.h"
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Support/InternalNames.h"
@@ -361,12 +361,11 @@ void Fortran::lower::CallInterface<T>::declare() {
   if (!side().isIndirectCall()) {
     auto name = side().getMangledName();
     auto module = converter.getModuleOp();
-    func = Fortran::lower::FirOpBuilder::getNamedFunction(module, name);
+    func = fir::FirOpBuilder::getNamedFunction(module, name);
     if (!func) {
       mlir::Location loc = side().getCalleeLocation();
       mlir::FunctionType ty = genFunctionType();
-      func =
-          Fortran::lower::FirOpBuilder::createFunction(loc, module, name, ty);
+      func = fir::FirOpBuilder::createFunction(loc, module, name, ty);
       if (const auto *sym = side().getProcedureSymbol())
         addSymbolAttribute(func, *sym, converter.getMLIRContext());
       for (const auto &placeHolder : llvm::enumerate(inputs))
@@ -1016,8 +1015,7 @@ mlir::FuncOp Fortran::lower::getOrDeclareFunction(
     llvm::StringRef name, const Fortran::evaluate::ProcedureDesignator &proc,
     Fortran::lower::AbstractConverter &converter) {
   auto module = converter.getModuleOp();
-  mlir::FuncOp func =
-      Fortran::lower::FirOpBuilder::getNamedFunction(module, name);
+  mlir::FuncOp func = fir::FirOpBuilder::getNamedFunction(module, name);
   if (func)
     return func;
 
@@ -1033,8 +1031,7 @@ mlir::FuncOp Fortran::lower::getOrDeclareFunction(
   auto ty = SignatureBuilder{characteristics.value(), converter,
                              /*forceImplicit=*/false}
                 .getFunctionType();
-  auto newFunc =
-      Fortran::lower::FirOpBuilder::createFunction(loc, module, name, ty);
+  auto newFunc = fir::FirOpBuilder::createFunction(loc, module, name, ty);
   addSymbolAttribute(newFunc, *symbol, converter.getMLIRContext());
   return newFunc;
 }

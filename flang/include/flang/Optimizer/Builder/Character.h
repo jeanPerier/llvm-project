@@ -1,4 +1,4 @@
-//===-- Lower/CharacterExpr.h -- lowering of characters ---------*- C++ -*-===//
+//===-------- CharacterExpr.h -- lowering of characters ---------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -10,13 +10,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FORTRAN_LOWER_CHARACTEREXPR_H
-#define FORTRAN_LOWER_CHARACTEREXPR_H
+#ifndef FORTRAN_OPTIMIZER_BUILDER_CHARACTER_H
+#define FORTRAN_OPTIMIZER_BUILDER_CHARACTER_H
 
-#include "flang/Lower/FIRBuilder.h"
-#include "flang/Lower/Support/BoxValue.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 
-namespace Fortran::lower {
+namespace fir::factory {
 
 /// Helper to facilitate lowering of CHARACTER in FIR.
 class CharacterExprHelper {
@@ -177,6 +177,6 @@ mlir::FuncOp getLlvmMemmove(FirOpBuilder &builder);
 mlir::FuncOp getLlvmMemset(FirOpBuilder &builder);
 mlir::FuncOp getRealloc(FirOpBuilder &builder);
 
-} // namespace Fortran::lower
+} // namespace fir::factory
 
-#endif // FORTRAN_LOWER_CHARACTEREXPR_H
+#endif // FORTRAN_OPTIMIZER_BUILDER_CHARACTER_H

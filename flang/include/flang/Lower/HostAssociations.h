@@ -21,7 +21,6 @@ class Symbol;
 
 namespace lower {
 class AbstractConverter;
-class FirOpBuilder;
 class SymMap;
 
 /// Internal procedures in Fortran may access variables declared in the host

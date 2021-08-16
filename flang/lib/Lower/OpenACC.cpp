@@ -14,10 +14,10 @@
 #include "StatementContext.h"
 #include "flang/Common/idioms.h"
 #include "flang/Lower/Bridge.h"
-#include "flang/Lower/FIRBuilder.h"
 #include "flang/Lower/PFTBuilder.h"
-#include "flang/Lower/Support/BoxValue.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Parser/parse-tree.h"
 #include "flang/Semantics/tools.h"
 #include "mlir/Dialect/OpenACC/OpenACC.h"
@@ -100,8 +100,7 @@ static void addOperand(SmallVectorImpl<mlir::Value> &operands,
 }
 
 template <typename Op, typename Terminator>
-static Op createRegionOp(Fortran::lower::FirOpBuilder &builder,
-                         mlir::Location loc,
+static Op createRegionOp(fir::FirOpBuilder &builder, mlir::Location loc,
                          const SmallVectorImpl<mlir::Value> &operands,
                          const SmallVectorImpl<int32_t> &operandSegments) {
   llvm::ArrayRef<mlir::Type> argTy;
@@ -121,8 +120,7 @@ static Op createRegionOp(Fortran::lower::FirOpBuilder &builder,
 }
 
 template <typename Op>
-static Op createSimpleOp(Fortran::lower::FirOpBuilder &builder,
-                         mlir::Location loc,
+static Op createSimpleOp(fir::FirOpBuilder &builder, mlir::Location loc,
                          const SmallVectorImpl<mlir::Value> &operands,
                          const SmallVectorImpl<int32_t> &operandSegments) {
   llvm::ArrayRef<mlir::Type> argTy;

@@ -14,7 +14,7 @@
 #define FORTRAN_LOWER_ITERATIONSPACE_H
 
 #include "StatementContext.h"
-#include "flang/Lower/FIRBuilder.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "llvm/ADT/SmallVector.h"
 #include <functional>
 

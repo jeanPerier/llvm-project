@@ -6,13 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Lower/FIRBuilder.h"
-#include "SymbolMap.h"
-#include "flang/Lower/Allocatable.h"
-#include "flang/Lower/CharacterExpr.h"
-#include "flang/Lower/ComplexExpr.h"
-#include "flang/Lower/Support/BoxValue.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/Complex.h"
+#include "flang/Optimizer/Builder/MutableBox.h"
 #include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Support/FatalError.h"
@@ -31,49 +30,66 @@ static llvm::cl::opt<std::size_t>
                                       "name"),
                        llvm::cl::init(32));
 
-mlir::FuncOp Fortran::lower::FirOpBuilder::createFunction(
-    mlir::Location loc, mlir::ModuleOp module, llvm::StringRef name,
-    mlir::FunctionType ty) {
+mlir::FuncOp fir::FirOpBuilder::createFunction(mlir::Location loc,
+                                               mlir::ModuleOp module,
+                                               llvm::StringRef name,
+                                               mlir::FunctionType ty) {
   return fir::createFuncOp(loc, module, name, ty);
 }
 
-mlir::FuncOp
-Fortran::lower::FirOpBuilder::getNamedFunction(mlir::ModuleOp modOp,
-                                               llvm::StringRef name) {
+mlir::FuncOp fir::FirOpBuilder::getNamedFunction(mlir::ModuleOp modOp,
+                                                 llvm::StringRef name) {
   return modOp.lookupSymbol<mlir::FuncOp>(name);
 }
 
-fir::GlobalOp
-Fortran::lower::FirOpBuilder::getNamedGlobal(mlir::ModuleOp modOp,
-                                             llvm::StringRef name) {
+fir::GlobalOp fir::FirOpBuilder::getNamedGlobal(mlir::ModuleOp modOp,
+                                                llvm::StringRef name) {
   return modOp.lookupSymbol<fir::GlobalOp>(name);
 }
 
-mlir::Type Fortran::lower::FirOpBuilder::getRefType(mlir::Type eleTy) {
+mlir::Type fir::FirOpBuilder::getRefType(mlir::Type eleTy) {
   assert(!eleTy.isa<fir::ReferenceType>() && "cannot be a reference type");
   return fir::ReferenceType::get(eleTy);
 }
 
-mlir::Type Fortran::lower::FirOpBuilder::getVarLenSeqTy(mlir::Type eleTy,
-                                                        unsigned rank) {
+mlir::Type fir::FirOpBuilder::getVarLenSeqTy(mlir::Type eleTy, unsigned rank) {
   fir::SequenceType::Shape shape(rank, fir::SequenceType::getUnknownExtent());
   return fir::SequenceType::get(shape, eleTy);
 }
 
-mlir::Value
-Fortran::lower::FirOpBuilder::createNullConstant(mlir::Location loc,
-                                                 mlir::Type ptrType) {
+mlir::Type fir::FirOpBuilder::getRealType(int kind) {
+  switch (kindMap.getRealTypeID(kind)) {
+  case llvm::Type::TypeID::HalfTyID:
+    return mlir::FloatType::getF16(getContext());
+  case llvm::Type::TypeID::FloatTyID:
+    return mlir::FloatType::getF32(getContext());
+  case llvm::Type::TypeID::DoubleTyID:
+    return mlir::FloatType::getF64(getContext());
+  case llvm::Type::TypeID::X86_FP80TyID:
+    return mlir::FloatType::getF80(getContext());
+  case llvm::Type::TypeID::FP128TyID:
+    return mlir::FloatType::getF128(getContext());
+  default:
+    fir::emitFatalError(UnknownLoc::get(getContext()),
+                        "unsupported type !fir.real<kind>");
+  }
+}
+
+mlir::Value fir::FirOpBuilder::createNullConstant(mlir::Location loc,
+                                                  mlir::Type ptrType) {
   auto ty = ptrType ? ptrType : getRefType(getNoneType());
   return create<fir::ZeroOp>(loc, ty);
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::createIntegerConstant(
-    mlir::Location loc, mlir::Type ty, std::int64_t cst) {
+mlir::Value fir::FirOpBuilder::createIntegerConstant(mlir::Location loc,
+                                                     mlir::Type ty,
+                                                     std::int64_t cst) {
   return create<mlir::ConstantOp>(loc, ty, getIntegerAttr(ty, cst));
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::createRealConstant(
-    mlir::Location loc, mlir::Type fltTy, llvm::APFloat::integerPart val) {
+mlir::Value
+fir::FirOpBuilder::createRealConstant(mlir::Location loc, mlir::Type fltTy,
+                                      llvm::APFloat::integerPart val) {
   auto apf = [&]() -> llvm::APFloat {
     if (auto ty = fltTy.dyn_cast<fir::RealType>()) {
       return llvm::APFloat(kindMap.getFloatSemantics(ty.getFKind()), val);
@@ -96,8 +112,9 @@ mlir::Value Fortran::lower::FirOpBuilder::createRealConstant(
   return createRealConstant(loc, fltTy, apf());
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::createRealConstant(
-    mlir::Location loc, mlir::Type fltTy, const llvm::APFloat &value) {
+mlir::Value fir::FirOpBuilder::createRealConstant(mlir::Location loc,
+                                                  mlir::Type fltTy,
+                                                  const llvm::APFloat &value) {
   if (fltTy.isa<mlir::FloatType>()) {
     auto attr = getFloatAttr(fltTy, value);
     return create<mlir::ConstantOp>(loc, fltTy, attr);
@@ -133,7 +150,7 @@ elideLengthsAlreadyInType(mlir::Type type, mlir::ValueRange lenParams) {
 
 /// Allocate a local variable.
 /// A local variable ought to have a name in the source code.
-mlir::Value Fortran::lower::FirOpBuilder::allocateLocal(
+mlir::Value fir::FirOpBuilder::allocateLocal(
     mlir::Location loc, mlir::Type ty, llvm::StringRef uniqName,
     llvm::StringRef name, llvm::ArrayRef<mlir::Value> shape,
     llvm::ArrayRef<mlir::Value> lenParams, bool asTarget) {
@@ -165,7 +182,7 @@ mlir::Value Fortran::lower::FirOpBuilder::allocateLocal(
 }
 
 /// Get the block for adding Allocas.
-mlir::Block *Fortran::lower::FirOpBuilder::getAllocaBlock() {
+mlir::Block *fir::FirOpBuilder::getAllocaBlock() {
   auto iface =
       getRegion().getParentOfType<mlir::omp::OutlineableOpenMPOpInterface>();
   return iface ? iface.getAllocaBlock() : getEntryBlock();
@@ -173,10 +190,11 @@ mlir::Block *Fortran::lower::FirOpBuilder::getAllocaBlock() {
 
 /// Create a temporary variable on the stack. Anonymous temporaries have no
 /// `name` value.
-mlir::Value Fortran::lower::FirOpBuilder::createTemporary(
-    mlir::Location loc, mlir::Type type, llvm::StringRef name,
-    mlir::ValueRange shape, mlir::ValueRange lenParams,
-    llvm::ArrayRef<mlir::NamedAttribute> attrs) {
+mlir::Value
+fir::FirOpBuilder::createTemporary(mlir::Location loc, mlir::Type type,
+                                   llvm::StringRef name, mlir::ValueRange shape,
+                                   mlir::ValueRange lenParams,
+                                   llvm::ArrayRef<mlir::NamedAttribute> attrs) {
   llvm::SmallVector<mlir::Value> dynamicShape =
       elideExtentsAlreadyInType(type, shape);
   llvm::SmallVector<mlir::Value> dynamicLength =
@@ -198,9 +216,10 @@ mlir::Value Fortran::lower::FirOpBuilder::createTemporary(
 
 /// Create a global variable in the (read-only) data section. A global variable
 /// must have a unique name to identify and reference it.
-fir::GlobalOp Fortran::lower::FirOpBuilder::createGlobal(
-    mlir::Location loc, mlir::Type type, llvm::StringRef name,
-    mlir::StringAttr linkage, mlir::Attribute value, bool isConst) {
+fir::GlobalOp
+fir::FirOpBuilder::createGlobal(mlir::Location loc, mlir::Type type,
+                                llvm::StringRef name, mlir::StringAttr linkage,
+                                mlir::Attribute value, bool isConst) {
   auto module = getModule();
   auto insertPt = saveInsertionPoint();
   if (auto glob = module.lookupSymbol<fir::GlobalOp>(name))
@@ -211,7 +230,7 @@ fir::GlobalOp Fortran::lower::FirOpBuilder::createGlobal(
   return glob;
 }
 
-fir::GlobalOp Fortran::lower::FirOpBuilder::createGlobal(
+fir::GlobalOp fir::FirOpBuilder::createGlobal(
     mlir::Location loc, mlir::Type type, llvm::StringRef name, bool isConst,
     std::function<void(FirOpBuilder &)> bodyBuilder, mlir::StringAttr linkage) {
   auto module = getModule();
@@ -230,13 +249,14 @@ fir::GlobalOp Fortran::lower::FirOpBuilder::createGlobal(
   return glob;
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::convertWithSemantics(
-    mlir::Location loc, mlir::Type toTy, mlir::Value val) {
+mlir::Value fir::FirOpBuilder::convertWithSemantics(mlir::Location loc,
+                                                    mlir::Type toTy,
+                                                    mlir::Value val) {
   assert(toTy && "store location must be typed");
   auto fromTy = val.getType();
   if (fromTy == toTy)
     return val;
-  ComplexExprHelper helper{*this, loc};
+  fir::factory::ComplexExprHelper helper{*this, loc};
   if ((fir::isa_real(fromTy) || fir::isa_integer(fromTy)) &&
       fir::isa_complex(toTy)) {
     // imaginary part is zero
@@ -256,9 +276,8 @@ mlir::Value Fortran::lower::FirOpBuilder::convertWithSemantics(
   return createConvert(loc, toTy, val);
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::createConvert(mlir::Location loc,
-                                                        mlir::Type toTy,
-                                                        mlir::Value val) {
+mlir::Value fir::FirOpBuilder::createConvert(mlir::Location loc,
+                                             mlir::Type toTy, mlir::Value val) {
   if (val.getType() != toTy) {
     assert(!fir::isa_derived(toTy));
     return create<fir::ConvertOp>(loc, toTy, val);
@@ -266,9 +285,8 @@ mlir::Value Fortran::lower::FirOpBuilder::createConvert(mlir::Location loc,
   return val;
 }
 
-fir::StringLitOp
-Fortran::lower::FirOpBuilder::createStringLitOp(mlir::Location loc,
-                                                llvm::StringRef data) {
+fir::StringLitOp fir::FirOpBuilder::createStringLitOp(mlir::Location loc,
+                                                      llvm::StringRef data) {
   auto type = fir::CharacterType::get(getContext(), 1, data.size());
   auto strAttr = mlir::StringAttr::get(getContext(), data);
   auto valTag = mlir::Identifier::get(fir::StringLitOp::value(), getContext());
@@ -280,17 +298,15 @@ Fortran::lower::FirOpBuilder::createStringLitOp(mlir::Location loc,
                                   llvm::None, attrs);
 }
 
-mlir::Value
-Fortran::lower::FirOpBuilder::consShape(mlir::Location loc,
-                                        llvm::ArrayRef<mlir::Value> exts) {
+mlir::Value fir::FirOpBuilder::consShape(mlir::Location loc,
+                                         llvm::ArrayRef<mlir::Value> exts) {
   auto shapeType = fir::ShapeType::get(getContext(), exts.size());
   return create<fir::ShapeOp>(loc, shapeType, exts);
 }
 
-mlir::Value
-Fortran::lower::FirOpBuilder::consShape(mlir::Location loc,
-                                        llvm::ArrayRef<mlir::Value> shift,
-                                        llvm::ArrayRef<mlir::Value> exts) {
+mlir::Value fir::FirOpBuilder::consShape(mlir::Location loc,
+                                         llvm::ArrayRef<mlir::Value> shift,
+                                         llvm::ArrayRef<mlir::Value> exts) {
   auto shapeType = fir::ShapeShiftType::get(getContext(), exts.size());
   llvm::SmallVector<mlir::Value> shapeArgs;
   auto idxTy = getIndexType();
@@ -302,17 +318,15 @@ Fortran::lower::FirOpBuilder::consShape(mlir::Location loc,
   return create<fir::ShapeShiftOp>(loc, shapeType, shapeArgs);
 }
 
-mlir::Value
-Fortran::lower::FirOpBuilder::consShape(mlir::Location loc,
-                                        const fir::AbstractArrayBox &arr) {
+mlir::Value fir::FirOpBuilder::consShape(mlir::Location loc,
+                                         const fir::AbstractArrayBox &arr) {
   if (arr.lboundsAllOne())
     return consShape(loc, arr.getExtents());
   return consShape(loc, arr.getLBounds(), arr.getExtents());
 }
 
-mlir::Value
-Fortran::lower::FirOpBuilder::createShape(mlir::Location loc,
-                                          const fir::ExtendedValue &exv) {
+mlir::Value fir::FirOpBuilder::createShape(mlir::Location loc,
+                                           const fir::ExtendedValue &exv) {
   return exv.match(
       [&](const fir::ArrayBoxValue &box) { return consShape(loc, box); },
       [&](const fir::CharArrayBoxValue &box) { return consShape(loc, box); },
@@ -332,9 +346,10 @@ Fortran::lower::FirOpBuilder::createShape(mlir::Location loc,
       [&](auto) -> mlir::Value { fir::emitFatalError(loc, "not an array"); });
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::createSlice(
-    mlir::Location loc, const fir::ExtendedValue &exv, mlir::ValueRange triples,
-    mlir::ValueRange path) {
+mlir::Value fir::FirOpBuilder::createSlice(mlir::Location loc,
+                                           const fir::ExtendedValue &exv,
+                                           mlir::ValueRange triples,
+                                           mlir::ValueRange path) {
   if (triples.empty()) {
     // If there is no slicing by triple notation, then take the whole array.
     auto fullShape = [&](const llvm::ArrayRef<mlir::Value> lbounds,
@@ -367,7 +382,7 @@ mlir::Value Fortran::lower::FirOpBuilder::createSlice(
           return fullShape(box.getLBounds(), box.getExtents());
         },
         [&](const fir::BoxValue &box) {
-          auto extents = Fortran::lower::readExtents(*this, loc, box);
+          auto extents = fir::factory::readExtents(*this, loc, box);
           return fullShape(box.getLBounds(), extents);
         },
         [&](const fir::MutableBoxValue &) -> mlir::Value {
@@ -382,9 +397,8 @@ mlir::Value Fortran::lower::FirOpBuilder::createSlice(
   return create<fir::SliceOp>(loc, sliceTy, triples, path);
 }
 
-mlir::Value
-Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
-                                        const fir::ExtendedValue &exv) {
+mlir::Value fir::FirOpBuilder::createBox(mlir::Location loc,
+                                         const fir::ExtendedValue &exv) {
   auto itemAddr = fir::getBase(exv);
   if (itemAddr.getType().isa<fir::BoxType>())
     return itemAddr;
@@ -400,7 +414,7 @@ Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
       },
       [&](const fir::CharArrayBoxValue &box) -> mlir::Value {
         auto s = createShape(loc, exv);
-        if (Fortran::lower::CharacterExprHelper::hasConstantLengthInType(exv))
+        if (fir::factory::CharacterExprHelper::hasConstantLengthInType(exv))
           return create<fir::EmboxOp>(loc, boxTy, itemAddr, s);
 
         mlir::Value emptySlice;
@@ -409,7 +423,7 @@ Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
                                     lenParams);
       },
       [&](const fir::CharBoxValue &box) -> mlir::Value {
-        if (Fortran::lower::CharacterExprHelper::hasConstantLengthInType(exv))
+        if (fir::factory::CharacterExprHelper::hasConstantLengthInType(exv))
           return create<fir::EmboxOp>(loc, boxTy, itemAddr);
         mlir::Value emptyShape, emptySlice;
         llvm::SmallVector<mlir::Value> lenParams{box.getLen()};
@@ -418,15 +432,15 @@ Fortran::lower::FirOpBuilder::createBox(mlir::Location loc,
       },
       [&](const fir::MutableBoxValue &x) -> mlir::Value {
         return create<fir::LoadOp>(
-            loc, Fortran::lower::getMutableIRBox(*this, loc, x));
+            loc, fir::factory::getMutableIRBox(*this, loc, x));
       },
       [&](const auto &) -> mlir::Value {
         return create<fir::EmboxOp>(loc, boxTy, itemAddr);
       });
 }
 
-mlir::Value Fortran::lower::FirOpBuilder::genIsNotNull(mlir::Location loc,
-                                                       mlir::Value addr) {
+mlir::Value fir::FirOpBuilder::genIsNotNull(mlir::Location loc,
+                                            mlir::Value addr) {
   auto intPtrTy = getIntPtrType();
   auto ptrToInt = createConvert(loc, intPtrTy, addr);
   auto c0 = createIntegerConstant(loc, intPtrTy, 0);
@@ -437,9 +451,9 @@ mlir::Value Fortran::lower::FirOpBuilder::genIsNotNull(mlir::Location loc,
 // ExtendedValue inquiry helper implementation
 //===--------------------------------------------------------------------===//
 
-mlir::Value Fortran::lower::readCharLen(Fortran::lower::FirOpBuilder &builder,
-                                        mlir::Location loc,
-                                        const fir::ExtendedValue &box) {
+mlir::Value fir::factory::readCharLen(fir::FirOpBuilder &builder,
+                                      mlir::Location loc,
+                                      const fir::ExtendedValue &box) {
   return box.match(
       [&](const fir::CharBoxValue &x) -> mlir::Value { return x.getLen(); },
       [&](const fir::CharArrayBoxValue &x) -> mlir::Value {
@@ -449,7 +463,7 @@ mlir::Value Fortran::lower::readCharLen(Fortran::lower::FirOpBuilder &builder,
         assert(x.isCharacter());
         if (!x.getExplicitParameters().empty())
           return x.getExplicitParameters()[0];
-        return Fortran::lower::CharacterExprHelper{builder, loc}
+        return fir::factory::CharacterExprHelper{builder, loc}
             .readLengthFromBox(x.getAddr());
       },
       [&](const fir::MutableBoxValue &) -> mlir::Value {
@@ -463,10 +477,10 @@ mlir::Value Fortran::lower::readCharLen(Fortran::lower::FirOpBuilder &builder,
       });
 }
 
-mlir::Value Fortran::lower::readExtent(Fortran::lower::FirOpBuilder &builder,
-                                       mlir::Location loc,
-                                       const fir::ExtendedValue &box,
-                                       unsigned dim) {
+mlir::Value fir::factory::readExtent(fir::FirOpBuilder &builder,
+                                     mlir::Location loc,
+                                     const fir::ExtendedValue &box,
+                                     unsigned dim) {
   assert(box.rank() > dim);
   return box.match(
       [&](const fir::ArrayBoxValue &x) -> mlir::Value {
@@ -495,11 +509,11 @@ mlir::Value Fortran::lower::readExtent(Fortran::lower::FirOpBuilder &builder,
       });
 }
 
-mlir::Value Fortran::lower::readLowerBound(Fortran::lower::FirOpBuilder &,
-                                           mlir::Location loc,
-                                           const fir::ExtendedValue &box,
-                                           unsigned dim,
-                                           mlir::Value defaultValue) {
+mlir::Value fir::factory::readLowerBound(fir::FirOpBuilder &,
+                                         mlir::Location loc,
+                                         const fir::ExtendedValue &box,
+                                         unsigned dim,
+                                         mlir::Value defaultValue) {
   assert(box.rank() > dim);
   auto lb = box.match(
       [&](const fir::ArrayBoxValue &x) -> mlir::Value {
@@ -525,8 +539,8 @@ mlir::Value Fortran::lower::readLowerBound(Fortran::lower::FirOpBuilder &,
 }
 
 llvm::SmallVector<mlir::Value>
-Fortran::lower::readExtents(Fortran::lower::FirOpBuilder &builder,
-                            mlir::Location loc, const fir::BoxValue &box) {
+fir::factory::readExtents(fir::FirOpBuilder &builder, mlir::Location loc,
+                          const fir::BoxValue &box) {
   llvm::SmallVector<mlir::Value> result;
   auto explicitExtents = box.getExplicitExtents();
   if (!explicitExtents.empty()) {
@@ -545,8 +559,8 @@ Fortran::lower::readExtents(Fortran::lower::FirOpBuilder &builder,
 }
 
 llvm::SmallVector<mlir::Value>
-Fortran::lower::getExtents(Fortran::lower::FirOpBuilder &builder,
-                           mlir::Location loc, const fir::ExtendedValue &box) {
+fir::factory::getExtents(fir::FirOpBuilder &builder, mlir::Location loc,
+                         const fir::ExtendedValue &box) {
   return box.match(
       [&](const fir::ArrayBoxValue &x) -> llvm::SmallVector<mlir::Value> {
         return {x.getExtents().begin(), x.getExtents().end()};
@@ -555,41 +569,40 @@ Fortran::lower::getExtents(Fortran::lower::FirOpBuilder &builder,
         return {x.getExtents().begin(), x.getExtents().end()};
       },
       [&](const fir::BoxValue &x) -> llvm::SmallVector<mlir::Value> {
-        return Fortran::lower::readExtents(builder, loc, x);
+        return fir::factory::readExtents(builder, loc, x);
       },
       [&](const fir::MutableBoxValue &x) -> llvm::SmallVector<mlir::Value> {
-        auto load = Fortran::lower::genMutableBoxRead(builder, loc, x)
-                        .toExtendedValue();
-        return Fortran::lower::getExtents(builder, loc, load);
+        auto load = fir::factory::genMutableBoxRead(builder, loc, x);
+        return fir::factory::getExtents(builder, loc, load);
       },
       [&](const auto &) -> llvm::SmallVector<mlir::Value> { return {}; });
 }
 
-fir::ExtendedValue
-Fortran::lower::readBoxValue(Fortran::lower::FirOpBuilder &builder,
-                             mlir::Location loc, const fir::BoxValue &box) {
+fir::ExtendedValue fir::factory::readBoxValue(fir::FirOpBuilder &builder,
+                                              mlir::Location loc,
+                                              const fir::BoxValue &box) {
   assert(!box.isUnlimitedPolymorphic() && !box.hasAssumedRank() &&
          "cannot read unlimited polymorphic or assumed rank fir.box");
   auto addr =
       builder.create<fir::BoxAddrOp>(loc, box.getMemTy(), box.getAddr());
   if (box.isCharacter()) {
-    auto len = Fortran::lower::readCharLen(builder, loc, box);
+    auto len = fir::factory::readCharLen(builder, loc, box);
     if (box.rank() == 0)
       return fir::CharBoxValue(addr, len);
-    return fir::CharArrayBoxValue(
-        addr, len, Fortran::lower::readExtents(builder, loc, box),
-        box.getLBounds());
+    return fir::CharArrayBoxValue(addr, len,
+                                  fir::factory::readExtents(builder, loc, box),
+                                  box.getLBounds());
   }
   if (box.isDerivedWithLengthParameters())
     TODO(loc, "read fir.box with length parameters");
   if (box.rank() == 0)
     return addr;
-  return fir::ArrayBoxValue(
-      addr, Fortran::lower::readExtents(builder, loc, box), box.getLBounds());
+  return fir::ArrayBoxValue(addr, fir::factory::readExtents(builder, loc, box),
+                            box.getLBounds());
 }
 
-std::string Fortran::lower::uniqueCGIdent(llvm::StringRef prefix,
-                                          llvm::StringRef name) {
+std::string fir::factory::uniqueCGIdent(llvm::StringRef prefix,
+                                        llvm::StringRef name) {
   // For "long" identifiers use a hash value
   if (name.size() > nameLengthHashSize) {
     llvm::MD5 hash;
@@ -608,9 +621,8 @@ std::string Fortran::lower::uniqueCGIdent(llvm::StringRef prefix,
       nm.append(".").append(llvm::toHex(name)));
 }
 
-mlir::Value
-Fortran::lower::locationToFilename(Fortran::lower::FirOpBuilder &builder,
-                                   mlir::Location loc) {
+mlir::Value fir::factory::locationToFilename(fir::FirOpBuilder &builder,
+                                             mlir::Location loc) {
   if (auto flc = loc.dyn_cast<mlir::FileLineColLoc>()) {
     // must be encoded as asciiz, C string
     auto fn = flc.getFilename().str() + '\0';
@@ -619,24 +631,24 @@ Fortran::lower::locationToFilename(Fortran::lower::FirOpBuilder &builder,
   return builder.createNullConstant(loc);
 }
 
-mlir::Value
-Fortran::lower::locationToLineNo(Fortran::lower::FirOpBuilder &builder,
-                                 mlir::Location loc, mlir::Type type) {
+mlir::Value fir::factory::locationToLineNo(fir::FirOpBuilder &builder,
+                                           mlir::Location loc,
+                                           mlir::Type type) {
   if (auto flc = loc.dyn_cast<mlir::FileLineColLoc>())
     return builder.createIntegerConstant(loc, type, flc.getLine());
   return builder.createIntegerConstant(loc, type, 0);
 }
 
-fir::ExtendedValue
-Fortran::lower::createStringLiteral(Fortran::lower::FirOpBuilder &builder,
-                                    mlir::Location loc, llvm::StringRef str) {
-  std::string globalName = Fortran::lower::uniqueCGIdent("cl", str);
+fir::ExtendedValue fir::factory::createStringLiteral(fir::FirOpBuilder &builder,
+                                                     mlir::Location loc,
+                                                     llvm::StringRef str) {
+  std::string globalName = fir::factory::uniqueCGIdent("cl", str);
   auto type = fir::CharacterType::get(builder.getContext(), 1, str.size());
   auto global = builder.getNamedGlobal(globalName);
   if (!global)
     global = builder.createGlobalConstant(
         loc, type, globalName,
-        [&](Fortran::lower::FirOpBuilder &builder) {
+        [&](fir::FirOpBuilder &builder) {
           auto stringLitOp = builder.createStringLitOp(loc, str);
           builder.create<fir::HasValueOp>(loc, stringLitOp);
         },
@@ -649,8 +661,8 @@ Fortran::lower::createStringLiteral(Fortran::lower::FirOpBuilder &builder,
 }
 
 llvm::SmallVector<mlir::Value>
-Fortran::lower::createExtents(Fortran::lower::FirOpBuilder &builder,
-                              mlir::Location loc, fir::SequenceType seqTy) {
+fir::factory::createExtents(fir::FirOpBuilder &builder, mlir::Location loc,
+                            fir::SequenceType seqTy) {
   llvm::SmallVector<mlir::Value> extents;
   auto idxTy = builder.getIndexType();
   for (auto ext : seqTy.getShape())
@@ -661,8 +673,8 @@ Fortran::lower::createExtents(Fortran::lower::FirOpBuilder &builder,
   return extents;
 }
 
-fir::ExtendedValue Fortran::lower::componentToExtendedValue(
-    Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+fir::ExtendedValue fir::factory::componentToExtendedValue(
+    fir::FirOpBuilder &builder, mlir::Location loc,
     const fir::ExtendedValue &obj, mlir::Value component) {
   auto fieldTy = component.getType();
   if (auto ty = fir::dyn_cast_ptrEleTy(fieldTy))

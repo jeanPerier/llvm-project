@@ -320,14 +320,14 @@ it can be deallocated after the statement.
 The implementation of the runtime call in lowering looks like:
 
 ```c++
-void Fortran::lower::genTrim(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genTrim(fir::FirOpBuilder &builder,
                              mlir::Location loc, mlir::Value resultBox,
                              mlir::Value stringBox) {
   auto trimFunc = getRuntimeFunc<mkRTKey(Trim)>(loc, builder);
   auto fTy = trimFunc.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
 
   llvm::SmallVector<mlir::Value> args;
   args.emplace_back(builder.createConvert(loc, fTy.getInput(0), resultBox));

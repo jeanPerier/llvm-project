@@ -14,38 +14,39 @@
 
 namespace fir {
 class ExtendedValue;
-}
+class FirOpBuilder;
+} // namespace fir
 
 namespace Fortran::lower {
-class FirOpBuilder;
 
-void genCshift(FirOpBuilder &builder, mlir::Location loc, mlir::Value resultBox,
-               mlir::Value arrayBox, mlir::Value shiftBox, mlir::Value dimBox);
+void genCshift(fir::FirOpBuilder &builder, mlir::Location loc,
+               mlir::Value resultBox, mlir::Value arrayBox,
+               mlir::Value shiftBox, mlir::Value dimBox);
 
-void genCshiftVector(FirOpBuilder &builder, mlir::Location loc,
+void genCshiftVector(fir::FirOpBuilder &builder, mlir::Location loc,
                      mlir::Value resultBox, mlir::Value arrayBox,
                      mlir::Value shiftBox);
 
-void genMatmul(Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+void genMatmul(fir::FirOpBuilder &builder, mlir::Location loc,
                mlir::Value matrixABox, mlir::Value matrixBBox,
                mlir::Value resultBox);
 
-void genPack(Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+void genPack(fir::FirOpBuilder &builder, mlir::Location loc,
              mlir::Value resultBox, mlir::Value arrayBox, mlir::Value maskBox,
              mlir::Value vectorBox);
 
-void genReshape(FirOpBuilder &builder, mlir::Location loc,
+void genReshape(fir::FirOpBuilder &builder, mlir::Location loc,
                 mlir::Value resultBox, mlir::Value sourceBox,
                 mlir::Value shapeBox, mlir::Value padBox, mlir::Value orderBox);
 
-void genSpread(Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+void genSpread(fir::FirOpBuilder &builder, mlir::Location loc,
                mlir::Value resultBox, mlir::Value sourceBox, mlir::Value dim,
                mlir::Value ncopies);
 
-void genTranspose(Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+void genTranspose(fir::FirOpBuilder &builder, mlir::Location loc,
                   mlir::Value resultBox, mlir::Value sourceBox);
 
-void genUnpack(Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
+void genUnpack(fir::FirOpBuilder &builder, mlir::Location loc,
                mlir::Value resultBox, mlir::Value vectorBox,
                mlir::Value maskBox, mlir::Value fieldBox);
 

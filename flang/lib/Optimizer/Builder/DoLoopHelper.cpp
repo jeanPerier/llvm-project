@@ -6,13 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Lower/DoLoopHelper.h"
+#include "flang/Optimizer/Builder/DoLoopHelper.h"
 
 //===----------------------------------------------------------------------===//
 // DoLoopHelper implementation
 //===----------------------------------------------------------------------===//
 
-void Fortran::lower::DoLoopHelper::createLoop(
+void fir::factory::DoLoopHelper::createLoop(
     mlir::Value lb, mlir::Value ub, mlir::Value step,
     const BodyGenerator &bodyGenerator) {
   auto lbi = builder.convertToIndexType(loc, lb);
@@ -27,14 +27,14 @@ void Fortran::lower::DoLoopHelper::createLoop(
   builder.restoreInsertionPoint(insertPt);
 }
 
-void Fortran::lower::DoLoopHelper::createLoop(
+void fir::factory::DoLoopHelper::createLoop(
     mlir::Value lb, mlir::Value ub, const BodyGenerator &bodyGenerator) {
   createLoop(lb, ub,
              builder.createIntegerConstant(loc, builder.getIndexType(), 1),
              bodyGenerator);
 }
 
-void Fortran::lower::DoLoopHelper::createLoop(
+void fir::factory::DoLoopHelper::createLoop(
     mlir::Value count, const BodyGenerator &bodyGenerator) {
   auto indexType = builder.getIndexType();
   auto zero = builder.createIntegerConstant(loc, indexType, 0);

@@ -10,10 +10,10 @@
 #include "../../runtime/character.h"
 #include "RTBuilder.h"
 #include "flang/Lower/Bridge.h"
-#include "flang/Lower/CharacterExpr.h"
-#include "flang/Lower/FIRBuilder.h"
-#include "flang/Lower/Support/BoxValue.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 using namespace Fortran::runtime;
@@ -22,7 +22,7 @@ using namespace Fortran::runtime;
 /// verify. These are the descriptor based implementations that take four
 /// arguments (string1, string2, back, kind).
 template <typename FN>
-static void genCharacterSearch(FN func, Fortran::lower::FirOpBuilder &builder,
+static void genCharacterSearch(FN func, fir::FirOpBuilder &builder,
                                mlir::Location loc, mlir::Value resultBox,
                                mlir::Value string1Box, mlir::Value string2Box,
                                mlir::Value backBox, mlir::Value kind);
@@ -46,38 +46,36 @@ static int discoverKind(mlir::Type ty) {
 // Lower character operations
 //===----------------------------------------------------------------------===//
 
-void Fortran::lower::genAdjustL(Fortran::lower::FirOpBuilder &builder,
-                                mlir::Location loc, mlir::Value resultBox,
-                                mlir::Value stringBox) {
+void Fortran::lower::genAdjustL(fir::FirOpBuilder &builder, mlir::Location loc,
+                                mlir::Value resultBox, mlir::Value stringBox) {
   auto adjustFunc = getRuntimeFunc<mkRTKey(Adjustl)>(loc, builder);
   Fortran::lower::genAdjust(builder, loc, resultBox, stringBox, adjustFunc);
 }
 
-void Fortran::lower::genAdjustR(Fortran::lower::FirOpBuilder &builder,
-                                mlir::Location loc, mlir::Value resultBox,
-                                mlir::Value stringBox) {
+void Fortran::lower::genAdjustR(fir::FirOpBuilder &builder, mlir::Location loc,
+                                mlir::Value resultBox, mlir::Value stringBox) {
   auto adjustFunc = getRuntimeFunc<mkRTKey(Adjustr)>(loc, builder);
   Fortran::lower::genAdjust(builder, loc, resultBox, stringBox, adjustFunc);
 }
 
-void Fortran::lower::genAdjust(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::Value resultBox,
-                               mlir::Value stringBox, mlir::FuncOp &adjustFunc) {
+void Fortran::lower::genAdjust(fir::FirOpBuilder &builder, mlir::Location loc,
+                               mlir::Value resultBox, mlir::Value stringBox,
+                               mlir::FuncOp &adjustFunc) {
 
   auto fTy = adjustFunc.getType();
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
-  auto args = Fortran::lower::createArguments(builder, loc, fTy, resultBox,
-                                              stringBox, sourceFile, sourceLine);
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
+  auto args = Fortran::lower::createArguments(
+      builder, loc, fTy, resultBox, stringBox, sourceFile, sourceLine);
   builder.create<fir::CallOp>(loc, adjustFunc, args);
 }
 
 mlir::Value
-Fortran::lower::genCharCompare(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::CmpIPredicate cmp,
-                               mlir::Value lhsBuff, mlir::Value lhsLen,
-                               mlir::Value rhsBuff, mlir::Value rhsLen) {
+Fortran::lower::genCharCompare(fir::FirOpBuilder &builder, mlir::Location loc,
+                               mlir::CmpIPredicate cmp, mlir::Value lhsBuff,
+                               mlir::Value lhsLen, mlir::Value rhsBuff,
+                               mlir::Value rhsLen) {
   mlir::FuncOp beginFunc;
   switch (discoverKind(lhsBuff.getType())) {
   case 1:
@@ -100,11 +98,11 @@ Fortran::lower::genCharCompare(Fortran::lower::FirOpBuilder &builder,
   return builder.create<mlir::CmpIOp>(loc, cmp, tri, zero);
 }
 
-mlir::Value
-Fortran::lower::genCharCompare(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::CmpIPredicate cmp,
-                               const fir::ExtendedValue &lhs,
-                               const fir::ExtendedValue &rhs) {
+mlir::Value Fortran::lower::genCharCompare(fir::FirOpBuilder &builder,
+                                           mlir::Location loc,
+                                           mlir::CmpIPredicate cmp,
+                                           const fir::ExtendedValue &lhs,
+                                           const fir::ExtendedValue &rhs) {
   if (lhs.getBoxOf<fir::BoxValue>() || rhs.getBoxOf<fir::BoxValue>())
     TODO(loc, "character compare from descriptors");
   auto allocateIfNotInMemory = [&](mlir::Value base) -> mlir::Value {
@@ -121,8 +119,8 @@ Fortran::lower::genCharCompare(Fortran::lower::FirOpBuilder &builder,
 }
 
 mlir::Value
-Fortran::lower::genIndex(Fortran::lower::FirOpBuilder &builder,
-                         mlir::Location loc, int kind, mlir::Value stringBase,
+Fortran::lower::genIndex(fir::FirOpBuilder &builder, mlir::Location loc,
+                         int kind, mlir::Value stringBase,
                          mlir::Value stringLen, mlir::Value substringBase,
                          mlir::Value substringLen, mlir::Value back) {
   mlir::FuncOp indexFunc;
@@ -147,7 +145,7 @@ Fortran::lower::genIndex(Fortran::lower::FirOpBuilder &builder,
   return builder.create<fir::CallOp>(loc, indexFunc, args).getResult(0);
 }
 
-void Fortran::lower::genIndexDescriptor(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genIndexDescriptor(fir::FirOpBuilder &builder,
                                         mlir::Location loc,
                                         mlir::Value resultBox,
                                         mlir::Value stringBox,
@@ -158,28 +156,27 @@ void Fortran::lower::genIndexDescriptor(Fortran::lower::FirOpBuilder &builder,
                      substringBox, backOpt, kind);
 }
 
-void Fortran::lower::genRepeat(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::Value resultBox,
-                               mlir::Value stringBox, mlir::Value ncopies) {
+void Fortran::lower::genRepeat(fir::FirOpBuilder &builder, mlir::Location loc,
+                               mlir::Value resultBox, mlir::Value stringBox,
+                               mlir::Value ncopies) {
   auto repeatFunc = getRuntimeFunc<mkRTKey(Repeat)>(loc, builder);
   auto fTy = repeatFunc.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(4));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(4));
 
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, resultBox, stringBox, ncopies, sourceFile, sourceLine);
   builder.create<fir::CallOp>(loc, repeatFunc, args);
 }
 
-void Fortran::lower::genTrim(Fortran::lower::FirOpBuilder &builder,
-                             mlir::Location loc, mlir::Value resultBox,
-                             mlir::Value stringBox) {
+void Fortran::lower::genTrim(fir::FirOpBuilder &builder, mlir::Location loc,
+                             mlir::Value resultBox, mlir::Value stringBox) {
   auto trimFunc = getRuntimeFunc<mkRTKey(Trim)>(loc, builder);
   auto fTy = trimFunc.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(3));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(3));
 
   auto args = Fortran::lower::createArguments(
       builder, loc, fTy, resultBox, stringBox, sourceFile, sourceLine);
@@ -189,7 +186,7 @@ void Fortran::lower::genTrim(Fortran::lower::FirOpBuilder &builder,
 /// Generate call to scan runtime routine.
 /// This calls the descriptor based runtime call implementation of the scan
 /// intrinsic.
-void Fortran::lower::genScanDescriptor(Fortran::lower::FirOpBuilder &builder,
+void Fortran::lower::genScanDescriptor(fir::FirOpBuilder &builder,
                                        mlir::Location loc,
                                        mlir::Value resultBox,
                                        mlir::Value stringBox,
@@ -203,7 +200,7 @@ void Fortran::lower::genScanDescriptor(Fortran::lower::FirOpBuilder &builder,
 /// Generate call to scan runtime routine that is specialized on
 /// \param kind.
 /// The \param kind represents the kind of the elements in the strings.
-mlir::Value Fortran::lower::genScan(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genScan(fir::FirOpBuilder &builder,
                                     mlir::Location loc, int kind,
                                     mlir::Value stringBase,
                                     mlir::Value stringLen, mlir::Value setBase,
@@ -233,9 +230,9 @@ mlir::Value Fortran::lower::genScan(Fortran::lower::FirOpBuilder &builder,
 /// This calls the descriptor based runtime call implementation of the
 /// verify intrinsic.
 void Fortran::lower::genVerifyDescriptor(
-    Fortran::lower::FirOpBuilder &builder, mlir::Location loc,
-    mlir::Value resultBox, mlir::Value stringBox, mlir::Value setBox,
-    mlir::Value backBox, mlir::Value kind) {
+    fir::FirOpBuilder &builder, mlir::Location loc, mlir::Value resultBox,
+    mlir::Value stringBox, mlir::Value setBox, mlir::Value backBox,
+    mlir::Value kind) {
   auto func = getRuntimeFunc<mkRTKey(Verify)>(loc, builder);
   genCharacterSearch(func, builder, loc, resultBox, stringBox, setBox, backBox,
                      kind);
@@ -244,7 +241,7 @@ void Fortran::lower::genVerifyDescriptor(
 /// Generate call to verify runtime routine that is specialized on
 /// \param kind.
 /// The \param kind represents the kind of the elements in the strings.
-mlir::Value Fortran::lower::genVerify(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genVerify(fir::FirOpBuilder &builder,
                                       mlir::Location loc, int kind,
                                       mlir::Value stringBase,
                                       mlir::Value stringLen,
@@ -275,15 +272,15 @@ mlir::Value Fortran::lower::genVerify(Fortran::lower::FirOpBuilder &builder,
 /// verify. These are the descriptor based implementations that take four
 /// arguments (string1, string2, back, kind).
 template <typename FN>
-static void genCharacterSearch(FN func, Fortran::lower::FirOpBuilder &builder,
+static void genCharacterSearch(FN func, fir::FirOpBuilder &builder,
                                mlir::Location loc, mlir::Value resultBox,
                                mlir::Value string1Box, mlir::Value string2Box,
                                mlir::Value backBox, mlir::Value kind) {
 
   auto fTy = func.getType();
-  auto sourceFile = Fortran::lower::locationToFilename(builder, loc);
+  auto sourceFile = fir::factory::locationToFilename(builder, loc);
   auto sourceLine =
-      Fortran::lower::locationToLineNo(builder, loc, fTy.getInput(6));
+      fir::factory::locationToLineNo(builder, loc, fTy.getInput(6));
 
   auto args = Fortran::lower::createArguments(builder, loc, fTy, resultBox,
                                               string1Box, string2Box, backBox,

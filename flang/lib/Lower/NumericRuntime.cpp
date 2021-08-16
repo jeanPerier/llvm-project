@@ -10,10 +10,10 @@
 #include "../../runtime/numeric.h"
 #include "RTBuilder.h"
 #include "flang/Lower/Bridge.h"
-#include "flang/Lower/CharacterExpr.h"
-#include "flang/Lower/FIRBuilder.h"
-#include "flang/Lower/Support/BoxValue.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 using namespace Fortran::runtime;
@@ -184,7 +184,7 @@ struct ForcedSpacing16 {
 };
 
 /// Generate call to Exponent instrinsic runtime routine.
-mlir::Value Fortran::lower::genExponent(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genExponent(fir::FirOpBuilder &builder,
                                         mlir::Location loc,
                                         mlir::Type resultType, mlir::Value x) {
   mlir::FuncOp func;
@@ -221,7 +221,7 @@ mlir::Value Fortran::lower::genExponent(Fortran::lower::FirOpBuilder &builder,
 }
 
 /// Generate call to Fraction instrinsic runtime routine.
-mlir::Value Fortran::lower::genFraction(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genFraction(fir::FirOpBuilder &builder,
                                         mlir::Location loc, mlir::Value x) {
   mlir::FuncOp func;
   mlir::Type fltTy = x.getType();
@@ -245,7 +245,7 @@ mlir::Value Fortran::lower::genFraction(Fortran::lower::FirOpBuilder &builder,
 }
 
 /// Generate call to RRSpacing intrinsic runtime routine.
-mlir::Value Fortran::lower::genRRSpacing(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genRRSpacing(fir::FirOpBuilder &builder,
                                          mlir::Location loc, mlir::Value x) {
   mlir::FuncOp func;
   mlir::Type fltTy = x.getType();
@@ -269,7 +269,7 @@ mlir::Value Fortran::lower::genRRSpacing(Fortran::lower::FirOpBuilder &builder,
 }
 
 /// Generate call to Scale intrinsic runtime routine.
-mlir::Value Fortran::lower::genScale(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genScale(fir::FirOpBuilder &builder,
                                      mlir::Location loc, mlir::Value x,
                                      mlir::Value i) {
   mlir::FuncOp func;
@@ -293,10 +293,9 @@ mlir::Value Fortran::lower::genScale(Fortran::lower::FirOpBuilder &builder,
 }
 
 /// Generate call to Set_exponent instrinsic runtime routine.
-mlir::Value
-Fortran::lower::genSetExponent(Fortran::lower::FirOpBuilder &builder,
-                               mlir::Location loc, mlir::Value x,
-                               mlir::Value i) {
+mlir::Value Fortran::lower::genSetExponent(fir::FirOpBuilder &builder,
+                                           mlir::Location loc, mlir::Value x,
+                                           mlir::Value i) {
   mlir::FuncOp func;
   mlir::Type fltTy = x.getType();
 
@@ -318,7 +317,7 @@ Fortran::lower::genSetExponent(Fortran::lower::FirOpBuilder &builder,
 }
 
 /// Generate call to Spacing intrinsic runtime routine.
-mlir::Value Fortran::lower::genSpacing(Fortran::lower::FirOpBuilder &builder,
+mlir::Value Fortran::lower::genSpacing(fir::FirOpBuilder &builder,
                                        mlir::Location loc, mlir::Value x) {
   mlir::FuncOp func;
   mlir::Type fltTy = x.getType();

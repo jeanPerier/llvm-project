@@ -12,11 +12,11 @@
 #include "flang/Evaluate/check-expression.h"
 #include "flang/Lower/AbstractConverter.h"
 #include "flang/Lower/Allocatable.h"
-#include "flang/Lower/CharacterExpr.h"
 #include "flang/Lower/ConvertType.h"
-#include "flang/Lower/FIRBuilder.h"
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Support/FatalError.h"
 #include "flang/Semantics/tools.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -171,7 +171,7 @@ public:
     auto *charBox = args.hostValue.getCharBox();
     assert(charBox && "host value must be a fir::CharBoxValue");
     auto &builder = converter.getFirOpBuilder();
-    auto boxchar = Fortran::lower::CharacterExprHelper(builder, args.loc)
+    auto boxchar = fir::factory::CharacterExprHelper(builder, args.loc)
                        .createEmbox(*charBox);
     builder.create<fir::StoreOp>(args.loc, boxchar, args.addrInTuple);
   }
@@ -180,8 +180,8 @@ public:
                            Fortran::lower::AbstractConverter &converter,
                            const Fortran::semantics::Symbol &sym,
                            const Fortran::lower::BoxAnalyzer &) {
-    Fortran::lower::CharacterExprHelper charHelp(converter.getFirOpBuilder(),
-                                                 args.loc);
+    fir::factory::CharacterExprHelper charHelp(converter.getFirOpBuilder(),
+                                               args.loc);
     auto unboxchar = charHelp.createUnboxChar(args.valueInTuple);
     args.symMap.addCharSymbol(sym, unboxchar.first, unboxchar.second);
   }
@@ -243,7 +243,7 @@ public:
           fir::BoxValue boxLoad =
               builder.create<fir::LoadOp>(loc, fir::getBase(args.valueInTuple))
                   .getResult();
-          return Fortran::lower::readCharLen(builder, loc, boxLoad);
+          return fir::factory::readCharLen(builder, loc, boxLoad);
         };
         if (Fortran::semantics::IsOptional(sym)) {
           // It is not safe to unconditionally read boxes of optionals in case
@@ -312,17 +312,17 @@ public:
           loc, builder.getI1Type(), fir::getBase(args.hostValue));
       builder.genIfThenElse(loc, isPresent)
           .genThen([&]() {
-            Fortran::lower::associateMutableBox(builder, loc, boxInTuple,
-                                                args.hostValue,
-                                                /*lbounds=*/llvm::None);
+            fir::factory::associateMutableBox(builder, loc, boxInTuple,
+                                              args.hostValue,
+                                              /*lbounds=*/llvm::None);
           })
           .genElse([&]() {
-            Fortran::lower::disassociateMutableBox(builder, loc, boxInTuple);
+            fir::factory::disassociateMutableBox(builder, loc, boxInTuple);
           })
           .end();
     } else {
-      Fortran::lower::associateMutableBox(
-          builder, loc, boxInTuple, args.hostValue, /*lbounds=*/llvm::None);
+      fir::factory::associateMutableBox(builder, loc, boxInTuple,
+                                        args.hostValue, /*lbounds=*/llvm::None);
     }
   }
 
@@ -354,8 +354,8 @@ public:
 
     if (canReadCapturedBoxValue(converter, sym)) {
       fir::BoxValue boxValue(box, lbounds, /*explicitParams=*/llvm::None);
-      args.symMap.addSymbol(
-          sym, Fortran::lower::readBoxValue(builder, loc, boxValue));
+      args.symMap.addSymbol(sym,
+                            fir::factory::readBoxValue(builder, loc, boxValue));
     } else {
       // Keep variable as a fir.box.
       // If this is an optional that is absent, the fir.box needs to be an
@@ -421,9 +421,9 @@ static mlir::TupleType unwrapTupleTy(mlir::Type t) {
   return fir::dyn_cast_ptrEleTy(t).cast<mlir::TupleType>();
 }
 
-static mlir::Value genTupleCoor(Fortran::lower::FirOpBuilder &builder,
-                                mlir::Location loc, mlir::Type varTy,
-                                mlir::Value tupleArg, mlir::Value offset) {
+static mlir::Value genTupleCoor(fir::FirOpBuilder &builder, mlir::Location loc,
+                                mlir::Type varTy, mlir::Value tupleArg,
+                                mlir::Value offset) {
   // fir.ref<fir.ref> and fir.ptr<fir.ref> are forbidden. Use
   // fir.llvm_ptr if needed.
   auto ty = varTy.isa<fir::ReferenceType>()

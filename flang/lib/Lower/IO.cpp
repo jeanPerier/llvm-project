@@ -17,14 +17,14 @@
 #include "StatementContext.h"
 #include "flang/Lower/Allocatable.h"
 #include "flang/Lower/Bridge.h"
-#include "flang/Lower/CharacterExpr.h"
-#include "flang/Lower/ComplexExpr.h"
 #include "flang/Lower/ConvertExpr.h"
-#include "flang/Lower/FIRBuilder.h"
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Runtime.h"
 #include "flang/Lower/Support/Utils.h"
 #include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/Character.h"
+#include "flang/Optimizer/Builder/Complex.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Support/FIRContext.h"
 #include "flang/Parser/parse-tree.h"
 #include "flang/Semantics/tools.h"
@@ -132,7 +132,7 @@ inline int64_t getLength(mlir::Type argTy) {
 /// Get (or generate) the MLIR FuncOp for a given IO runtime function.
 template <typename E>
 static mlir::FuncOp getIORuntimeFunc(mlir::Location loc,
-                                     Fortran::lower::FirOpBuilder &builder) {
+                                     fir::FirOpBuilder &builder) {
   auto name = getName<E>();
   auto func = builder.getNamedFunction(name);
   if (func)
@@ -180,7 +180,7 @@ static mlir::Value genEndIO(Fortran::lower::AbstractConverter &converter,
 /// If a call returns `ok==false`, further suboperation calls for an IO
 /// statement will be skipped.  This may generate branch heavy, deeply nested
 /// conditionals for IO statements with a large number of suboperations.
-static void makeNextConditionalOn(Fortran::lower::FirOpBuilder &builder,
+static void makeNextConditionalOn(fir::FirOpBuilder &builder,
                                   mlir::Location loc, bool checkResult,
                                   mlir::Value ok, bool inLoop = false) {
   if (!checkResult || !ok)
@@ -228,7 +228,8 @@ getNamelistGroup(Fortran::lower::AbstractConverter &converter,
   auto groupTy = mlir::TupleType::get(
       context, {charRefTy, sizeTy, fir::ReferenceType::get(listTy)});
   auto stringAddress = [&](const Fortran::semantics::Symbol &symbol) {
-    return createStringLiteral(builder, loc, symbol.name().ToString() + '\0');
+    return fir::factory::createStringLiteral(builder, loc,
+                                             symbol.name().ToString() + '\0');
   };
 
   // Define object names, and static descriptors for global objects.
@@ -245,7 +246,7 @@ getNamelistGroup(Fortran::lower::AbstractConverter &converter,
       continue;
     const auto expr = Fortran::evaluate::AsGenericExpr(s);
     auto boxTy = fir::BoxType::get(fir::PointerType::get(converter.genType(s)));
-    auto descFunc = [&](Fortran::lower::FirOpBuilder &b) {
+    auto descFunc = [&](fir::FirOpBuilder &b) {
       auto box =
           Fortran::lower::genInitialDataTarget(converter, loc, boxTy, *expr);
       b.create<fir::HasValueOp>(loc, box);
@@ -257,7 +258,7 @@ getNamelistGroup(Fortran::lower::AbstractConverter &converter,
   mlir::Value listAddr =
       groupIsLocal ? builder.create<fir::AllocaOp>(loc, listTy) : mlir::Value{};
   auto listMangleName = groupMangleName + ".list";
-  auto listFunc = [&](Fortran::lower::FirOpBuilder &builder) {
+  auto listFunc = [&](fir::FirOpBuilder &builder) {
     mlir::Value list = builder.create<fir::UndefOp>(loc, listTy);
     auto zero = builder.createIntegerConstant(loc, idxTy, 0);
     auto one = builder.createIntegerConstant(loc, idxTy, 1);
@@ -285,8 +286,8 @@ getNamelistGroup(Fortran::lower::AbstractConverter &converter,
         auto boxType = fir::BoxType::get(fir::PointerType::get(type));
         descAddr = builder.createTemporary(loc, boxType);
         auto box = fir::MutableBoxValue(descAddr, {}, {});
-        Fortran::lower::associateMutableBox(builder, loc, box, exv,
-                                            /*lbounds=*/llvm::None);
+        fir::factory::associateMutableBox(builder, loc, box, exv,
+                                          /*lbounds=*/llvm::None);
       }
       descAddr = builder.createConvert(loc, descRefTy, descAddr);
       list =
@@ -308,7 +309,7 @@ getNamelistGroup(Fortran::lower::AbstractConverter &converter,
   mlir::Value groupAddr = groupIsLocal
                               ? builder.create<fir::AllocaOp>(loc, groupTy)
                               : mlir::Value{};
-  auto groupFunc = [&](Fortran::lower::FirOpBuilder &builder) {
+  auto groupFunc = [&](fir::FirOpBuilder &builder) {
     auto zero = builder.createIntegerConstant(loc, idxTy, 0);
     auto one = builder.createIntegerConstant(loc, idxTy, 1);
     auto two = builder.createIntegerConstant(loc, idxTy, 2);
@@ -362,8 +363,8 @@ static void genNamelistIO(Fortran::lower::AbstractConverter &converter,
 
 /// Get the output function to call for a value of the given type.
 static mlir::FuncOp getOutputFunc(mlir::Location loc,
-                                  Fortran::lower::FirOpBuilder &builder,
-                                  mlir::Type type, bool isFormatted) {
+                                  fir::FirOpBuilder &builder, mlir::Type type,
+                                  bool isFormatted) {
   if (!isFormatted)
     return getIORuntimeFunc<mkIOKey(OutputDescriptor)>(loc, builder);
   if (auto ty = type.dyn_cast<mlir::IntegerType>())
@@ -382,7 +383,7 @@ static mlir::FuncOp getOutputFunc(mlir::Location loc,
     return getIORuntimeFunc<mkIOKey(OutputLogical)>(loc, builder);
   if (type.isa<fir::BoxType>())
     return getIORuntimeFunc<mkIOKey(OutputDescriptor)>(loc, builder);
-  if (Fortran::lower::CharacterExprHelper::isCharacterScalar(type))
+  if (fir::factory::CharacterExprHelper::isCharacterScalar(type))
     return getIORuntimeFunc<mkIOKey(OutputAscii)>(loc, builder);
   // Use descriptors for arrays
   if (auto refTy = type.dyn_cast<fir::ReferenceType>())
@@ -417,7 +418,7 @@ genOutputItemList(Fortran::lower::AbstractConverter &converter,
     assert((isFormatted || argType.isa<fir::BoxType>()) &&
            "expect descriptor for unformatted IO runtime");
     llvm::SmallVector<mlir::Value> outputFuncArgs = {cookie};
-    Fortran::lower::CharacterExprHelper helper{builder, loc};
+    fir::factory::CharacterExprHelper helper{builder, loc};
     if (argType.isa<fir::BoxType>()) {
       auto box = fir::getBase(converter.genExprBox(*expr, stmtCtx, loc));
       outputFuncArgs.push_back(builder.createConvert(loc, argType, box));
@@ -436,9 +437,8 @@ genOutputItemList(Fortran::lower::AbstractConverter &converter,
       auto itemBox = converter.genExprValue(expr, stmtCtx, loc);
       auto itemValue = fir::getBase(itemBox);
       if (fir::isa_complex(itemTy)) {
-        auto parts =
-            Fortran::lower::ComplexExprHelper{builder, loc}.extractParts(
-                itemValue);
+        auto parts = fir::factory::ComplexExprHelper{builder, loc}.extractParts(
+            itemValue);
         outputFuncArgs.push_back(parts.first);
         outputFuncArgs.push_back(parts.second);
       } else {
@@ -452,8 +452,7 @@ genOutputItemList(Fortran::lower::AbstractConverter &converter,
 }
 
 /// Get the input function to call for a value of the given type.
-static mlir::FuncOp getInputFunc(mlir::Location loc,
-                                 Fortran::lower::FirOpBuilder &builder,
+static mlir::FuncOp getInputFunc(mlir::Location loc, fir::FirOpBuilder &builder,
                                  mlir::Type type, bool isFormatted) {
   if (!isFormatted)
     return getIORuntimeFunc<mkIOKey(InputDescriptor)>(loc, builder);
@@ -473,7 +472,7 @@ static mlir::FuncOp getInputFunc(mlir::Location loc,
     return getIORuntimeFunc<mkIOKey(InputLogical)>(loc, builder);
   if (type.isa<fir::BoxType>())
     return getIORuntimeFunc<mkIOKey(InputDescriptor)>(loc, builder);
-  if (Fortran::lower::CharacterExprHelper::isCharacterScalar(type))
+  if (fir::factory::CharacterExprHelper::isCharacterScalar(type))
     return getIORuntimeFunc<mkIOKey(InputAscii)>(loc, builder);
   return getIORuntimeFunc<mkIOKey(InputDescriptor)>(loc, builder);
 }
@@ -512,7 +511,7 @@ static void genInputItemList(Fortran::lower::AbstractConverter &converter,
       auto itemExv = converter.genExprAddr(expr, stmtCtx, loc);
       auto itemAddr = fir::getBase(itemExv);
       inputFuncArgs.push_back(builder.createConvert(loc, argType, itemAddr));
-      Fortran::lower::CharacterExprHelper charHelper{builder, loc};
+      fir::factory::CharacterExprHelper charHelper{builder, loc};
       if (charHelper.isCharacterScalar(itemTy)) {
         auto len = fir::getLen(itemExv);
         inputFuncArgs.push_back(
@@ -627,24 +626,24 @@ static void genIoLoop(Fortran::lower::AbstractConverter &converter,
 static mlir::Value locToFilename(Fortran::lower::AbstractConverter &converter,
                                  mlir::Location loc, mlir::Type toType) {
   auto &builder = converter.getFirOpBuilder();
-  return builder.createConvert(
-      loc, toType, Fortran::lower::locationToFilename(builder, loc));
+  return builder.createConvert(loc, toType,
+                               fir::factory::locationToFilename(builder, loc));
 }
 
 static mlir::Value locToLineNo(Fortran::lower::AbstractConverter &converter,
                                mlir::Location loc, mlir::Type toType) {
-  return Fortran::lower::locationToLineNo(converter.getFirOpBuilder(), loc,
-                                          toType);
+  return fir::factory::locationToLineNo(converter.getFirOpBuilder(), loc,
+                                        toType);
 }
 
-static mlir::Value getDefaultScratch(Fortran::lower::FirOpBuilder &builder,
+static mlir::Value getDefaultScratch(fir::FirOpBuilder &builder,
                                      mlir::Location loc, mlir::Type toType) {
   mlir::Value null =
       builder.create<mlir::ConstantOp>(loc, builder.getI64IntegerAttr(0));
   return builder.createConvert(loc, toType, null);
 }
 
-static mlir::Value getDefaultScratchLen(Fortran::lower::FirOpBuilder &builder,
+static mlir::Value getDefaultScratchLen(fir::FirOpBuilder &builder,
                                         mlir::Location loc, mlir::Type toType) {
   return builder.create<mlir::ConstantOp>(loc,
                                           builder.getIntegerAttr(toType, 0));
@@ -659,7 +658,7 @@ genBuffer(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
           mlir::Type lenTy, Fortran::lower::StatementContext &stmtCtx) {
   auto &builder = converter.getFirOpBuilder();
   auto exprAddr = converter.genExprAddr(expr, stmtCtx);
-  Fortran::lower::CharacterExprHelper helper(builder, loc);
+  fir::factory::CharacterExprHelper helper(builder, loc);
   using ValuePair = std::pair<mlir::Value, mlir::Value>;
   auto [buff, len] = exprAddr.match(
       [&](const fir::CharBoxValue &x) -> ValuePair {
@@ -716,7 +715,7 @@ lowerSourceTextAsStringLit(Fortran::lower::AbstractConverter &converter,
   text = text.take_front(text.rfind(')') + 1);
   auto &builder = converter.getFirOpBuilder();
   auto addrGlobalStringLit =
-      fir::getBase(Fortran::lower::createStringLiteral(builder, loc, text));
+      fir::getBase(fir::factory::createStringLiteral(builder, loc, text));
   auto buff = builder.createConvert(loc, strTy, addrGlobalStringLit);
   auto len = builder.createIntegerConstant(loc, lenTy, text.size());
   return {buff, len, mlir::Value{}};
@@ -1114,10 +1113,10 @@ static llvm::Optional<fir::ExtendedValue> getVariableBufferRequiredDescriptor(
   auto varBox = converter.genExprAddr(var.typedExpr->v.value(), stmtCtx);
   auto defCharKind = converter.getKindMap().defaultCharacterKind();
   auto varAddr = fir::getBase(varBox);
-  if (Fortran::lower::CharacterExprHelper::getCharacterOrSequenceKind(
+  if (fir::factory::CharacterExprHelper::getCharacterOrSequenceKind(
           varAddr.getType()) != defCharKind)
     return varBox;
-  if (Fortran::lower::CharacterExprHelper::isArray(varAddr.getType()))
+  if (fir::factory::CharacterExprHelper::isArray(varAddr.getType()))
     return varBox;
   return llvm::None;
 }
@@ -1492,11 +1491,10 @@ Fortran::lower::genWaitStatement(Fortran::lower::AbstractConverter &converter,
 
 // Get the begin data transfer IO function to call for the given values.
 template <bool isInput>
-mlir::FuncOp getBeginDataTransferFunc(mlir::Location loc,
-                                      Fortran::lower::FirOpBuilder &builder,
-                                      bool isFormatted, bool isListOrNml,
-                                      bool isInternal, bool isInternalWithDesc,
-                                      bool isAsync) {
+mlir::FuncOp
+getBeginDataTransferFunc(mlir::Location loc, fir::FirOpBuilder &builder,
+                         bool isFormatted, bool isListOrNml, bool isInternal,
+                         bool isInternalWithDesc, bool isAsync) {
   if constexpr (isInput) {
     if (isAsync)
       return getIORuntimeFunc<mkIOKey(BeginAsynchronousInput)>(loc, builder);

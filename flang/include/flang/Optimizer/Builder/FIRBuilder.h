@@ -1,4 +1,4 @@
-//===-- Lower/FirBuilder.h -- FIR operation builder -------------*- C++ -*-===//
+//===-------- FirBuilder.h -- FIR operation builder -------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FORTRAN_LOWER_FIRBUILDER_H
-#define FORTRAN_LOWER_FIRBUILDER_H
+#ifndef FORTRAN_OPTIMIZER_BUILDER_FIRBUILDER_H
+#define FORTRAN_OPTIMIZER_BUILDER_FIRBUILDER_H
 
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
@@ -28,10 +28,6 @@ namespace fir {
 class AbstractArrayBox;
 class ExtendedValue;
 class BoxValue;
-} // namespace fir
-
-namespace Fortran::lower {
-class AbstractConverter;
 
 //===----------------------------------------------------------------------===//
 // FirOpBuilder
@@ -91,6 +87,9 @@ public:
     // llvm::DataLayout::getPointerSizeInBits here.
     return getI64Type();
   }
+
+  /// Get the mlir real type that implements fortran REAL(kind).
+  mlir::Type getRealType(int kind);
 
   /// Create a null constant memory reference of type \p ptrType.
   /// If \p ptrType is not provided, !fir.ref<none> type will be used.
@@ -339,6 +338,10 @@ private:
   const fir::KindMapping &kindMap;
 };
 
+} // namespace fir
+
+namespace fir::factory {
+
 //===--------------------------------------------------------------------===//
 // ExtendedValue inquiry helpers
 //===--------------------------------------------------------------------===//
@@ -347,28 +350,28 @@ private:
 /// entity. If the length value is contained in the ExtendedValue, this will
 /// not generate any code, otherwise this will generate a read of the fir.box
 /// describing the entity.
-mlir::Value readCharLen(FirOpBuilder &builder, mlir::Location loc,
+mlir::Value readCharLen(fir::FirOpBuilder &builder, mlir::Location loc,
                         const fir::ExtendedValue &box);
 
 /// Read or get the extent in dimension \p dim of the array described by \p box.
-mlir::Value readExtent(FirOpBuilder &builder, mlir::Location loc,
+mlir::Value readExtent(fir::FirOpBuilder &builder, mlir::Location loc,
                        const fir::ExtendedValue &box, unsigned dim);
 
 /// Read or get the lower bound in dimension \p dim of the array described by
 /// \p box. If the lower bound is left default in the ExtendedValue,
 /// \p defaultValue will be returned.
-mlir::Value readLowerBound(FirOpBuilder &builder, mlir::Location loc,
+mlir::Value readLowerBound(fir::FirOpBuilder &builder, mlir::Location loc,
                            const fir::ExtendedValue &box, unsigned dim,
                            mlir::Value defaultValue);
 
 /// Read extents from \p box.
-llvm::SmallVector<mlir::Value> readExtents(FirOpBuilder &builder,
+llvm::SmallVector<mlir::Value> readExtents(fir::FirOpBuilder &builder,
                                            mlir::Location loc,
                                            const fir::BoxValue &box);
 
 /// Get extents from \p box. For fir::BoxValue and
 /// fir::MutableBoxValue, this will generate code to read the extents.
-llvm::SmallVector<mlir::Value> getExtents(FirOpBuilder &builder,
+llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder &builder,
                                           mlir::Location loc,
                                           const fir::ExtendedValue &box);
 
@@ -377,7 +380,7 @@ llvm::SmallVector<mlir::Value> getExtents(FirOpBuilder &builder,
 /// known to be contiguous given the context (or if the resulting address will
 /// not be used). If the value is polymorphic, its dynamic type will be lost.
 /// This must not be used on unlimited polymorphic and assumed rank entities.
-fir::ExtendedValue readBoxValue(FirOpBuilder &builder, mlir::Location loc,
+fir::ExtendedValue readBoxValue(fir::FirOpBuilder &builder, mlir::Location loc,
                                 const fir::BoxValue &box);
 
 //===--------------------------------------------------------------------===//
@@ -386,7 +389,7 @@ fir::ExtendedValue readBoxValue(FirOpBuilder &builder, mlir::Location loc,
 
 /// Create a !fir.char<1> string literal global and returns a
 /// fir::CharBoxValue with its address en length.
-fir::ExtendedValue createStringLiteral(FirOpBuilder &, mlir::Location,
+fir::ExtendedValue createStringLiteral(fir::FirOpBuilder &, mlir::Location,
                                        llvm::StringRef string);
 
 /// Unique a compiler generated identifier. A short prefix should be provided
@@ -395,7 +398,7 @@ std::string uniqueCGIdent(llvm::StringRef prefix, llvm::StringRef name);
 
 /// Lowers the extents from the sequence type to Values.
 /// Any unknown extents are lowered to undefined values.
-llvm::SmallVector<mlir::Value> createExtents(FirOpBuilder &builder,
+llvm::SmallVector<mlir::Value> createExtents(fir::FirOpBuilder &builder,
                                              mlir::Location loc,
                                              fir::SequenceType seqTy);
 
@@ -404,9 +407,9 @@ llvm::SmallVector<mlir::Value> createExtents(FirOpBuilder &builder,
 //===--------------------------------------------------------------------===//
 
 /// Generate a string literal containing the file name and return its address
-mlir::Value locationToFilename(FirOpBuilder &, mlir::Location);
+mlir::Value locationToFilename(fir::FirOpBuilder &, mlir::Location);
 /// Generate a constant of the given type with the location line number
-mlir::Value locationToLineNo(FirOpBuilder &, mlir::Location, mlir::Type);
+mlir::Value locationToLineNo(fir::FirOpBuilder &, mlir::Location, mlir::Type);
 
 //===--------------------------------------------------------------------===//
 // ExtendedValue helpers
@@ -415,11 +418,11 @@ mlir::Value locationToLineNo(FirOpBuilder &, mlir::Location, mlir::Type);
 /// Return the extended value for a component of a derived type instance given
 /// the extended value \p obj of the derived type instance and the address of
 /// the component.
-fir::ExtendedValue
-componentToExtendedValue(Fortran::lower::FirOpBuilder &builder,
-                         mlir::Location loc, const fir::ExtendedValue &obj,
-                         mlir::Value component);
+fir::ExtendedValue componentToExtendedValue(fir::FirOpBuilder &builder,
+                                            mlir::Location loc,
+                                            const fir::ExtendedValue &obj,
+                                            mlir::Value component);
 
-} // namespace Fortran::lower
+} // namespace fir::factory
 
-#endif // FORTRAN_LOWER_FIRBUILDER_H
+#endif // FORTRAN_OPTIMIZER_BUILDER_FIRBUILDER_H

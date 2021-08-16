@@ -1,4 +1,4 @@
-//===-- Lower/Support/BoxValue.h -- internal box values ---------*- C++ -*-===//
+//===------------- BoxValue.h -- internal box values ------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FORTRAN_LOWER_SUPPORT_BOXVALUE_H
-#define FORTRAN_LOWER_SUPPORT_BOXVALUE_H
+#ifndef FORTRAN_OPTIMIZER_BUILDER_BOXVALUE_H
+#define FORTRAN_OPTIMIZER_BUILDER_BOXVALUE_H
 
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "flang/Optimizer/Support/FatalError.h"
@@ -471,4 +471,4 @@ inline bool isUnboxedValue(const ExtendedValue &exv) {
 }
 } // namespace fir
 
-#endif // FORTRAN_LOWER_SUPPORT_BOXVALUE_H
+#endif // FORTRAN_OPTIMIZER_BUILDER_BOXVALUE_H

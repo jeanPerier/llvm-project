@@ -5,16 +5,12 @@ add_flang_library(FortranLower
   Allocatable.cpp
   Bridge.cpp
   CallInterface.cpp
-  CharacterExpr.cpp
   CharacterRuntime.cpp
   Coarray.cpp
-  ComplexExpr.cpp
   ConvertExpr.cpp
   ConvertType.cpp
   ConvertVariable.cpp
   DerivedRuntime.cpp
-  DoLoopHelper.cpp
-  FIRBuilder.cpp
   HostAssociations.cpp
   IntrinsicCall.cpp
   IO.cpp
@@ -29,6 +25,7 @@ add_flang_library(FortranLower
   TransformationalRuntime.cpp
 
   DEPENDS
+  FIRBuilder
   FIRDialect
   FIRSupport
   FIRTransforms
@@ -37,6 +34,7 @@ add_flang_library(FortranLower
   acc_gen
 
   LINK_LIBS
+  FIRBuilder
   FIRDialect
   FIRSupport
   FIRTransforms

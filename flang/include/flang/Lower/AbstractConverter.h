@@ -15,13 +15,14 @@
 
 #include "flang/Common/Fortran.h"
 #include "flang/Lower/PFTDefs.h"
-#include "flang/Lower/Support/BoxValue.h"
+#include "flang/Optimizer/Builder/BoxValue.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "llvm/ADT/ArrayRef.h"
 
 namespace fir {
 class KindMapping;
-}
+class FirOpBuilder;
+} // namespace fir
 namespace Fortran {
 namespace common {
 template <typename>
@@ -50,7 +51,6 @@ struct Variable;
 
 using SomeExpr = Fortran::evaluate::Expr<Fortran::evaluate::SomeType>;
 using SymbolRef = Fortran::common::Reference<const Fortran::semantics::Symbol>;
-class FirOpBuilder;
 class StatementContext;
 
 //===----------------------------------------------------------------------===//
@@ -87,9 +87,10 @@ public:
   /// Get the code defined by a label
   virtual pft::Evaluation *lookupLabel(pft::Label label) = 0;
 
-  /// For a give symbol which is host-associated, create a clone using parameters from
-  /// the host-associated symbol.
-  virtual bool createHostAssociateVarClone(const Fortran::semantics::Symbol &sym) = 0;
+  /// For a give symbol which is host-associated, create a clone using
+  /// parameters from the host-associated symbol.
+  virtual bool
+  createHostAssociateVarClone(const Fortran::semantics::Symbol &sym) = 0;
 
   //===--------------------------------------------------------------------===//
   // Expressions
@@ -178,7 +179,7 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Get the OpBuilder
-  virtual FirOpBuilder &getFirOpBuilder() = 0;
+  virtual fir::FirOpBuilder &getFirOpBuilder() = 0;
   /// Get the ModuleOp
   virtual mlir::ModuleOp &getModuleOp() = 0;
   /// Get the MLIRContext

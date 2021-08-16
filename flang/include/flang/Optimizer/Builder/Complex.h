@@ -1,4 +1,4 @@
-//===-- Lower/ComplexExpr.h -- lowering of complex values -------*- C++ -*-===//
+//===-------- ComplexExpr.h -- lowering of complex values -------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -10,12 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef FORTRAN_LOWER_COMPLEXEXPR_H
-#define FORTRAN_LOWER_COMPLEXEXPR_H
+#ifndef FORTRAN_OPTIMIZER_BUILDER_COMPLEX_H
+#define FORTRAN_OPTIMIZER_BUILDER_COMPLEX_H
 
-#include "flang/Lower/FIRBuilder.h"
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 
-namespace Fortran::lower {
+namespace fir::factory {
 
 /// Helper to facilitate lowering of COMPLEX manipulations in FIR.
 class ComplexExprHelper {
@@ -79,6 +79,6 @@ private:
   mlir::Location loc;
 };
 
-} // namespace Fortran::lower
+} // namespace fir::factory
 
-#endif // FORTRAN_LOWER_COMPLEXEXPR_H
+#endif // FORTRAN_OPTIMIZER_BUILDER_COMPLEX_H
