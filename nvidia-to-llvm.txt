@@ -43,11 +43,15 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+9d328bea8afdea71250002437623d645b38285d4 fix WRITE after BACKSPACE
+97d5b2b8f681724aef1f3cc6087e9bb92518afc5 extension: reduce scope on implied DO indices
+
+Done (oldest last, omitting no-ops):
+fbeedd6ce8f0154e5b196d21bec488fc15d28fff fix regression from 6578893a0453384346f149479f8574dfff977ace
+3b0d029d6233375291329a2b24e1ed2d68ba942e call BeginReadingRecord for Mats P.
 34b9684c0d5bad7af7019f32e59f52d6d08de484 fix list-directed plural null input at EOR
 70fe2f3eccc75d18a0fa2c1645e737ec632b64e3 fix typos in two runtime API names
 516557d3f33d8f1d228b7df443502d31b1734534 fix crash in runtime-type-info
-
-Done (oldest last, omitting no-ops):
 931b37621fd3572bcbcee1bc9f007d975a666d0e Assign()
 3dde9a7b515862757d7de37f33e6627056df10b9 fix Fw.d output looping
 02722d7b3340e7117286d14567fe06fed9d29633 dfloat
