@@ -43,6 +43,12 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 236a90802d5a7f6823685990fe76fd9beec9b4a5
 
 Log of cherry-picked commits in reverse order (latest first):
+58e1a5e4c29325dc985ad4976d65fab53f05e946 Jean: fix FIR after MLIR change
+4fae60c4b0ed02dbb6e4c73e49197dd8dd8d4ccf Diana: runtime API: GET_COMMAND_ARGUMENT
+cc4d28691bbc382aabf2a59c017b55a6c37f1b18 Diana: runtime API: COMMAND_ARGUMENT_COUNT
+31fb52f8749ee43385cd7a9c8064c3adf58b2596 Jean: apply DOUBLE PRECISION kind code in specific proc iface
+9016b2a1cae244eb8f26826427eeb90eded0da20 Jean: Fix result length in elementwise folding
+b3e392c081ea8d04798d58631b6f61e2901c204f Jean: runtime: POSIX impl. of DATE_AND_TIME
 787c443a8da7add81d8ff7d430afcac16a1e4b0c Andrezj: output file generation
 0d1a0f7e8de5a506c0bd409fc27e77fb733f7886 Ivan Z.: test_symbols.py less screwed up
 dcc6b7b1d5e5a0f9537ce1bf919ac2338bd7ad7b Andrezj: refine printHelp

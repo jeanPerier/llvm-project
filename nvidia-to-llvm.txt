@@ -43,10 +43,10 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-9d328bea8afdea71250002437623d645b38285d4 fix WRITE after BACKSPACE
-97d5b2b8f681724aef1f3cc6087e9bb92518afc5 extension: reduce scope on implied DO indices
 
 Done (oldest last, omitting no-ops):
+9d328bea8afdea71250002437623d645b38285d4 fix WRITE after BACKSPACE
+97d5b2b8f681724aef1f3cc6087e9bb92518afc5 extension: reduce scope on implied DO indices
 fbeedd6ce8f0154e5b196d21bec488fc15d28fff fix regression from 6578893a0453384346f149479f8574dfff977ace
 3b0d029d6233375291329a2b24e1ed2d68ba942e call BeginReadingRecord for Mats P.
 34b9684c0d5bad7af7019f32e59f52d6d08de484 fix list-directed plural null input at EOR
