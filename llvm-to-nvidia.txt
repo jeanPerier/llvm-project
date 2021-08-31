@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 236a90802d5a7f6823685990fe76fd9beec9b4a5
+with llvm-project commit c5e7981aec37dd0bc5c893158c1a703b1b1de6d1
 
 Log of cherry-picked commits in reverse order (latest first):
+c41b16c26bdb52fa8beb447e7c8eec8c8924874a Mehdi: change ASM Op printer
+faf1c22408cfea27749632d880e0a9c0d6b7a568 Lattner: getSymbolRefAttr
+0bbb2d003622d3743a33623dcfc382e3ceadce3b me: merge tweaks for CSHIFT
 58e1a5e4c29325dc985ad4976d65fab53f05e946 Jean: fix FIR after MLIR change
 4fae60c4b0ed02dbb6e4c73e49197dd8dd8d4ccf Diana: runtime API: GET_COMMAND_ARGUMENT
 cc4d28691bbc382aabf2a59c017b55a6c37f1b18 Diana: runtime API: COMMAND_ARGUMENT_COUNT
