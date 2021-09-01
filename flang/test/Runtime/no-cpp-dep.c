@@ -5,7 +5,7 @@ a C compiler.
 
 REQUIRES: c-compiler
 
-RUN: %cc -std=c90 %s -I%runtimeincludes %libruntime %libdecimal -o /dev/null
+RUN: %cc -std=c90 %s -I%include %libruntime %libdecimal -o /dev/null
 */
 
 #include "flang/Runtime/entry-names.h"
