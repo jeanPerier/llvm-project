@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit c5e7981aec37dd0bc5c893158c1a703b1b1de6d1
+with llvm-project commit 655bea4226b401a11164f99c6344e38d8742b8e4
 
 Log of cherry-picked commits in reverse order (latest first):
+830c0b9023cd0cf91955900e0d96283e7a8c3711 me: merge-time tweaks to runtime header rearrangement
+29c3ef5a0e5f129ee7e0b5416a93484f4ecebf35 Val: change NaN string
+0c375296cc771af7279427e942a207e3cfe7695f Diana: runtime COMMAND_ARGUMENT_COUNT
+651f58bf63e6cb6926faf0f33200c57fdd591a85 Diana: correct some runtime/*.cpp first comment lines
+49af2a62758a9a526ce446111acaa2cbd5fd2a6e Jean: MLIR thing
+084d8bebd0fcad80b0b2890e427e804ca42431d8 Jean: extend COMMON size when needed for EQUIVALENCE
+e962718dd5fc5e77d189729e3e1af34440450bdc Ivan Z.: fix unportable message order
+5a3a12661829d81cd64fd1532f198a7b70b6fb3f Ivan Z.: test_symbols.py module file fix
+c5729f2e638a792759a53c28fbe39a22ede86943 Jean: set default form at end of OPEN
 c41b16c26bdb52fa8beb447e7c8eec8c8924874a Mehdi: change ASM Op printer
 faf1c22408cfea27749632d880e0a9c0d6b7a568 Lattner: getSymbolRefAttr
 0bbb2d003622d3743a33623dcfc382e3ceadce3b me: merge tweaks for CSHIFT

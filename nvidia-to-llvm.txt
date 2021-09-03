@@ -43,9 +43,14 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-561b820a563c45dca1bf4fec37a50aca6cdebd36 fold UNPACK and TRANSPOSE
+fb463cf274a862509e65d40deb778e7b03198e6a SQRT, HYPOT, CABS
 
 Done (oldest last, omitting no-ops):
+395df9034cd60510840f30d8f0041b7ead5f388a move runtime headers to flang/include/flang/Runtime
+b733d92fa1570985f32e19e82cd2e4775acdc175 fix scopes of new symbols for undeclared variables
+83342e371e967c013c260873d4b0507ef75910c4 NFC: change some pointer args to references in prescanner
+6c48f4f16ed2fc963f6a64581d0e8655b28e45b5 default component initialization
+561b820a563c45dca1bf4fec37a50aca6cdebd36 fold UNPACK and TRANSPOSE
 3b72b19a72a353cf00946f8d21b0ce2944de384f downgrade bad error to warning
 e8ffdad973df2e2cf11846222a0f4572baf10383 fold PACK
 4f15daa6b117de8ff192429e4adb47586bf6d71b fold EOSHIFT
