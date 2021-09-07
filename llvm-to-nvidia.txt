@@ -43,6 +43,11 @@ The out-of-tree build & test of these changes was conducted
 with llvm-project commit 655bea4226b401a11164f99c6344e38d8742b8e4
 
 Log of cherry-picked commits in reverse order (latest first):
+8883db90d1abbf9b7855ebaf829b75d7fee99da6 Andrezj: driver plug-in churn
+dc453dcf760e6d558da3a4d7fff301baa5f37aba Ivan Z.: test_modfile.sh -> .py
+93c3e765ac99f6ce40cbe4340ab9967fb7593a0a Ivan Z.: test_folding.sh -> .py
+6c1ac141d3c98af9738bc77fcb55602cbff7751f Ivan Z.: test_errors.sh -> .py
+84e1258febe1f179e5d4e1914be7b727d2296336 Kruse: use cmake to determine enddianness
 830c0b9023cd0cf91955900e0d96283e7a8c3711 me: merge-time tweaks to runtime header rearrangement
 29c3ef5a0e5f129ee7e0b5416a93484f4ecebf35 Val: change NaN string
 0c375296cc771af7279427e942a207e3cfe7695f Diana: runtime COMMAND_ARGUMENT_COUNT

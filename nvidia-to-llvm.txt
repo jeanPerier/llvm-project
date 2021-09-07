@@ -43,9 +43,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-fb463cf274a862509e65d40deb778e7b03198e6a SQRT, HYPOT, CABS
+c6db307835229bb50693834f21c9c65bac8194e8 semantic checks for ELEMENTAL subprograms
 
 Done (oldest last, omitting no-ops):
+fb463cf274a862509e65d40deb778e7b03198e6a fold SQRT, HYPOT, CABS
+5ac61b58ce2970dad69209e21f3d6ef81655a7fc fix GetHostProcedure() for main program
 395df9034cd60510840f30d8f0041b7ead5f388a move runtime headers to flang/include/flang/Runtime
 b733d92fa1570985f32e19e82cd2e4775acdc175 fix scopes of new symbols for undeclared variables
 83342e371e967c013c260873d4b0507ef75910c4 NFC: change some pointer args to references in prescanner
