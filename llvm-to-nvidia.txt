@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 655bea4226b401a11164f99c6344e38d8742b8e4
+with llvm-project commit afb6223bc53034973379863d08cbee322149569e
 
 Log of cherry-picked commits in reverse order (latest first):
+a2c319fdc6b35ae6d8578459f07c89042775e5ec Alfonso G.: rename LLVM_CMAKE_PATH -> LLVM_CMAKE_DIR
+7acf92943b78611e1194687de37eebf83ba97430 Stuart E.: document driver plug-ins
+268521218434bcd3b859e88a0c50369de9d96cf7 Peixing: OMP semantics threadprivate
+b9a8f34d476e03a22fb7e75aef265febc7fd21fd Arnamoy B.: OMP parse nontemporal clause
+648feabc65d8ec20e5d39ac88e019d310955a6e6 Nico W.: driver thing
+05b4e49a17f5e997c0ccf4086dc0d2b8cec7e263 Jean: signal EOR in non-advancing I/O
+d892d7323e451777ccf206a1e5b1c81ae34b8bfb Jean: fix common block extension mistake
 8883db90d1abbf9b7855ebaf829b75d7fee99da6 Andrezj: driver plug-in churn
 dc453dcf760e6d558da3a4d7fff301baa5f37aba Ivan Z.: test_modfile.sh -> .py
 93c3e765ac99f6ce40cbe4340ab9967fb7593a0a Ivan Z.: test_folding.sh -> .py
