@@ -226,8 +226,8 @@ public:
         parser::SelectRankStmt, parser::SelectTypeStmt>;
     using LabeledConstructEndStmts = std::tuple<parser::EndAssociateStmt,
         parser::EndBlockStmt, parser::EndChangeTeamStmt,
-        parser::EndCriticalStmt, parser::EndDoStmt, parser::EndIfStmt,
-        parser::EndSelectStmt, parser::EndForallStmt, parser::EndWhereStmt>;
+        parser::EndCriticalStmt, parser::EndDoStmt, parser::EndForallStmt,
+        parser::EndIfStmt, parser::EndSelectStmt, parser::EndWhereStmt>;
     using LabeledProgramUnitEndStmts =
         std::tuple<parser::EndFunctionStmt, parser::EndMpSubprogramStmt,
             parser::EndProgramStmt, parser::EndSubroutineStmt>;
