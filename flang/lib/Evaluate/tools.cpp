@@ -697,6 +697,13 @@ bool IsAssumedRank(const ActualArgument &arg) {
   }
 }
 
+bool IsCoarray(const ActualArgument &arg) {
+  if (const auto *expr{arg.UnwrapExpr()}) {
+    return IsCoarray(*expr);
+  }
+  return false;
+}
+
 bool IsProcedure(const Expr<SomeType> &expr) {
   return std::holds_alternative<ProcedureDesignator>(expr.u);
 }
