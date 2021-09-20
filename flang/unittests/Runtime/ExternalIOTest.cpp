@@ -447,8 +447,8 @@ TEST(ExternalIOTests, TestSequentialVariableFormatted) {
     }
 
     std::size_t chars{IONAME(GetSize)(io)};
-    ASSERT_EQ(chars, j * 4)
-        << "GetSize()=" << chars << ", expected " << (j * 4) << '\n';
+    ASSERT_EQ(chars, j * 4u)
+        << "GetSize()=" << chars << ", expected " << (j * 4u) << '\n';
     ASSERT_EQ(IONAME(EndIoStatement)(io), IostatOk)
         << "EndIoStatement() for InputInteger";
     for (int k{0}; k < j; ++k) {
