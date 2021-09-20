@@ -41,24 +41,26 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+
+In review:
 b635703cff96820349f4b3213d106050acf1b02c catch branching into FORALL/WHERE
-1ac54f1eeb8e4e65fd0afc1d129e4f5b89e3c987 enforce specification function rules on callee
-75290931aa63429f6154fc64c19b10aede54b9a4 enforce fixed-form END rules
 e3083f11e22552dcdec224a8d3c4076913180ec8 defined ass't in WHERE must be elemental
 ccd6326771c405cf52ddf8e8cb1a4af7998433c6 base of DATA object can't be pointer
 
-In review:
+Done (oldest last, omitting no-ops):
+85fdb97525ad3e10d1af99741df0563a20e3b8f7 put intrinsics table back into order
+9d2ad1b9e3533f0e52d9cb2c7426de32d7619df3 NULL actual argument checking
+1ac54f1eeb8e4e65fd0afc1d129e4f5b89e3c987 enforce specification function rules on callee
+75290931aa63429f6154fc64c19b10aede54b9a4 enforce fixed-form END rules
+000a397557068d1c8eb966ca1515f73ad4f66d92 bug 125
 935a3f8b79f229114b5ff77f77a910863810b0f2 upgrade PURE warning to error
 86df6cdec792302bcd4a3430657388b78c08f832 overflow in real->int folding
-000a397557068d1c8eb966ca1515f73ad4f66d92 bug 125
-9ff693cf02e3998e30c117b5f04bd63cd97e67bf SIZE(assumed-rank)
 644ddbba74e06b77d7164962ba78fd79d1bb3195 bugs 122 & 123
-cea59383d7da48d57b54b8906be33135f0a7460a bug 121
+9ff693cf02e3998e30c117b5f04bd63cd97e67bf SIZE(assumed-rank)
 ae0c755132ac76035779df74b302a1fd872fb815 bug 119
+cea59383d7da48d57b54b8906be33135f0a7460a bug 121
 50f900dc224ef77b8df730c2af084a8c5b811046 bug 118
 0eab6262a477bb92969f101150ee1ea3c4b880cd bug 120
-
-Done (oldest last, omitting no-ops):
 c6db307835229bb50693834f21c9c65bac8194e8 semantic checks for ELEMENTAL subprograms
 fb463cf274a862509e65d40deb778e7b03198e6a fold SQRT, HYPOT, CABS
 5ac61b58ce2970dad69209e21f3d6ef81655a7fc fix GetHostProcedure() for main program

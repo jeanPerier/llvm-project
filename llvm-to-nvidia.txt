@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit afb6223bc53034973379863d08cbee322149569e
+with llvm-project commit 9197834535364efff505580ef940ad41cd293275
 
 Log of cherry-picked commits in reverse order (latest first):
+000875c127c7f2ae10a954bd592c1658e5912cf1 Alokmishra.Besu: OMP 5.0 metadirective
+31cca215654ac5eca01796248696b8d710a5cffc Nico W.: revert...
+347f3c186d3fd86628904450d2f4ee0ffd428150 Alokmishra.Besu: OMP 5.0 metadirective
+5a6c38fbefba981d8e37d78b3d0d7a07d56d1160 me: fix build (unused variable)
+6fb01a94708ffcd0aed63d0697d4ca08ed937dff Peixin: OMP semantics for ordered
+ed921282e551f2252ccfcbddd7a85ad8a006ed3f C. Rasmussen: this_image() intrinsic function
 a2c319fdc6b35ae6d8578459f07c89042775e5ec Alfonso G.: rename LLVM_CMAKE_PATH -> LLVM_CMAKE_DIR
 7acf92943b78611e1194687de37eebf83ba97430 Stuart E.: document driver plug-ins
 268521218434bcd3b859e88a0c50369de9d96cf7 Peixing: OMP semantics threadprivate
