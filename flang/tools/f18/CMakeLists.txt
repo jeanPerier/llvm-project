@@ -38,17 +38,18 @@ target_include_directories(f18
 # Create module files directly from the top-level module source directory
 foreach(filename ${MODULES})
   set(base ${FLANG_INTRINSIC_MODULES_DIR}/${filename})
-  if(${filename} MATCHES "__fortran_type_info")
+  if(${filename} MATCHES "__fortran_builtins")
     set(depends "")
-  elseif(${filename} MATCHES "__fortran_builtins")
-    set(depends ${FLANG_INTRINSIC_MODULES_DIR}/__fortran_type_info.mod)
   else()
     set(depends ${FLANG_INTRINSIC_MODULES_DIR}/__fortran_builtins.mod)
+    if(NOT ${filename} MATCHES "__fortran_type_info")
+      set(depends ${FLANG_INTRINSIC_MODULES_DIR}/__fortran_type_info.mod)
+    endif()
   endif()
   add_custom_command(OUTPUT ${base}.mod
     COMMAND ${CMAKE_COMMAND} -E make_directory ${FLANG_INTRINSIC_MODULES_DIR}
     COMMAND f18 -fsyntax-only -module-dir ${FLANG_INTRINSIC_MODULES_DIR}
-      ${FLANG_SOURCE_DIR}/module/${filename}.f90
+      -J ${FLANG_INTRINSIC_MODULES_DIR} ${FLANG_SOURCE_DIR}/module/${filename}.f90
     DEPENDS f18 ${FLANG_SOURCE_DIR}/module/${filename}.f90 ${depends}
   )
   add_custom_command(OUTPUT ${base}.f18.mod
