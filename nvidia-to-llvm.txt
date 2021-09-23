@@ -43,11 +43,14 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+bfbd21062dd030eabf8ddb7040ca386e041cbd4e builtin types for intrinsics
 b635703cff96820349f4b3213d106050acf1b02c catch branching into FORALL/WHERE
 e3083f11e22552dcdec224a8d3c4076913180ec8 defined ass't in WHERE must be elemental
-ccd6326771c405cf52ddf8e8cb1a4af7998433c6 base of DATA object can't be pointer
 
 Done (oldest last, omitting no-ops):
+fde3455e4c180ed984decfaf119fdcd69330b862 represent (derived type)
+8442516950473500a76c44093402eadea0cf2598 READ(SIZE=), INQUIRE(IOLENGTH=)
+ccd6326771c405cf52ddf8e8cb1a4af7998433c6 base of DATA object can't be pointer
 85fdb97525ad3e10d1af99741df0563a20e3b8f7 put intrinsics table back into order
 9d2ad1b9e3533f0e52d9cb2c7426de32d7619df3 NULL actual argument checking
 1ac54f1eeb8e4e65fd0afc1d129e4f5b89e3c987 enforce specification function rules on callee

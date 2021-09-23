@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 9197834535364efff505580ef940ad41cd293275
+with llvm-project commit f6ecea1a35758bbb504bc8d6f5dccf353ea1355b
 
 Log of cherry-picked commits in reverse order (latest first):
+4393e3776b41471afbd37cb13fe5b777243fedd1 me: merge tweak for SIZE=/IOLENGTH= runtime patch
+2155aa79d7019b620906d94ae6be72179bfd4880 Valentin: remove fir.cmpf
+bbc74a11bc15f4ce962ac7f915309145dcfc2582 Valentin: rename function
+ce59ccd04023cab3a837da14079ca2dcbfebb70c Valentin: inline trivial isa_* functions
+abbb0f901ad85aaa06780deefbda9c0ee0c2c7a2 Diana: change runtime complex type define
+7e7484a816a53d557c3b2444d8e3daa60eabcc7b Andrezj: document plugins
 000875c127c7f2ae10a954bd592c1658e5912cf1 Alokmishra.Besu: OMP 5.0 metadirective
 31cca215654ac5eca01796248696b8d710a5cffc Nico W.: revert...
 347f3c186d3fd86628904450d2f4ee0ffd428150 Alokmishra.Besu: OMP 5.0 metadirective
