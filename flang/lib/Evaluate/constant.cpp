@@ -27,6 +27,12 @@ void ConstantBounds::set_lbounds(ConstantSubscripts &&lb) {
   lbounds_ = std::move(lb);
 }
 
+void ConstantBounds::SetLowerBoundsToOne() {
+  for (auto &n : lbounds_) {
+    n = 1;
+  }
+}
+
 Constant<SubscriptInteger> ConstantBounds::SHAPE() const {
   return AsConstantShape(shape_);
 }

@@ -30,7 +30,7 @@ bool CheckReductionDIM(std::optional<int> &dim, FoldingContext &context,
   return true;
 }
 
-const Constant<LogicalResult> *GetReductionMASK(
+Constant<LogicalResult> *GetReductionMASK(
     std::optional<ActualArgument> &maskArg, const ConstantSubscripts &shape,
     FoldingContext &context) {
   Constant<LogicalResult> *mask{

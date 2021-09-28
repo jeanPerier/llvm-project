@@ -216,7 +216,7 @@ public:
       return std::nullopt;
     }
     std::optional<int> dim;
-    const Constant<LogicalResult> *mask{
+    Constant<LogicalResult> *mask{
         GetReductionMASK(arg_[3], array->shape(), context_)};
     if ((!mask && arg_[3]) ||
         !CheckReductionDIM(dim, context_, arg_, 2, array->Rank())) {
@@ -231,8 +231,11 @@ public:
         return std::nullopt;
       }
     }
+    // Use lower bounds of 1 exclusively.
+    array->SetLowerBoundsToOne();
     ConstantSubscripts at{array->lbounds()}, maskAt, resultIndices, resultShape;
     if (mask) {
+      mask->SetLowerBoundsToOne();
       maskAt = mask->lbounds();
     }
     if (dim) { // DIM=
@@ -248,7 +251,7 @@ public:
       ConstantSubscript dimLength{array->shape()[zbDim]};
       ConstantSubscript n{GetSize(resultShape)};
       for (ConstantSubscript j{0}; j < n; ++j) {
-        ConstantSubscript hit{0};
+        ConstantSubscript hit{array->lbounds()[zbDim] - 1};
         for (ConstantSubscript k{0}; k < dimLength;
              ++k, ++at[zbDim], mask && ++maskAt[zbDim]) {
           if ((!mask || mask->At(maskAt).IsTrue()) &&

@@ -21,7 +21,7 @@ bool CheckReductionDIM(std::optional<int> &dim, FoldingContext &,
 
 // Fold and validate a MASK= argument.  Return null on error, absent MASK=, or
 // non-constant MASK=.
-const Constant<LogicalResult> *GetReductionMASK(
+Constant<LogicalResult> *GetReductionMASK(
     std::optional<ActualArgument> &maskArg, const ConstantSubscripts &shape,
     FoldingContext &);
 
