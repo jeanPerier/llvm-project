@@ -40,9 +40,41 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit f6ecea1a35758bbb504bc8d6f5dccf353ea1355b
+with llvm-project commit 82568675087eebbe4f1c5c56f40969c43a738b83
 
 Log of cherry-picked commits in reverse order (latest first):
+82568675087eebbe4f1c5c56f40969c43a738b83 me: tweaks to FINDLOC
+7362cc5ef50b5ebcbb11380ab13a179902c7b8be Eric: rename lenParams
+4cab4f6b1c089fe51d50b4b4d931976db64fecce Kiran C.: update fir.alloca op
+0781461959e2159f15fece225fe2a2efb48fe3b3 Valentin: remove unused stuff from *.td
+a6fc555202ac1bd77d9c6c9325d797ae7d83b30d Valentin: move parser/printer for fir.global_len
+afb30fcdf672d0d8dcdfe04d9d235b950112b622 Valentin: move fir.shape verifier to *.cpp
+ccc0f62d1bc96e56d816f9cd7a987666fbd36b5b Valentin: update & move fir.freemem & fir.store
+220f314f94abfd201930ed9d491ce55695df2908 Valentin: update fir.field_index
+633f70f76ec66956282087dbaf0ab4086a9ffd4f Valentin: move stuff to *.cpp file
+8014b28dcfa17532bdff31358c1c5aa00e76452e Eric: update fir.alloca
+1f69dc08454725d95e9dbf6e299afc91e44506f5 Valentin: update fir.allocmem
+c8f03a7fe80212b35b150910f5b73bfa5d272053 Eric: update fir.extract_value
+34d6c1822eebe2c69c850e14d48e986a5b68cbd6 Eric: update fir.array_update & al.
+3ccb473df3f9480232cc08b47e47508d7afb48e3 Andrezj: remove new driver sync-up calls
+fb093c83147e591991ffece79752ed80d3ff960a Lattner: Don't pass MLIRContext with DialectASMParser
+a28896ae6ae86ca20027f45a5bd403ca2116da22 Eric: move fir.string_lit stuff
+576301d922a76db34bc344f04174ba38c09bb5ca Eric: update fir.call op
+6e2afdb7f508a08018def9f3b33179527159be92 Eric: update fir.iterate_while op
+5c52753d9ff27c2d88f001f7fc37a8212f43a926 Andrezj: Fix failing plug-in tests
+60527cee95da028dc06771e1ed1e17f6c78d3f1a Eric: rename ArrayCoorOp operand
+38c42d42eb3f88800c5d8e0657851551f89b2e90 Stuart E.: OMP report plug-ins
+b38c04ab7f8f847eac2b4b6f965137a85c967d21 Valentin: rename EmboxOp operand
+37089bae29a92b97e16be4795553b68a6b04ff91 Diana: reland
+6359a4cdbfb83c67a2a776baba4e3f4fb8334853 Diana: revert: GET_COMMAND_ARGUMENT(VALUE)
+5b5ef2e26558ee9d5da4ba4af69737732da49858 Eric: Add fir.save_result op
+bd2623b9c22d02a87ebed7b770e0312799ea0a04 Val D.: update fir.insert_on_range op
+0446f1299f6be9fd35bc5f458c78b34dca3105f6 Diana: implement GET_COMMAND_ARGUMENT(ERRMSG)
+df6302311f88d0fbc666b6277d029aa371039945 Diana: implement GET_COMMAND_ARGUMENT(VALUE)
+af63d1791b102ed8bdd8b836ce8ab773c019d1a1 Diana: implement GET_COMMAND_ARGUMENT(LENGTH)
+9eab0da18320019f85c8c4c58f49a25b05ad40f7 me: tweaks from merging resolve-labels fix
+2c28e3f008b6b93a58635999ff20572de01e8392 Valentin: add desc
+62cc6b0da2912d770c125fc9ea0949f3a7b75fb9 Valentin: namelist group names
 4393e3776b41471afbd37cb13fe5b777243fedd1 me: merge tweak for SIZE=/IOLENGTH= runtime patch
 2155aa79d7019b620906d94ae6be72179bfd4880 Valentin: remove fir.cmpf
 bbc74a11bc15f4ce962ac7f915309145dcfc2582 Valentin: rename function
