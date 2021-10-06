@@ -70,6 +70,12 @@ TEST(TimeIntrinsics, SystemClock) {
   EXPECT_GE(start8, 0);
   EXPECT_LT(start8, max8);
 
+  count_t max16{RTNAME(SystemClockCountMax)(16)};
+  EXPECT_GT(max16, 0);
+  count_t start16{RTNAME(SystemClockCount)(16)};
+  EXPECT_GE(start16, 0);
+  EXPECT_LT(start16, max16);
+
   // Loop until we get a different value from SystemClockCount. If we don't get
   // one before we time out, then we should probably look into an implementation
   // for SystemClokcCount with a better timer resolution on this platform.

@@ -84,8 +84,11 @@ double GetCpuTime(preferred_implementation,
 using count_t = std::int64_t;
 using unsigned_count_t = std::uint64_t;
 
-// Compute the value of HUGE(n) for INTEGER(kind)::n as an unsigned integer.
+// Computes HUGE(INT(0,kind)) as an unsigned integer value.
 static constexpr inline unsigned_count_t GetHUGE(int kind) {
+  if (kind > 8) {
+    kind = 8;
+  }
   return (unsigned_count_t{1} << ((8 * kind) - 1)) - 1;
 }
 
@@ -106,9 +109,9 @@ count_t GetSystemClockCount(int kind, fallback_implementation) {
     timestamp -= maxUnsignedCount * std::floor(timestamp / maxUnsignedCount);
   }
   unsigned_count_t unsignedCount{static_cast<unsigned_count_t>(timestamp)};
-  // Return the modulus of the unsigned integral count with HUGE(COUNT).
+  // Return the modulus of the unsigned integral count with HUGE(COUNT)+1.
   // The result is a signed integer but never negative.
-  return static_cast<count_t>(unsignedCount % GetHUGE(kind));
+  return static_cast<count_t>(unsignedCount % (GetHUGE(kind) + 1));
 }
 
 template <typename Unused = void>
@@ -132,6 +135,11 @@ constexpr unsigned_count_t NSECS_PER_SEC{1'000'000'000u};
 constexpr unsigned_count_t maxSecs{
     std::numeric_limits<unsigned_count_t>::max() / NSECS_PER_SEC};
 
+// Use a millisecond clock rate for smaller COUNT= kinds.
+static inline unsigned_count_t ScaleResult(unsigned_count_t nsecs, int kind) {
+  return kind >= 8 ? nsecs : nsecs / (NSECS_PER_SEC / MILLIS_PER_SEC);
+}
+
 template <typename T = int, typename U = struct timespec>
 count_t GetSystemClockCount(int kind, preferred_implementation,
     // We need some dummy parameters to pass to decltype(clock_gettime).
@@ -147,13 +155,10 @@ count_t GetSystemClockCount(int kind, preferred_implementation,
       static_cast<unsigned_count_t>(tspec.tv_sec) % maxSecs};
   unsigned_count_t unsignedNsecs{static_cast<unsigned_count_t>(tspec.tv_nsec) +
       wrappedSecs * NSECS_PER_SEC};
-  // Use a millisecond clock rate for smaller COUNT= kinds.
-  unsigned_count_t unsignedCount{kind >= 8
-          ? unsignedNsecs
-          : unsignedNsecs / (NSECS_PER_SEC / MILLIS_PER_SEC)};
-  // Return the modulus of the unsigned integral count with HUGE(COUNT).
+  unsigned_count_t unsignedCount{ScaleResult(unsignedNsecs, kind)};
+  // Return the modulus of the unsigned integral count with HUGE(COUNT)+1.
   // The result is a signed integer but never negative.
-  return static_cast<count_t>(unsignedCount % GetHUGE(kind));
+  return static_cast<count_t>(unsignedCount % (GetHUGE(kind) + 1));
 }
 
 template <typename T = int, typename U = struct timespec>
@@ -170,12 +175,9 @@ count_t GetSystemClockCountMax(int kind, preferred_implementation,
     T ClockId = 0, U *Timespec = nullptr,
     decltype(clock_gettime(ClockId, Timespec)) *Enabled = nullptr) {
   unsigned_count_t maxClockNsec{maxSecs * NSECS_PER_SEC + NSECS_PER_SEC - 1};
-  unsigned_count_t maxClock{kind >= 8
-          ? maxClockNsec
-          : maxClockNsec / (NSECS_PER_SEC / MILLIS_PER_SEC)};
+  unsigned_count_t maxClock{ScaleResult(maxClockNsec, kind)};
   unsigned_count_t maxCount{GetHUGE(kind)};
-  return maxClock <= maxCount ? static_cast<count_t>(maxClock)
-                              : static_cast<count_t>(maxCount);
+  return static_cast<count_t>(maxClock <= maxCount ? maxClock : maxCount);
 }
 
 // DATE_AND_TIME (Fortran 2018 16.9.59)
