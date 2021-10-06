@@ -43,9 +43,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-83b423b3882ddc193f8d33f1a849294bcda76a78 fix fm111 real input
 
 Done (oldest last, omitting no-ops):
+481e24f516c44a7b8c941b5d633275da2e188b34 fold MAXLOC & MINLOC
+83b423b3882ddc193f8d33f1a849294bcda76a78 fix fm111 real input
+e36048fdd94c3630bc2ca4f5c2bd5e306fde77f2 error recovery for ELSE IF w/o THEN
 81bdfd14ed5ba3a10ae5d473ae27041dfcdb4620 fold FINDLOC (with tweaks)
 d934331a6bc927c05430398b5cca34d99d5d4c65 fix SQRT folding
 e1d31025bc2ebfb1a4f05e9358fd5d439540a5be CALL EXIT & CALL ABORT

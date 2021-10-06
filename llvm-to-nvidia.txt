@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 82568675087eebbe4f1c5c56f40969c43a738b83
+with llvm-project commit b096ac909288bbf9f34f3e56934ce0842b59dd96
 
 Log of cherry-picked commits in reverse order (latest first):
+fc66dbba1fe0a3120abd98134a1a8aebfede8553 Valentin: add external name interop pass
+b5a11a991e17982bb9915d295797410186aa9894 Valentin: Split FIROptimizer into smaller libraries
+18e63289358f50143fe4bc59942f3959bdffa772 Craig R.: revert part of...
+9dd3965e96d1f31f0d9303d503bbd12129cfe92b Craig R.: add team_number() test
+dc4d94e620a9fea54b23293cc95c7f143f1e5bee Jean: add fir.array_modify op
+1e96c4b50831bea4698e2a4c7571ef12e02a8539 Valentin: fix clang-tidy warnings
+33c526416058cfd41a57a7ff73103127b319d6d1 me: fix magic-numbers.h first line
+063c5bc31b89d85aba9ea7c2aa0d2440ec468ed2 Nimish Mishra: OMP 5.0 semantic checks
+3da95b68cd1e0088d955c129f61a19a8551366c4 Valentin: move fir global printer to *.cpp
+2372249d8689928a8d4a59baed3671613743653a Eric: remove obsolete fir.negf, fir.modf
+067312d28393e93ca15340b93278d3ba61fabd62 Valentin: remove explict num of inlined element for SmallVectors
+15ea26de243ab56dd0cfe8cafee1366b59d2bb84 Eric: add fir.char_convert op
+3780de46001b510d78cd3f06f01a6f08793a4a45 David Spickett: flang: error if no uuidgen
+a149b103ca1ff964c4ed52c6dfac8984631aba11 Valentin: mov fir.select_type to *.cpp
+b04dd35f0e36e48aebf28798ad0bb42f1d3baff4 Valentin: update doc for fir.alloca
+b7c07ce15ffe6da9dcd69d457a3eca987452edc7 Jean: improve runtime interface with C99 complex
+fdcbb540fc5ffbf5faa03c2f10fa88ca2c38f845 Jean: add "dump" member functions to debug build
+962e503cc8bc411f7523cc393acae8aae425b1c4 Jean: accept SubprogramDetails in GetInterfaceSymbol
+cf1f5fbdfcf516c6ee2617a21b004b575c9c521b Jean: NFC fix runtime file headers
 82568675087eebbe4f1c5c56f40969c43a738b83 me: tweaks to FINDLOC
 7362cc5ef50b5ebcbb11380ab13a179902c7b8be Eric: rename lenParams
 4cab4f6b1c089fe51d50b4b4d931976db64fecce Kiran C.: update fir.alloca op
