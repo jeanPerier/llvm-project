@@ -40,9 +40,25 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b096ac909288bbf9f34f3e56934ce0842b59dd96
+with llvm-project commit 2815ed57e3c99ab6c42399c3d0cf57cc118eb5df
 
 Log of cherry-picked commits in reverse order (latest first):
+f7858e7582e4b0e0e544cc9c09e5a6d92d0957a5 me: fix build on FreeBSH (need size_t)
+fe2d053c4505b7ccc8a86e266e68d2f97aaca1e1 Nimish M.: OMP 5.0 semantics for CRITICAL construct
+f05c95f10fc1d8171071735af8ad3a9e87633120 me: merge tweaks to SYSTEM_CLOCK
+d4717b9b9def89c503a20eaf7700f87c4b52d530 Nimish M.: OMP 5.0 test case
+02602c02a3019a99f1949510a08692e57d2dd270 Diana: API for GET_ENVIRONMENT_VARIABLE
+5371968e4817cc0deda82aa462820b678ff5b05a Valentin: add two negative tests
+c3abfe4207d35c221f1667d5b0c79a6511be5ea3 Eric: add fir.convert canonicalization patterns
+31a2ccc0b54c9f1209d1d6cead792a32715a759c Eric: clean up InitFIR.h
+edec659f480f02642461cebd422ab35152cdfd23 Eric: update .clang-tidy
+6f8ef1d6e8796993b69d4b1cf8e56590273268e3 Andrezj: add actions that survive semantic errors
+b0eef1eef0500315bf74721dda3d7a8e3c6a6eac Valentin: add abstract result conversion pass
+6eb7634f301a0ef6465f514ae8cc4634602470a2 Jean: add character conversion pass
+0620b12209cf7ccc085db0a574b571d08efc1395 Pete: fix capitalization of ISHFT (my bug)
+b41e86642e16dffc90d037449a59cded72b2bd7f Andrezj: fix bad '&'
+80c27abb2f74aa439ba381148186407ebae1793e Rajan: add affine demotion pass
+d70938bbad0a659b9a142c493be7a71d1a6af0bb Jean: add affine promotion pass
 fc66dbba1fe0a3120abd98134a1a8aebfede8553 Valentin: add external name interop pass
 b5a11a991e17982bb9915d295797410186aa9894 Valentin: Split FIROptimizer into smaller libraries
 18e63289358f50143fe4bc59942f3959bdffa772 Craig R.: revert part of...

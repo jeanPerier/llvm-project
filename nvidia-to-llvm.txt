@@ -43,8 +43,15 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+37cf31bd8a89b9e7c7fbe26c74fdde5f76aa11bb document extension: scalars simply contiguous
+dd5cb845bf151381c2d580b796bc9fecfb53882a fix output B/O/Z editing of "negative" values
 
 Done (oldest last, omitting no-ops):
+c48e970aa1322fcb5d742ff31f142f416898a717 SYSTEM_CLOCK rework
+bd4adfcd25f6940d7cbf3dd6cf0a3f0f0c291760 document behavior in ambiguous cases
+5865ce64493421bdf6ae2c5b2b4d0a1e42b0b1e8 check IBCLR/IBSET/ISHFT/SHIFT[ALR] bit pos/count
+8800025d7816b387e9eded5bb50a4ac731c65b22 catch mismatched parens in prescanner
+48a9780e7e81b3220f21e5e8a19d726e4960ab86 ieee_scalb, ieee_next_after/down/up
 481e24f516c44a7b8c941b5d633275da2e188b34 fold MAXLOC & MINLOC
 83b423b3882ddc193f8d33f1a849294bcda76a78 fix fm111 real input
 e36048fdd94c3630bc2ca4f5c2bd5e306fde77f2 error recovery for ELSE IF w/o THEN
