@@ -40,9 +40,25 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 2815ed57e3c99ab6c42399c3d0cf57cc118eb5df
+with llvm-project commit 1062f989af23c52a472892ff54a55557fca35528
 
 Log of cherry-picked commits in reverse order (latest first):
+cb3aa49ec04d4c16863e363bd5d13396d06fffe5 Mogball: fix comments
+0b48b015b5740ac9e91b21ad4e61188e80b211cf Josh Mottley: std::vector -> llvm::SmallVector
+0fbd3aad75f957da5a76e761509efed1988d562b Valentin: remove unused variable
+bde89ac7f1dafb7b7900c52b0d441672ce19c749 Eric: DoLoopHelper
+fb4c451001d06c600394382e2c6ad6872f78f646 Mike Rice: OMP5 declare variant work
+b2169992aabea4bd896c6c57e7332d22868e2200 Valentin: add disclaimer
+fc2ba5e53d47a07f505ddee2441b3768e446624c Diana: implement GET_ENVIRONMENT_VARIABLE(length)
+665970d421c8e2d3c162ec8f39247c22577892fe Valentin: remove unused variable
+80bdf9c180adcfc5b26b2b68c82ab39551b013fa Valentin: revert .clang-tidy patch
+a54f4eae0e1d0ef5adccdcf9f6c2b518dc1101aa Mogball: mlir ops replacement
+c5a5517be45af21c6db5a40880a75f68cd76cc7e me: fix MSVC build (3/3)
+ecc7f8ab74cdc106f2966597527f20a76118e27f me: fix MSVC build (2/3)
+bc1a0c2c013799d69fff21a53696a2ad09026ab7 me: fix build with latest clang (struct vs class)
+02410df530fbef5256711ec2220c4c34468c894c me: fix MSVC build (1/3)
+49142dd4a5c852ac5a87f2b5bd0c4a1d1e785924 me: address MSVC build warnings (0/3)
+68d692375ce62dc841bb12671d8d35d87bd23a57 Jean: add cfg conversion pass
 f7858e7582e4b0e0e544cc9c09e5a6d92d0957a5 me: fix build on FreeBSH (need size_t)
 fe2d053c4505b7ccc8a86e266e68d2f97aaca1e1 Nimish M.: OMP 5.0 semantics for CRITICAL construct
 f05c95f10fc1d8171071735af8ad3a9e87633120 me: merge tweaks to SYSTEM_CLOCK

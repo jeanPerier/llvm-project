@@ -43,10 +43,12 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-37cf31bd8a89b9e7c7fbe26c74fdde5f76aa11bb document extension: scalars simply contiguous
-dd5cb845bf151381c2d580b796bc9fecfb53882a fix output B/O/Z editing of "negative" values
+e6a911d12cfd5f7c77d03dae0dbc8fef1b952423 fold LGE & al.
 
 Done (oldest last, omitting no-ops):
+4dcb5e38bbbd5bc0db847ad4b3b2a2ad360e70d4 expunge bogus semantic check for ELEMENTAL w/o dummies
+dd5cb845bf151381c2d580b796bc9fecfb53882a fix output B/O/Z editing of "negative" values
+37cf31bd8a89b9e7c7fbe26c74fdde5f76aa11bb document extension: scalars simply contiguous
 c48e970aa1322fcb5d742ff31f142f416898a717 SYSTEM_CLOCK rework
 bd4adfcd25f6940d7cbf3dd6cf0a3f0f0c291760 document behavior in ambiguous cases
 5865ce64493421bdf6ae2c5b2b4d0a1e42b0b1e8 check IBCLR/IBSET/ISHFT/SHIFT[ALR] bit pos/count
