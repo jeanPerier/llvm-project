@@ -100,7 +100,25 @@ public:
       mlir::Value initialCondition);
 
   /// Return the type of the elements of the array section.
-  mlir::Type getElementType() { return elementType; }
+  mlir::Type getElementType() const { return elementType; }
+
+  /// Create sliceOp for the designator.
+  mlir::Value createSlice(fir::FirOpBuilder &builder, mlir::Location loc) const;
+
+  /// Create shapeOp for the designator.
+  mlir::Value createShape(fir::FirOpBuilder &builder, mlir::Location loc) const;
+
+  /// Get array base.
+  const fir::ExtendedValue& getBase() const;
+
+  /// Get type parameters if this is a character designator or a derived type with length parameters. Return empty vector otherwise.
+  llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const;
+
+  /// Create ExtendedValue the element inside the loop.
+  fir::ExtendedValue getElementAt(fir::FirOpBuilder &builder,
+                                  mlir::Location loc, mlir::Value shape,
+                                  mlir::Value slice,
+                                  mlir::ValueRange indices, bool indicesAreZeroBased = false) const;
 
 private:
   /// Common implementation for DoLoop and IterWhile loop creations.
@@ -109,14 +127,6 @@ private:
                                    mlir::Location loc,
                                    const Generator &elementalGenerator,
                                    mlir::Value initialCondition);
-  /// Create sliceOp for the designator.
-  mlir::Value createSlice(fir::FirOpBuilder &builder, mlir::Location loc);
-
-  /// Create ExtendedValue the element inside the loop.
-  fir::ExtendedValue getElementAt(fir::FirOpBuilder &builder,
-                                  mlir::Location loc, mlir::Value shape,
-                                  mlir::Value slice,
-                                  mlir::ValueRange inductionVariables);
 
   /// Generate the [lb, ub, step] to loop over the section (in loop order, not
   /// Fortran dimension order).

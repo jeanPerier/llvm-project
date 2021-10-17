@@ -17,6 +17,7 @@
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/Complex.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Transforms/Factory.h"
 #include "flang/Semantics/expression.h"
 
 namespace {
@@ -193,13 +194,18 @@ private:
                 else
                   lb = fir::factory::readLowerBound(builder, loc, loweredBase,
                                                     subscript.index(), one);
-                if (const auto &ubExpr = triplet.upper())
+                lb = builder.createConvert(loc, idxTy, lb);
+                if (const auto &ubExpr = triplet.upper()) {
                   ub = genScalarValue(*ubExpr);
-                else
+                  ub = builder.createConvert(loc, idxTy, ub);
+                } else {
+                  // ub = lb + extent -1
                   ub = fir::factory::readExtent(builder, loc, loweredBase,
                                                 subscript.index());
-                lb = builder.createConvert(loc, idxTy, lb);
-                ub = builder.createConvert(loc, idxTy, ub);
+                  ub = builder.createConvert(loc, idxTy, ub);
+                  ub = builder.create<mlir::SubIOp>(loc, ub, one);
+                  ub = builder.create<mlir::AddIOp>(loc, lb, ub);
+                }
                 auto stride = genScalarValue(triplet.stride());
                 stride = builder.createConvert(loc, idxTy, stride);
                 loweredSubscripts.emplace_back(LoweredTriplet{lb, ub, stride});
@@ -258,7 +264,7 @@ mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsBase(
     fir::FirOpBuilder &builder, mlir::Location loc,
     const Generator &elementalGenerator,
     [[maybe_unused]] mlir::Value initialCondition) {
-  auto shape = builder.createShape(loc, loweredBase);
+  auto shape = createShape(builder, loc);
   auto slice = createSlice(builder, loc);
 
   // Create loop nest for triplets and vector subscripts in column
@@ -318,9 +324,65 @@ mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsWhile(
       builder, loc, elementalGenerator, initialCondition);
 }
 
+const fir::ExtendedValue&
+Fortran::lower::VectorSubscriptBox::getBase() const {
+  return loweredBase;
+}
+
+mlir::Value
+Fortran::lower::VectorSubscriptBox::createShape(fir::FirOpBuilder &builder,
+                                                mlir::Location loc) const {
+  return builder.createShape(loc, loweredBase);
+}
+
+static mlir::Value getLengthFromComponentPath(fir::FirOpBuilder &builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> componentPath) {
+  fir::FieldIndexOp lastField;
+  for (auto component : llvm::reverse(componentPath)) {
+    if (auto field = component.getDefiningOp<fir::FieldIndexOp>()) {
+      lastField = field;
+      break;
+    }
+  }
+  if (!lastField)
+    fir::emitFatalError(loc, "expected component reference in designator");
+  auto recTy = lastField.on_type().cast<fir::RecordType>(); 
+  auto charType = recTy.getType(lastField.field_id()).cast<fir::CharacterType>();
+  // Derived type components with non constant length are F2003.
+  if (charType.hasDynamicLen())
+    TODO(loc, "designator with derived type length parameters");
+  return builder.createIntegerConstant(loc, builder.getCharacterLengthType(), charType.getLen());
+}
+
+llvm::SmallVector<mlir::Value>
+Fortran::lower::VectorSubscriptBox::getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const {
+  auto elementType = getElementType();
+  if (elementType.isa<fir::CharacterType>()) {
+    mlir::Value len = componentPath.empty() ?
+      fir::factory::readCharLen(builder, loc, loweredBase) :
+      getLengthFromComponentPath(builder, loc, componentPath);
+    if (substringBounds.empty())
+      return {len};
+    auto upper = substringBounds.size() == 2 ? substringBounds[1] : len;
+    auto charLenType = builder.getCharacterLengthType();
+    upper = builder.createConvert(loc, charLenType, upper); 
+    auto lower = builder.createConvert(loc, charLenType, substringBounds[0]); 
+    auto zero = builder.createIntegerConstant(loc, charLenType, 0);
+    auto one = builder.createIntegerConstant(loc, charLenType, 1);
+    auto diff = builder.create<mlir::SubIOp>(loc, upper, lower);
+    auto newLen = builder.create<mlir::AddIOp>(loc, diff, one);
+    auto cmp = builder.create<mlir::CmpIOp>(loc, mlir::CmpIPredicate::sle, lower, upper);
+    auto select = builder.create<mlir::SelectOp>(loc, cmp, newLen, zero);
+    return {select.getResult()};
+  }
+  if (auto recordType = elementType.dyn_cast<fir::RecordType>())
+    if (recordType.getNumLenParams() != 0)
+      TODO(loc, "derived type designator with length parameters");
+  return {};
+}
+
 mlir::Value
 Fortran::lower::VectorSubscriptBox::createSlice(fir::FirOpBuilder &builder,
-                                                mlir::Location loc) {
+                                                mlir::Location loc) const {
   auto idxTy = builder.getIndexType();
   llvm::SmallVector<mlir::Value> triples;
   auto one = builder.createIntegerConstant(loc, idxTy, 1);
@@ -385,8 +447,16 @@ Fortran::lower::VectorSubscriptBox::genLoopBounds(fir::FirOpBuilder &builder,
 
 fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
     fir::FirOpBuilder &builder, mlir::Location loc, mlir::Value shape,
-    mlir::Value slice, mlir::ValueRange inductionVariables) {
+    mlir::Value slice, mlir::ValueRange indices, bool indicesAreZeroBased) const {
   /// Generate the indexes for the array_coor inside the loops.
+  llvm::SmallVector<mlir::Value> inductionVariables;
+  if (indicesAreZeroBased) {
+    auto memrefTy = fir::getBase(getBase()).getType();
+    auto idx = fir::factory::originateIndices(loc, builder, memrefTy, shape, indices);
+    inductionVariables.append(idx.begin(), idx.end());
+  } else {
+    inductionVariables.append(indices.begin(), indices.end());
+  }
   auto idxTy = builder.getIndexType();
   llvm::SmallVector<mlir::Value> indexes;
   auto inductionIdx = inductionVariables.size() - 1;
