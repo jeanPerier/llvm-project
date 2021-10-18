@@ -17,6 +17,7 @@
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Support/FatalError.h"
 #include "flang/Optimizer/Support/InternalNames.h"
+#include "flang/Optimizer/Transforms/Factory.h"
 #include "mlir/Dialect/OpenMP/OpenMPDialect.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringExtras.h"
@@ -618,6 +619,30 @@ fir::factory::getExtents(fir::FirOpBuilder &builder, mlir::Location loc,
       [&](const auto &) -> llvm::SmallVector<mlir::Value> { return {}; });
 }
 
+llvm::SmallVector<mlir::Value>
+fir::factory::getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc,
+                         const fir::ExtendedValue &box) {
+  return box.match(
+      [&](const fir::CharBoxValue &x) -> llvm::SmallVector<mlir::Value> {
+        return {x.getLen()};
+      },
+      [&](const fir::CharArrayBoxValue &x) -> llvm::SmallVector<mlir::Value> {
+        return {x.getLen()};
+      },
+      [&](const fir::BoxValue &x) -> llvm::SmallVector<mlir::Value> {
+        if (x.isCharacter())
+          return {fir::factory::readCharLen(builder, loc, box)};
+        if (x.isDerivedWithLengthParameters())
+          TODO(loc, "read derived type length parameters");
+        return {};
+      },
+      [&](const fir::MutableBoxValue &x) -> llvm::SmallVector<mlir::Value> {
+        auto load = fir::factory::genMutableBoxRead(builder, loc, x);
+        return fir::factory::getTypeParams(builder, loc, load);
+      },
+      [&](const auto &) -> llvm::SmallVector<mlir::Value> { return {}; });
+}
+
 fir::ExtendedValue fir::factory::readBoxValue(fir::FirOpBuilder &builder,
                                               mlir::Location loc,
                                               const fir::BoxValue &box) {
@@ -898,8 +923,21 @@ void fir::factory::assignScalars(fir::FirOpBuilder& builder, mlir::Location loc,
   // Fortran 2018 10.2.1.3 p8 and p9
   auto addr = fir::getBase(lhs);
   auto val = fir::getBase(rhs);
+  if (fir::isa_ref_type(val.getType()))
+    val = builder.create<fir::LoadOp>(loc, val);
   // It is still possible that rhs type is different here (for instance for logicals).
   auto cast = builder.convertWithSemantics(loc, toTy, val);
   builder.create<fir::StoreOp>(loc, cast, addr);
   return;
 }
+
+fir::ExtendedValue fir::factory::getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& array, mlir::Value shape, mlir::Value slice, mlir::ValueRange zeroBasedIndices) {
+  auto toType = fir::getBase(array).getType();
+  auto originatedIndices = fir::factory::originateIndices(loc, builder, toType, shape, zeroBasedIndices);
+  auto eleTy = fir::unwrapSequenceType(fir::unwrapPassByRefType(toType));
+  auto eleRefTy = builder.getRefType(eleTy);
+  auto eltAddr = builder.create<fir::ArrayCoorOp>(
+  loc, eleRefTy, fir::getBase(array), shape, /*slice=*/mlir::Value{}, originatedIndices,
+  fir::getTypeParams(array));
+  return fir::factory::arrayElementToExtendedValue(builder, loc, array, eltAddr);
+} 

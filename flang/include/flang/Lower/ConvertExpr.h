@@ -222,19 +222,21 @@ class ExprLower {
   // Evaluate Array expr temp.
   // Copy scalar expr if characters/derived in memory.
   // If a temp is created, the optional filter argument can control which of its element are actually set by evaluating expression elements.
-  void ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter);
+  void ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter, Fortran::lower::StatementContext& stmtCtx);
 
   llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
   llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
-  fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
+  llvm::SmallVector<mlir::Value> getLBounds(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> indices) const;
 
   bool canLoopUnorderedOverElements() const;
   
   /// Return evaluated expr, that may be a variable if expr
   /// was a variable and ensureIsInTempOrRegister was not called.
-  fir::ExtendedValue materializeExpr(int rank);
+  fir::ExtendedValue materializeExpr(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter, Fortran::lower::StatementContext& stmtCtx);
 
  private:
     std::unique_ptr<ExprLowerImpl> impl;

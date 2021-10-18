@@ -118,7 +118,11 @@ public:
   fir::ExtendedValue getElementAt(fir::FirOpBuilder &builder,
                                   mlir::Location loc, mlir::Value shape,
                                   mlir::Value slice,
-                                  mlir::ValueRange indices, bool indicesAreZeroBased = false) const;
+                                  mlir::ValueRange indices) const;
+
+  bool hasVectorSubscripts() const;
+
+  fir::ExtendedValue asBox(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
 private:
   /// Common implementation for DoLoop and IterWhile loop creations.
@@ -162,26 +166,46 @@ public:
   using ElementalGenerator = std::function<void(fir::FirOpBuilder&, mlir::Location, const fir::ExtendedValue&, llvm::ArrayRef<mlir::Value>)>;
   using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
 
-  Variable(const fir::ExtendedValue& exv) : var{exv} {}
-  template<typename T>
-  Variable(T&& x) : var{std::move(x)} {}
+  using ArraySection = VectorSubscriptBox;
+
+  explicit Variable(const fir::ExtendedValue& exv) : var{exv} {}
+  explicit Variable(fir::ExtendedValue&& exv) : var{std::move(exv)} {}
+  explicit Variable(ArraySection&& arraySection) : var{std::move(arraySection)} {}
 
   void loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered);
 
-  /// Is this needed ?
-  void prepareForAddressing();
+  void prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc);
 
-  fir::ExtendedValue getElementAddrAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
+  fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
 
-  void reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams);
+
+  llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  llvm::SmallVector<mlir::Value> getLBounds(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  void reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> lbounds, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const;
+
+  /// Returns an fir::ExtendedValue representing the variable without making a temp.
+  /// Cannot be called for variable with vector subscripts.
+  /// Will generate a fir.embox or fir.rebox for ArraySection.
+  fir::ExtendedValue getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  bool hasVectorSubscripts() const;
 
 private:
-  std::variant<fir::ExtendedValue, VectorSubscriptBox> var;
+  // TODO consider using some pointer for ArraySection
+  // that is heavy. This is not made easy by the lambda that
+  // capture variables by copy in array expression lowering.
+  std::variant<fir::ExtendedValue, ArraySection> var;
   mlir::Value shape;
   mlir::Value slice;
+  bool readyForAddressing = false;
 };
 
-// Lower lhs designator. TODO: function result !
+/// Lower an expression that is a variable to a representation that allows
+/// modifying the variable.
 Variable genVariable(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
   Fortran::lower::StatementContext &stmtCtx,
   const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);

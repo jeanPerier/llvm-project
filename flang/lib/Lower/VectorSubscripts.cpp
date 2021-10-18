@@ -17,6 +17,7 @@
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/Complex.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Builder/MutableBox.h"
 #include "flang/Optimizer/Transforms/Factory.h"
 #include "flang/Semantics/expression.h"
 
@@ -411,6 +412,7 @@ Fortran::lower::VectorSubscriptBox::createSlice(fir::FirOpBuilder &builder,
   return builder.create<fir::SliceOp>(loc, sliceTy, triples, componentPath);
 }
 
+/// Generate zero base loop bounds.
 llvm::SmallVector<std::tuple<mlir::Value, mlir::Value, mlir::Value>>
 Fortran::lower::VectorSubscriptBox::genLoopBounds(fir::FirOpBuilder &builder,
                                                   mlir::Location loc) {
@@ -425,14 +427,9 @@ Fortran::lower::VectorSubscriptBox::genLoopBounds(fir::FirOpBuilder &builder,
       continue;
     mlir::Value lb, ub, step;
     if (const auto *triplet = std::get_if<LoweredTriplet>(&subscript)) {
-      auto extent = builder.genExtentFromTriplet(loc, triplet->lb, triplet->ub,
+      lb = zero;
+      ub = builder.genExtentFromTriplet(loc, triplet->lb, triplet->ub,
                                                  triplet->stride, idxTy);
-      auto baseLb = fir::factory::readLowerBound(builder, loc, loweredBase,
-                                                 dimension, one);
-      baseLb = builder.createConvert(loc, idxTy, baseLb);
-      lb = baseLb;
-      ub = builder.create<mlir::SubIOp>(loc, idxTy, extent, one);
-      ub = builder.create<mlir::AddIOp>(loc, idxTy, ub, baseLb);
       step = one;
     } else {
       const auto &vector = std::get<LoweredVectorSubscript>(subscript);
@@ -447,16 +444,12 @@ Fortran::lower::VectorSubscriptBox::genLoopBounds(fir::FirOpBuilder &builder,
 
 fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
     fir::FirOpBuilder &builder, mlir::Location loc, mlir::Value shape,
-    mlir::Value slice, mlir::ValueRange indices, bool indicesAreZeroBased) const {
+    mlir::Value slice, mlir::ValueRange indices) const {
   /// Generate the indexes for the array_coor inside the loops.
   llvm::SmallVector<mlir::Value> inductionVariables;
-  if (indicesAreZeroBased) {
-    auto memrefTy = fir::getBase(getBase()).getType();
-    auto idx = fir::factory::originateIndices(loc, builder, memrefTy, shape, indices);
-    inductionVariables.append(idx.begin(), idx.end());
-  } else {
-    inductionVariables.append(indices.begin(), indices.end());
-  }
+  auto memrefTy = fir::getBase(getBase()).getType();
+  auto idx = fir::factory::originateIndices(loc, builder, memrefTy, shape, indices);
+  inductionVariables.append(idx.begin(), idx.end());
   auto idxTy = builder.getIndexType();
   llvm::SmallVector<mlir::Value> indexes;
   auto inductionIdx = inductionVariables.size() - 1;
@@ -496,4 +489,202 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
     return helper.createSubstring(*charBox, substringBounds);
   }
   return element;
+}
+
+bool Fortran::lower::VectorSubscriptBox::hasVectorSubscripts() const {
+  for (const auto &subscript : loweredSubscripts)
+    if (std::holds_alternative<LoweredVectorSubscript>(subscript))
+      return true;
+  return false;
+}
+
+fir::ExtendedValue Fortran::lower::VectorSubscriptBox::asBox(fir::FirOpBuilder& builder, mlir::Location loc) const {
+  auto memref = fir::getBase(loweredBase);
+  auto type = fir::unwrapPassByRefType(memref.getType());
+  auto boxTy = fir::BoxType::get(type);
+  auto shape = createShape(builder, loc);
+  auto slice = createSlice(builder, loc);
+  if (memref.getType().isa<fir::BoxType>())
+    return builder.create<fir::ReboxOp>(loc, boxTy, memref, shape, slice);
+  return builder.create<fir::EmboxOp>(loc, boxTy, memref, shape, slice, fir::getTypeParams(memref));
+}
+
+fir::ExtendedValue Fortran::lower::Variable::getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const {
+  assert(readyForAddressing && "array was not prepared for addressing");
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      if (fir::isArray(exv))
+        return fir::factory::getElementAt(builder, loc, exv, shape, slice, indices);
+      return exv;
+    },
+    [&](const ArraySection& arraySection) {
+      return arraySection.getElementAt(builder, loc, shape, slice, indices);
+    }
+  }, var);
+}
+
+Fortran::lower::Variable Fortran::lower::genVariable(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
+  Fortran::lower::StatementContext &stmtCtx,
+  const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr) {
+  if (const auto* sym = Fortran::evaluate::UnwrapWholeSymbolOrComponentDataRef(expr)) {
+    // Whole symbol like `x` of `a(i, j)%p1%...%pn` where non of the parts before
+    // pn are ranked.
+    if (Fortran::semantics::IsAllocatableOrPointer(*sym))
+      return Variable(converter.genExprMutableBox(loc, expr));
+    return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
+  }
+  // TODO: catch pointer function ref
+
+  // Scalar array reference.
+  if (expr.Rank() == 0)
+    return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
+
+  // Ranked array sections.
+  return Variable(Fortran::lower::genVectorSubscriptBox(loc, converter, stmtCtx, expr));
+}
+
+void Fortran::lower::Variable::prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc) {
+  if (readyForAddressing)
+    return;
+  if (const auto *exv = std::get_if<fir::ExtendedValue>(&var))
+    if (const auto *mutableBox = exv->getBoxOf<fir::MutableBoxValue>())
+      var = fir::factory::genMutableBoxRead(builder, loc, *mutableBox);
+
+  std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      shape = builder.createShape(loc, exv);
+    },
+    [&](const ArraySection& arraySection) {
+      shape = arraySection.createShape(builder, loc);
+      slice = arraySection.createSlice(builder, loc);
+    }
+    }, var);
+  readyForAddressing = true;
+}
+
+
+void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
+  prepareForAddressing(builder, loc);
+  assert(shape && "shape must have been prepared");
+
+  auto idxTy = builder.getIndexType(); 
+  auto extents = fir::factory::getExtents(shape);
+  
+  llvm::SmallVector<mlir::Value> uppers;
+  for (auto extent : llvm::reverse(extents))
+    uppers.push_back(builder.createConvert(loc, idxTy, extent));
+
+  auto one = builder.createIntegerConstant(loc, idxTy, 1);
+  auto zero = builder.createIntegerConstant(loc, idxTy, 0);
+   
+  llvm::SmallVector<mlir::Value> inductionVariables;
+  fir::DoLoopOp outerLoop;
+   
+  for (auto ub: uppers) {
+    auto loop = builder.create<fir::DoLoopOp>(loc, zero, ub, one, canLoopUnordered);
+    if (!outerLoop)
+      outerLoop = loop;
+    builder.setInsertionPointToStart(loop.getBody());
+    inductionVariables.push_back(loop.getInductionVar());
+  }
+  assert(outerLoop && !inductionVariables.empty() &&
+         "at least one loop should be created");
+  // Create if-ops nest filter if any.
+  if (filter)
+    (*filter)(builder, loc, inductionVariables);
+  auto elem = getElementAt(builder, loc, inductionVariables);
+  doOnEachElement(builder, loc, elem, inductionVariables);
+  builder.setInsertionPointAfter(outerLoop);
+}
+
+llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const {
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      return fir::factory::getTypeParams(builder, loc, exv);
+    },
+    [&](const ArraySection& arraySection) {
+      return arraySection.getTypeParams(builder, loc);
+    },
+  }, var);
+}
+
+llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getExtents(fir::FirOpBuilder &builder, mlir::Location loc) const {
+  if (shape) {
+    auto extents = fir::factory::getExtents(shape);
+    return {extents.begin(), extents.end()};
+  }
+  
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      return fir::factory::getExtents(builder, loc, exv);
+    },
+    [&](const ArraySection& arraySection) {
+      return fir::factory::getExtents(builder, loc, arraySection.getBase());
+    },
+  }, var);
+}
+
+llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getLBounds(fir::FirOpBuilder &builder, mlir::Location loc) const {
+  if (shape) {
+    auto origins = fir::factory::getOrigins(shape);
+    return {origins.begin(), origins.end()};
+  }
+  
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) -> llvm::SmallVector<mlir::Value> {
+      auto lbs = exv.match(
+        [&](fir::CharArrayBoxValue& array) -> llvm::ArrayRef<mlir::Value> {
+          return array.getLBounds();
+        },
+        [&](fir::ArrayBoxValue& array) -> llvm::ArrayRef<mlir::Value> {
+          return array.getLBounds();
+        },
+        [&](fir::BoxValue& array) -> llvm::ArrayRef<mlir::Value> {
+          return array.getLBounds();
+        },
+        [&](auto&) -> llvm::ArrayRef<mlir::Value> {
+          return {};
+        }
+      );
+      return {lbs.begin(), lbs.end()};
+    },
+    [&](const ArraySection&) -> llvm::SmallVector<mlir::Value> {
+      // Array section that are not whole symbols or component have
+      // no lower bounds.
+      return {};
+    },
+  }, var);
+}
+
+bool Fortran::lower::Variable::hasVectorSubscripts() const {
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      return false;
+    },
+    [&](const ArraySection& arraySection) {
+      return arraySection.hasVectorSubscripts();
+    },
+  }, var);
+}
+
+
+fir::ExtendedValue Fortran::lower::Variable::getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const {
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      return exv;
+    },
+    [&](const ArraySection& arraySection) {
+      return arraySection.asBox(builder, loc);
+    },
+  }, var);
+}
+
+void Fortran::lower::Variable::reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> lbounds, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const {
+  if (const auto *exv = std::get_if<fir::ExtendedValue>(&var))
+    if (const auto *mutableBox = exv->getBoxOf<fir::MutableBoxValue>()) {
+      fir::factory::genReallocIfNeeded(builder, loc, *mutableBox, lbounds, extents, typeParams);
+      return;
+  }
+  
+  fir::emitFatalError(loc, "trying to reallocate non-allocatable");
 }

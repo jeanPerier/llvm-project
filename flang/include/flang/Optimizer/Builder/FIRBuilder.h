@@ -392,6 +392,13 @@ llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder &builder,
                                           mlir::Location loc,
                                           const fir::ExtendedValue &box);
 
+
+/// Get all type parameters from a fir::ExtendedValue. For fir::BoxValue  with length parameters, this will generate code to read the type parameters.
+llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder &builder,
+                                          mlir::Location loc,
+                                          const fir::ExtendedValue &box);
+
+
 /// Read a fir::BoxValue into an fir::UnboxValue, a fir::ArrayBoxValue or a
 /// fir::CharArrayBoxValue. This should only be called if the fir::BoxValue is
 /// known to be contiguous given the context (or if the resulting address will
@@ -399,6 +406,9 @@ llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder &builder,
 /// This must not be used on unlimited polymorphic and assumed rank entities.
 fir::ExtendedValue readBoxValue(fir::FirOpBuilder &builder, mlir::Location loc,
                                 const fir::BoxValue &box);
+
+/// Generate a fir::ExtendedValue with the address of \p array element given zero based indices.
+fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& array, mlir::Value shape, mlir::Value slice, mlir::ValueRange zeroBasedIndices);
 
 //===--------------------------------------------------------------------===//
 // String literal helper helpers

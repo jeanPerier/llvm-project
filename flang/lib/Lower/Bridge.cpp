@@ -1871,12 +1871,13 @@ private:
     const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
     auto rhs = Fortran::lower::initExprLowering(*this, loc, assign.rhs, localSymbols, stmtCtx);
     if (lhsAndRhsMayOverlap)
-      rhs.ensureIsInTempOrRegister(*builder, loc, whereStmtFilter);
+      rhs.ensureIsInTempOrRegister(*builder, loc, whereStmtFilter, stmtCtx);
     auto lhs = Fortran::lower::genVariable(*this, loc, stmtCtx, assign.lhs);
     if (isWholeAllocatable(assign.lhs)) {
+      auto rhsLbounds = rhs.getLBounds(*builder, loc);
       auto rhsExtents = rhs.getExtents(*builder, loc);
       auto rhsParams = rhs.getTypeParams(*builder, loc);
-      lhs.reallocate(*builder, loc, rhsExtents, rhsParams);
+      lhs.reallocate(*builder, loc, rhsLbounds, rhsExtents, rhsParams);
     }
     // If intrinsic or elemental assignment:
     auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& lhsElt, llvm::ArrayRef<mlir::Value> indices) {
@@ -1915,6 +1916,8 @@ private:
 
   /// Shared for both assignments and pointer assignments.
   void genAssignment(const Fortran::evaluate::Assignment &assign) {
+    genNewAssignment(assign);
+    return;
     Fortran::lower::StatementContext stmtCtx;
     auto loc = toLocation();
     if (explicitIterationSpace()) {
