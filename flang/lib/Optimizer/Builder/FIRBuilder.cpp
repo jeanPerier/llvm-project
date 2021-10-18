@@ -880,3 +880,26 @@ fir::factory::getRaggedArrayHeaderType(fir::FirOpBuilder &builder) {
   auto shTy = fir::HeapType::get(extTy);
   return mlir::TupleType::get(builder.getContext(), {i64Ty, buffTy, shTy});
 }
+
+void fir::factory::assignScalars(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& lhs, const fir::ExtendedValue& rhs) {
+  auto toTy = fir::unwrapPassByRefType(fir::getBase(lhs).getType());
+  if (toTy.isa<fir::CharacterType>()) {
+    // Fortran 2018 10.2.1.3 p10 and p11
+    fir::factory::CharacterExprHelper{builder, loc}.createAssign(
+        lhs, rhs);
+    return;
+  }
+  if (toTy.isa<fir::RecordType>()) {
+    // Fortran 2018 10.2.1.3 p13 and p14
+    // Recursively gen an assignment on each element pair.
+    fir::factory::genRecordAssignment(builder, loc, lhs, rhs);
+    return;
+  }
+  // Fortran 2018 10.2.1.3 p8 and p9
+  auto addr = fir::getBase(lhs);
+  auto val = fir::getBase(rhs);
+  // It is still possible that rhs type is different here (for instance for logicals).
+  auto cast = builder.convertWithSemantics(loc, toTy, val);
+  builder.create<fir::StoreOp>(loc, cast, addr);
+  return;
+}

@@ -161,7 +161,12 @@ class Variable {
 public:
   using ElementalGenerator = std::function<void(fir::FirOpBuilder&, mlir::Location, const fir::ExtendedValue&, llvm::ArrayRef<mlir::Value>)>;
   using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
-  void loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter);
+
+  Variable(const fir::ExtendedValue& exv) : var{exv} {}
+  template<typename T>
+  Variable(T&& x) : var{std::move(x)} {}
+
+  void loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered);
 
   /// Is this needed ?
   void prepareForAddressing();
@@ -177,8 +182,7 @@ private:
 };
 
 // Lower lhs designator. TODO: function result !
-Variable genVariable(
-  mlir::Location loc, Fortran::lower::AbstractConverter &converter,
+Variable genVariable(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
   Fortran::lower::StatementContext &stmtCtx,
   const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
 

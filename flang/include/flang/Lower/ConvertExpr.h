@@ -224,11 +224,13 @@ class ExprLower {
   // If a temp is created, the optional filter argument can control which of its element are actually set by evaluating expression elements.
   void ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter);
 
-  llvm::ArrayRef<mlir::Value> getExtents() const;
+  llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
-  llvm::ArrayRef<mlir::Value> getTypeParams() const;
+  llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
   fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
+
+  bool canLoopUnorderedOverElements() const;
   
   /// Return evaluated expr, that may be a variable if expr
   /// was a variable and ensureIsInTempOrRegister was not called.
@@ -238,7 +240,7 @@ class ExprLower {
     std::unique_ptr<ExprLowerImpl> impl;
 };
 
-ExprLower initExprLowering(AbstractConverter &converter, const evaluate::Expr<evaluate::SomeType> &expr, SymMap &symMap, StatementContext &stmtCtx);
+ExprLower initExprLowering(AbstractConverter &converter, mlir::Location loc, const evaluate::Expr<evaluate::SomeType> &expr, SymMap &symMap, StatementContext &stmtCtx);
 
 
 } // namespace Fortran::lower

@@ -465,6 +465,11 @@ void genRecordAssignment(fir::FirOpBuilder &builder, mlir::Location loc,
                          const fir::ExtendedValue &lhs,
                          const fir::ExtendedValue &rhs);
 
+/// Generate scalar assignment of lhs into rhs. \p rhs must be a value.
+void assignScalars(fir::FirOpBuilder &builder, mlir::Location loc,
+                         const fir::ExtendedValue &lhs,
+                         const fir::ExtendedValue &rhs);
+
 mlir::TupleType getRaggedArrayHeaderType(fir::FirOpBuilder &builder);
 
 } // namespace fir::factory

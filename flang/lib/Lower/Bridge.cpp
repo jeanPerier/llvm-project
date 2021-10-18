@@ -1863,47 +1863,27 @@ private:
     return sym && Fortran::semantics::IsAllocatable(*sym);
   }
 
-  static void assignScalars(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& lhs, const fir::ExtendedValue& rhs) {
-    auto toTy = fir::unwrapPassByRefType(fir::getBase(lhs).getType());
-    if (toTy.isa<fir::CharacterType>()) {
-      // Fortran 2018 10.2.1.3 p10 and p11
-      fir::factory::CharacterExprHelper{builder, loc}.createAssign(
-          lhs, rhs);
-      return;
-    }
-    if (toTy.isa<fir::RecordType>()) {
-      // Fortran 2018 10.2.1.3 p13 and p14
-      // Recursively gen an assignment on each element pair.
-      fir::factory::genRecordAssignment(builder, loc, lhs, rhs);
-      return;
-    }
-    // Fortran 2018 10.2.1.3 p8 and p9
-    auto addr = fir::getBase(lhs);
-    auto val = fir::getBase(rhs);
-    // Conversions are inserted by semantic analysis, but it is still possible that rhs type is different here (for instance for logicals).
-    auto cast = builder.convertWithSemantics(loc, toTy, val);
-    builder.create<fir::StoreOp>(loc, cast, addr);
-    return;
-  }
-
   void genNewArrayAssignment(const Fortran::evaluate::Assignment &assign) {
     Fortran::lower::StatementContext stmtCtx;
     // TODO: Prevent ever generating the copy when not needed.
     bool lhsAndRhsMayOverlap = true;
     auto loc = toLocation();
     const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
-    auto rhs = Fortran::lower::initExprLowering(*this, assign.rhs, localSymbols, stmtCtx);
+    auto rhs = Fortran::lower::initExprLowering(*this, loc, assign.rhs, localSymbols, stmtCtx);
     if (lhsAndRhsMayOverlap)
       rhs.ensureIsInTempOrRegister(*builder, loc, whereStmtFilter);
-    auto lhs = Fortran::lower::genVariable(loc, *this, stmtCtx, assign.lhs);
-    if (isWholeAllocatable(assign.lhs))
-      lhs.reallocate(*builder, loc, rhs.getExtents(), rhs.getTypeParams());
+    auto lhs = Fortran::lower::genVariable(*this, loc, stmtCtx, assign.lhs);
+    if (isWholeAllocatable(assign.lhs)) {
+      auto rhsExtents = rhs.getExtents(*builder, loc);
+      auto rhsParams = rhs.getTypeParams(*builder, loc);
+      lhs.reallocate(*builder, loc, rhsExtents, rhsParams);
+    }
     // If intrinsic or elemental assignment:
     auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& lhsElt, llvm::ArrayRef<mlir::Value> indices) {
       auto rhsElt = rhs.getElementAt(b, l, indices);
-      assignScalars(b, l, lhsElt, rhsElt);
+      fir::factory::assignScalars(b, l, lhsElt, rhsElt);
     };
-    lhs.loopOverElements(*builder, loc, elemAssign, whereStmtFilter);
+    lhs.loopOverElements(*builder, loc, elemAssign, whereStmtFilter, rhs.canLoopUnorderedOverElements());
     // TODO: Else user defined array assignment.
     //  auto rhsArg = materializeRhs(assign.lhs.Rank());
     //  TODO: Is Scalar to array user def assignment a thing?

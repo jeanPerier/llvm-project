@@ -293,6 +293,21 @@ bool isElementalProcWithArrayArgs(const Fortran::lower::SomeExpr &x) {
   return false;
 }
 
+/// Helper to detect Transformational function reference.
+template <typename T>
+static bool isTransformationalRef(const T &) {
+  return false;
+}
+template <typename T>
+static bool isTransformationalRef(const Fortran::evaluate::FunctionRef<T> &funcRef) {
+  return !funcRef.IsElemental() && funcRef.Rank();
+}
+template <typename T>
+static bool isTransformationalRef(Fortran::evaluate::Expr<T> expr) {
+  return std::visit([&](const auto &e) { return isTransformationalRef(e); },
+                    expr.u);
+}
+
 /// Helper to package a Value and its properties into an ExtendedValue.
 static fir::ExtendedValue toExtendedValue(mlir::Location loc, mlir::Value base,
                                 llvm::ArrayRef<mlir::Value> extents,
@@ -2262,20 +2277,6 @@ public:
     return x.Rank() == 0;
   }
 
-  /// Helper to detect Transformational function reference.
-  template <typename T>
-  bool isTransformationalRef(const T &) {
-    return false;
-  }
-  template <typename T>
-  bool isTransformationalRef(const Fortran::evaluate::FunctionRef<T> &funcRef) {
-    return !funcRef.IsElemental() && funcRef.Rank();
-  }
-  template <typename T>
-  bool isTransformationalRef(Fortran::evaluate::Expr<T> expr) {
-    return std::visit([&](const auto &e) { return isTransformationalRef(e); },
-                      expr.u);
-  }
 
   template <typename A>
   ExtValue asArray(const A &x) {
@@ -6451,17 +6452,35 @@ void Fortran::lower::createArrayMergeStores(
   esp.incrementCounter();
 }
 
-class ArrayExpr {
-public:
-  ArrayExpr(Fortran::lower::AbstractConverter& converter, Fortran::lower::StatementContext& stmtCtx, mlir::Location loc): converter{converter},
-  stmtCtx{stmtCtx}, builder{converter.getFirOpBuilder()}, location{loc} {}
+struct ArrayExprAsAFunction {
   using IterationSpace = llvm::ArrayRef<mlir::Value>;
   using CC = std::function<fir::ExtendedValue(fir::FirOpBuilder&, IterationSpace)>;
-  struct ElementalCore {
+  struct ElementalFunction {
     CC genElement;
     llvm::SmallVector<mlir::Value> extents;
     llvm::SmallVector<mlir::Value> typeParams;
   };
+
+  fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location, IterationSpace iters) const {
+    return func.genElement(builder, iters);
+  }
+  ElementalFunction func;
+  bool unordered = true;
+};
+
+class ArrayExpr {
+public:
+  ArrayExpr(Fortran::lower::AbstractConverter& converter, Fortran::lower::StatementContext& stmtCtx, mlir::Location loc): converter{converter},
+  stmtCtx{stmtCtx}, builder{converter.getFirOpBuilder()}, location{loc} {}
+
+  using ElementalCore = ArrayExprAsAFunction::ElementalFunction;
+  using IterationSpace = ArrayExprAsAFunction::IterationSpace;
+
+  static ArrayExprAsAFunction genArrayExprAsFunction(Fortran::lower::AbstractConverter& converter, mlir::Location loc, const Fortran::lower::SomeExpr& expr, Fortran::lower::StatementContext& stmtCtx) {
+    ArrayExpr arrayBuilder(converter, stmtCtx, loc);
+    auto func = arrayBuilder.genCore(expr);
+    return ArrayExprAsAFunction{std::move(func), arrayBuilder.getUnordered()};
+  }
   
   fir::ExtendedValue lower(const Fortran::lower::SomeExpr& expr) {
     auto elementalCore = genCore(expr);
@@ -6682,16 +6701,103 @@ private:
   bool unordered = true;
 };
 
+static fir::ExtendedValue genInTemp(fir::FirOpBuilder& builder, mlir::Location loc, const ArrayExprAsAFunction& arrayFunc, const Fortran::lower::ExprLower::ElementalMask* filter) {
+  // TODO: Create temp
+  fir::ExtendedValue temp;
+  Fortran::lower::Variable tempVar(temp);
+  tempVar.prepareForAddressing();
+  auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& tempElt, llvm::ArrayRef<mlir::Value> indices) {
+    auto exprElt = arrayFunc.getElementAt(b, l, indices);
+    fir::factory::assignScalars(b, l, tempElt, exprElt);
+  };
+  tempVar.loopOverElements(builder, loc, elemAssign, filter, arrayFunc.unordered); 
+  return temp;
+}
+
 class Fortran::lower::ExprLower::ExprLowerImpl {
-  // TODO: I am here:
-  // Note to myself: is unordered respected if looping
-  // from RHS.
   public:
+  // A lowered array that can be addressed in a fir.array_coor.
+  struct TempOrRegister {
+    fir::ExtendedValue exv;
+    llvm::Optional<mlir::Value> shape;
+    llvm::Optional<mlir::Value> slice;
+  };
+  template<typename T>
+  ExprLowerImpl(T&& t) : loweredExpr{std::move(t)} {} 
+
+  bool canLoopUnorderedOverElements() const {
+    return std::visit(Fortran::common::visitors{
+      [&](const ArrayExprAsAFunction& arrayFunc) {
+        return arrayFunc.unordered;
+      },
+      [&](const auto&) {
+        // Looping through a temp or variable has no side effects
+        return true;
+      }
+    }, loweredExpr);
+  }
+
+  void ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter) {
+    std::visit(Fortran::common::visitors{
+      [&](const ArrayExprAsAFunction& arrayFunc) {
+        loweredExpr = genInTemp(builder, loc, arrayFunc, filter);
+      },
+      [&](const Variable& var) {
+        // TODO
+        TODO(loc, "var to temp");
+      },
+      [&](const TempOrRegister&) {
+        // Already in temp or register.
+      }
+    }, loweredExpr);
+  }
+
+  private:
+    std::variant<Fortran::lower::Variable, TempOrRegister, ArrayExprAsAFunction> loweredExpr;
 };
+
+bool Fortran::lower::ExprLower::canLoopUnorderedOverElements() const {
+  return impl->canLoopUnorderedOverElements();
+}
+
+void Fortran::lower::ExprLower::ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter) {
+  impl->ensureIsInTempOrRegister(builder, loc, filter);
+}
+
+Fortran::lower::ExprLower Fortran::lower::initExprLowering(
+Fortran::lower::AbstractConverter& converter,
+mlir::Location loc,
+const Fortran::lower::SomeExpr& expr,
+Fortran::lower::SymMap& symMap,
+Fortran::lower::StatementContext& stmtCtx
+) {
+  // TODO:
+  //  - Subroutine elemental calls !
+  //  - Be careful with parenthesized variables here ?
+  //  - byVal/byAddr needs thinking.
+  if (Fortran::evaluate::IsVariable(expr)) {
+    auto var = genVariable(converter, loc, stmtCtx, expr);
+    var.prepareForAddressing();
+    return std::unique_ptr<ExprLower::ExprLowerImpl>(new ExprLower::ExprLowerImpl(std::move(var)));
+  }
+  if (expr.Rank() == 0 || isTransformationalRef(expr)) {
+    // Expression is directly lowered to a temp or an SSA register an packaged
+    // in a fir::ExtendedValue.
+    auto exv = ScalarExprLowering{loc, converter, symMap, stmtCtx}.gen(expr);
+    ExprLower::ExprLowerImpl::TempOrRegister tempOrReg{exv, llvm::None, llvm::None};
+    if (expr.Rank() != 0)
+      tempOrReg.shape = converter.getFirOpBuilder().createShape(loc, exv);
+    return std::unique_ptr<ExprLower::ExprLowerImpl>(new ExprLower::ExprLowerImpl(std::move(tempOrReg)));
+  }
+  auto asElementalFunction = ArrayExpr::genArrayExprAsFunction(converter, loc, expr, stmtCtx);
+  return std::unique_ptr<ExprLower::ExprLowerImpl>(new ExprLower::ExprLowerImpl(std::move(asElementalFunction)));
+}
 
 Fortran::lower::ExprLower::ExprLower(std::unique_ptr<Fortran::lower::ExprLower::ExprLowerImpl>&& exprImpl) : impl{std::move(exprImpl)} {}
 
 Fortran::lower::ExprLower::~ExprLower() = default;
+
+
 
 
 
