@@ -156,6 +156,32 @@ VectorSubscriptBox genVectorSubscriptBox(
     Fortran::lower::StatementContext &stmtCtx,
     const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
 
+/// Generalized variable representation.
+class Variable {
+public:
+  using ElementalGenerator = std::function<void(fir::FirOpBuilder&, mlir::Location, const fir::ExtendedValue&, llvm::ArrayRef<mlir::Value>)>;
+  using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
+  void loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter);
+
+  /// Is this needed ?
+  void prepareForAddressing();
+
+  fir::ExtendedValue getElementAddrAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
+
+  void reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams);
+
+private:
+  std::variant<fir::ExtendedValue, VectorSubscriptBox> var;
+  mlir::Value shape;
+  mlir::Value slice;
+};
+
+// Lower lhs designator. TODO: function result !
+Variable genVariable(
+  mlir::Location loc, Fortran::lower::AbstractConverter &converter,
+  Fortran::lower::StatementContext &stmtCtx,
+  const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
+
 } // namespace lower
 } // namespace Fortran
 

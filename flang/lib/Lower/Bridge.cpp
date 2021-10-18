@@ -27,6 +27,7 @@
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Runtime.h"
 #include "flang/Lower/Support/Utils.h"
+#include "flang/Lower/VectorSubscripts.h"
 #include "flang/Lower/Todo.h"
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/Character.h"
@@ -1862,6 +1863,76 @@ private:
     return sym && Fortran::semantics::IsAllocatable(*sym);
   }
 
+  static void assignScalars(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& lhs, const fir::ExtendedValue& rhs) {
+    auto toTy = fir::unwrapPassByRefType(fir::getBase(lhs).getType());
+    if (toTy.isa<fir::CharacterType>()) {
+      // Fortran 2018 10.2.1.3 p10 and p11
+      fir::factory::CharacterExprHelper{builder, loc}.createAssign(
+          lhs, rhs);
+      return;
+    }
+    if (toTy.isa<fir::RecordType>()) {
+      // Fortran 2018 10.2.1.3 p13 and p14
+      // Recursively gen an assignment on each element pair.
+      fir::factory::genRecordAssignment(builder, loc, lhs, rhs);
+      return;
+    }
+    // Fortran 2018 10.2.1.3 p8 and p9
+    auto addr = fir::getBase(lhs);
+    auto val = fir::getBase(rhs);
+    // Conversions are inserted by semantic analysis, but it is still possible that rhs type is different here (for instance for logicals).
+    auto cast = builder.convertWithSemantics(loc, toTy, val);
+    builder.create<fir::StoreOp>(loc, cast, addr);
+    return;
+  }
+
+  void genNewArrayAssignment(const Fortran::evaluate::Assignment &assign) {
+    Fortran::lower::StatementContext stmtCtx;
+    // TODO: Prevent ever generating the copy when not needed.
+    bool lhsAndRhsMayOverlap = true;
+    auto loc = toLocation();
+    const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
+    auto rhs = Fortran::lower::initExprLowering(*this, assign.rhs, localSymbols, stmtCtx);
+    if (lhsAndRhsMayOverlap)
+      rhs.ensureIsInTempOrRegister(*builder, loc, whereStmtFilter);
+    auto lhs = Fortran::lower::genVariable(loc, *this, stmtCtx, assign.lhs);
+    if (isWholeAllocatable(assign.lhs))
+      lhs.reallocate(*builder, loc, rhs.getExtents(), rhs.getTypeParams());
+    // If intrinsic or elemental assignment:
+    auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& lhsElt, llvm::ArrayRef<mlir::Value> indices) {
+      auto rhsElt = rhs.getElementAt(b, l, indices);
+      assignScalars(b, l, lhsElt, rhsElt);
+    };
+    lhs.loopOverElements(*builder, loc, elemAssign, whereStmtFilter);
+    // TODO: Else user defined array assignment.
+    //  auto rhsArg = materializeRhs(assign.lhs.Rank());
+    //  TODO: Is Scalar to array user def assignment a thing?
+  }
+
+  void genNewAssignment(const Fortran::evaluate::Assignment &assign) {
+    if (explicitIterationSpace())
+      TODO(toLocation(), "Forall revamp");
+    if (!implicitIterSpace.empty())
+      TODO(toLocation(), "Where revamp");
+    auto loc = toLocation();
+    std::visit(
+        Fortran::common::visitors{
+            // [1] Plain old assignment.
+            [&](const Fortran::evaluate::Assignment::Intrinsic &) {
+                if (assign.lhs.Rank() > 0)
+                  genNewArrayAssignment(assign);
+                else
+                  TODO(loc, "scalar assignments");
+            },
+            [&](const Fortran::evaluate::ProcedureRef &procRef) {
+              TODO(loc, "user def assignments");
+            },
+            [&] (const auto&) {
+              TODO(loc, "pointer assignments");
+            }}, 
+        assign.u);
+  }
+
   /// Shared for both assignments and pointer assignments.
   void genAssignment(const Fortran::evaluate::Assignment &assign) {
     Fortran::lower::StatementContext stmtCtx;
@@ -2406,8 +2477,10 @@ private:
       if (auto passedResult = callee.getPassedResult())
         addSymbol(altResult.getSymbol(), resultArg.getAddr());
       Fortran::lower::StatementContext stmtCtx;
+      auto altRefType = builder->getRefType(genType(altResult));
+      auto storage = builder->createConvert(toLocation(), altRefType, primaryFuncResultStorage);
       Fortran::lower::mapSymbolAttributes(*this, altResult, localSymbols,
-                                          stmtCtx, primaryFuncResultStorage);
+                                          stmtCtx, storage);
     }
 
     // Create most function blocks in advance.

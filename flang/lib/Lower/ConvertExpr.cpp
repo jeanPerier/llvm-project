@@ -6682,6 +6682,19 @@ private:
   bool unordered = true;
 };
 
+class Fortran::lower::ExprLower::ExprLowerImpl {
+  // TODO: I am here:
+  // Note to myself: is unordered respected if looping
+  // from RHS.
+  public:
+};
+
+Fortran::lower::ExprLower::ExprLower(std::unique_ptr<Fortran::lower::ExprLower::ExprLowerImpl>&& exprImpl) : impl{std::move(exprImpl)} {}
+
+Fortran::lower::ExprLower::~ExprLower() = default;
+
+
+
 fir::ExtendedValue Fortran::lower::createSomeArrayTempValue(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr,
@@ -6689,3 +6702,5 @@ fir::ExtendedValue Fortran::lower::createSomeArrayTempValue(
   LLVM_DEBUG(expr.AsFortran(llvm::dbgs() << "array value: ") << '\n');
   return ArrayExpr(converter, stmtCtx, converter.getCurrentLocation()).lower(expr);
 }
+
+

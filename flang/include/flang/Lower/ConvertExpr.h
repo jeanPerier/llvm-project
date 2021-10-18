@@ -20,6 +20,7 @@
 #include "flang/Evaluate/expression.h"
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include <memory>
 
 namespace mlir {
 class Location;
@@ -209,6 +210,36 @@ inline mlir::NamedAttribute getAdaptToByRefAttr(fir::FirOpBuilder &builder) {
   return {mlir::Identifier::get("adapt.valuebyref", builder.getContext()),
           builder.getUnitAttr()};
 }
+
+class ExprLower {
+ public:
+  class ExprLowerImpl;
+  using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
+
+  ExprLower(std::unique_ptr<ExprLowerImpl>&& exprImpl);
+  ~ExprLower();
+
+  // Evaluate Array expr temp.
+  // Copy scalar expr if characters/derived in memory.
+  // If a temp is created, the optional filter argument can control which of its element are actually set by evaluating expression elements.
+  void ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter);
+
+  llvm::ArrayRef<mlir::Value> getExtents() const;
+
+  llvm::ArrayRef<mlir::Value> getTypeParams() const;
+
+  fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
+  
+  /// Return evaluated expr, that may be a variable if expr
+  /// was a variable and ensureIsInTempOrRegister was not called.
+  fir::ExtendedValue materializeExpr(int rank);
+
+ private:
+    std::unique_ptr<ExprLowerImpl> impl;
+};
+
+ExprLower initExprLowering(AbstractConverter &converter, const evaluate::Expr<evaluate::SomeType> &expr, SymMap &symMap, StatementContext &stmtCtx);
+
 
 } // namespace Fortran::lower
 
