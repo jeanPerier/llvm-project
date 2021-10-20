@@ -211,12 +211,15 @@ inline mlir::NamedAttribute getAdaptToByRefAttr(fir::FirOpBuilder &builder) {
           builder.getUnitAttr()};
 }
 
+class Variable;
+
 class ExprLower {
  public:
   class ExprLowerImpl;
   using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
 
   ExprLower(std::unique_ptr<ExprLowerImpl>&& exprImpl);
+  ExprLower(Fortran::lower::Variable&& var);
   ~ExprLower();
 
   // Evaluate Array expr temp.

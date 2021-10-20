@@ -6672,8 +6672,6 @@ class Fortran::lower::ExprLower::ExprLowerImpl {
         loweredExpr = temp;
       },
       [&](const Variable& var) {
-        // TODO: scalar.
-        auto temp = createArrayTemp
         TODO(loc, "var to temp");
       },
       [&](const TempOrRegister&) {
@@ -6823,8 +6821,10 @@ Fortran::lower::ExprLower Fortran::lower::initExprLowering(
 
 Fortran::lower::ExprLower::ExprLower(std::unique_ptr<Fortran::lower::ExprLower::ExprLowerImpl>&& exprImpl) : impl{std::move(exprImpl)} {}
 
-Fortran::lower::ExprLower::~ExprLower() = default;
+Fortran::lower::ExprLower::ExprLower(Variable&& var) :
+impl{std::unique_ptr<Fortran::lower::ExprLower::ExprLowerImpl>(new Fortran::lower::ExprLower::ExprLowerImpl(std::move(var)))} {}
 
+Fortran::lower::ExprLower::~ExprLower() = default;
 
 fir::ExtendedValue Fortran::lower::createSomeArrayTempValue(
     Fortran::lower::AbstractConverter &converter,

@@ -160,6 +160,8 @@ VectorSubscriptBox genVectorSubscriptBox(
     Fortran::lower::StatementContext &stmtCtx,
     const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
 
+class ExprLower;
+
 /// Generalized variable representation.
 class Variable {
 public:
@@ -178,7 +180,6 @@ public:
 
   fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
 
-
   llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
   llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder& builder, mlir::Location loc) const;
@@ -187,12 +188,26 @@ public:
 
   void reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> lbounds, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const;
 
+  /// Generate code to assign an expression to this variable.
+  /// For arrays, if expr overlaps with the variable, expr should have been
+  /// temporized before calling this.
+  /// This does not perform any allocatable assignment semantics (if the variable is
+  /// a whole allocatable, it should be reallocated if needed before).
+  void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const ExprLower& expr, const ElementalMask* filter);
+
+  /// Generate code to assign one variable to another.
+  /// This behaves similarly to assign with an expression.
+  void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Variable& var, const ElementalMask* filter);
+  
+
   /// Returns an fir::ExtendedValue representing the variable without making a temp.
   /// Cannot be called for variable with vector subscripts.
   /// Will generate a fir.embox or fir.rebox for ArraySection.
   fir::ExtendedValue getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
   bool hasVectorSubscripts() const;
+
+  bool isArray() const;
 
 private:
   // TODO consider using some pointer for ArraySection

@@ -13,6 +13,7 @@
 #include "flang/Lower/VectorSubscripts.h"
 #include "flang/Lower/AbstractConverter.h"
 #include "flang/Lower/Support/Utils.h"
+#include "flang/Lower/ConvertExpr.h"
 #include "flang/Lower/Todo.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/Complex.h"
@@ -552,21 +553,28 @@ void Fortran::lower::Variable::prepareForAddressing(fir::FirOpBuilder& builder, 
     }
   }
 
-  std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      shape = builder.createShape(loc, exv);
-    },
-    [&](const ArraySection& arraySection) {
-      shape = arraySection.createShape(builder, loc);
-      slice = arraySection.createSlice(builder, loc);
-    }
-    }, var);
+  if (isArray())
+    std::visit(Fortran::common::visitors{
+      [&](const fir::ExtendedValue& exv) {
+        shape = builder.createShape(loc, exv);
+      },
+      [&](const ArraySection& arraySection) {
+        shape = arraySection.createShape(builder, loc);
+        slice = arraySection.createSlice(builder, loc);
+      }
+      }, var);
   readyForAddressing = true;
 }
 
-
 void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
   prepareForAddressing(builder, loc);
+  
+  if (!isArray()) {
+    assert(!filter && "no filter expected for scalars");
+    const auto& elem = std::get<fir::ExtendedValue>(var);
+    doOnEachElement(builder, loc, elem, /*inductionVariables*/llvm::None);
+    return; 
+  }
 
   auto idxTy = builder.getIndexType(); 
   auto extents = getExtents(builder, loc);
@@ -590,8 +598,10 @@ void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir
     builder.setInsertionPointToStart(loop.getBody());
     inductionVariables.push_back(loop.getInductionVar());
   }
+
   assert(outerLoop && !inductionVariables.empty() &&
          "at least one loop should be created");
+
   // Create if-ops nest filter if any.
   if (filter)
     (*filter)(builder, loc, inductionVariables);
@@ -693,6 +703,16 @@ bool Fortran::lower::Variable::hasVectorSubscripts() const {
   }, var);
 }
 
+bool Fortran::lower::Variable::isArray() const {
+  return std::visit(Fortran::common::visitors{
+    [&](const fir::ExtendedValue& exv) {
+      return exv.rank() > 0;
+    },
+    [&](const ArraySection& arraySection) {
+      return true;
+    },
+  }, var);
+}
 
 fir::ExtendedValue Fortran::lower::Variable::getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const {
   return std::visit(Fortran::common::visitors{
@@ -713,4 +733,19 @@ void Fortran::lower::Variable::reallocate(fir::FirOpBuilder& builder, mlir::Loca
   }
   
   fir::emitFatalError(loc, "trying to reallocate non-allocatable");
+}
+
+void Fortran::lower::Variable::genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExprLower& expr, const ElementalMask* filter) {
+  auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& lhsElt, llvm::ArrayRef<mlir::Value> indices) {
+    auto rhsElt = expr.getElementAt(b, l, indices);
+    fir::factory::assignScalars(b, l, lhsElt, rhsElt);
+  };
+  loopOverElements(builder, loc, elemAssign, filter, expr.canLoopUnorderedOverElements());
+}
+
+void Fortran::lower::Variable::genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Variable& var, const ElementalMask* filter) {
+  Fortran::lower::Variable v(var);
+  v.prepareForAddressing(builder, loc);
+  Fortran::lower::ExprLower expr(std::move(v));
+  genAssign(builder, loc, expr, filter);
 }
