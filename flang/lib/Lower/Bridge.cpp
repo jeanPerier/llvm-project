@@ -1890,11 +1890,83 @@ private:
     //  TODO: Is Scalar to array user def assignment a thing?
   }
 
+
+
+  // If temp is needed get storage for it:
+  //  - Create it (may or may not loop).
+  //  - Create loops
+  //  - Get or create temp storage for current indexes (RHS shape can be provided).
+  //  -  (fill temp with ensureIsInTempOrRegister(temp))
+  //  - End loops
+  //  - Create loops
+  //  - get the temp for current indexes
+  //  - Assign temp to LHS.
+  //  - End Loops
+  //  - Clean-up the temps
+  // Create Forall  
+  void genTemporizedForallAssignment(const Fortran::evaluate::Assignment &assign) {
+      auto loc = toLocation();
+      Fortran::lower::StatementContext forallContext;
+      Fortran::lower::ForallTemp forallTemp(*this, loc, explicitIterSpace, assign.rhs, forallContext);
+      explicitIterSpace.genLoopNest();
+      {
+        Fortran::lower::StatementContext stmtCtx;
+        const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
+        auto rhs = Fortran::lower::initExprLowering(*this, loc, assign.rhs, localSymbols, stmtCtx);
+        auto zeroBasedForallIndexes = Fortran::lower::getZeroBasedInductions(*builder, loc, explicitIterSpace);
+        auto rhsExtents = rhs.getExtents(*builder, loc);
+        auto typeParams = rhs.getTypeParams(*builder, loc);
+        auto temp = forallTemp.getOrCreateTempAt(*builder, loc, zeroBasedForallIndexes, rhsExtents, typeParams);
+        temp.prepareForAddressing(*builder, loc);
+        
+        // TODO: prefer a rhs.evaluateIn(temp, filter) to underline this is an evaluation, no an
+        // assignment (i.e, user defined assignment must not be called here).
+        auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& lhsElt, llvm::ArrayRef<mlir::Value> indices) {
+          auto rhsElt = rhs.getElementAt(b, l, indices);
+          fir::factory::assignScalars(b, l, lhsElt, rhsElt);
+        };
+        temp.loopOverElements(*builder, loc, elemAssign, whereStmtFilter, rhs.canLoopUnorderedOverElements());
+      }
+      Fortran::lower::createArrayMergeStores(*this, explicitIterSpace);
+      explicitIterSpace.genLoopNest();
+      {
+        Fortran::lower::StatementContext stmtCtx;
+        const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
+        auto zeroBasedForallIndexes = Fortran::lower::getZeroBasedInductions(*builder, loc, explicitIterSpace);
+        auto temp = forallTemp.getTempAt(*builder, loc, zeroBasedForallIndexes);
+        temp.prepareForAddressing(*builder, loc);
+        auto lhs = Fortran::lower::genVariable(*this, loc, stmtCtx, assign.lhs);
+        if (isWholeAllocatable(assign.lhs)) {
+          // TODO: Lbounds are not be propagated in the temp, yet needed here.
+          auto rhsLbounds = temp.getLBounds(*builder, loc);
+          auto rhsExtents = temp.getExtents(*builder, loc);
+          auto rhsParams = temp.getTypeParams(*builder, loc);
+          lhs.reallocate(*builder, loc, rhsLbounds, rhsExtents, rhsParams);
+        }
+        // If intrinsic or elemental assignment:
+        auto elemAssign = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue& lhsElt, llvm::ArrayRef<mlir::Value> indices) {
+          auto rhsElt = temp.getElementAt(b, l, indices);
+          fir::factory::assignScalars(b, l, lhsElt, rhsElt);
+        };
+        lhs.loopOverElements(*builder, loc, elemAssign, whereStmtFilter, /*canLoopUnordered*/true);
+        // TODO: Else user defined array assignment.
+        //  auto rhsArg = materializeRhs(assign.lhs.Rank());
+        //  TODO: Is Scalar to array user def assignment a thing?
+      }
+      Fortran::lower::createArrayMergeStores(*this, explicitIterSpace);
+  }
+
   void genNewAssignment(const Fortran::evaluate::Assignment &assign) {
-    if (explicitIterationSpace())
-      TODO(toLocation(), "Forall revamp");
     if (!implicitIterSpace.empty())
       TODO(toLocation(), "Where revamp");
+    if (explicitIterationSpace()) {
+      bool lhsAndRhsMayOverlap = true;
+      if (lhsAndRhsMayOverlap) {
+        genTemporizedForallAssignment(assign);
+        return;
+      }
+      explicitIterSpace.genLoopNest();
+    }
     auto loc = toLocation();
     std::visit(
         Fortran::common::visitors{
@@ -1912,6 +1984,8 @@ private:
               TODO(loc, "pointer assignments");
             }}, 
         assign.u);
+    if (explicitIterationSpace())
+      Fortran::lower::createArrayMergeStores(*this, explicitIterSpace);
   }
 
   /// Shared for both assignments and pointer assignments.

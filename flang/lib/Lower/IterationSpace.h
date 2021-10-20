@@ -31,10 +31,12 @@ class Expr;
 namespace lower {
 
 using MaskAddrAndShape = std::pair<mlir::Value, mlir::Value>;
-using FrontEndExpr = const evaluate::Expr<evaluate::SomeType> *;
+using SomeExpr = evaluate::Expr<evaluate::SomeType>;
+using FrontEndExpr = const SomeExpr *;
 using FrontEndSymbol = const semantics::Symbol *;
 
 class AbstractConverter;
+class Variable;
 
 template <typename A>
 class StackableConstructExpr {
@@ -440,6 +442,24 @@ bool symbolsIntersectSubscripts(llvm::ArrayRef<FrontEndSymbol> ctrlSet,
   return false;
 }
 
+class ForallTemp {
+  public:
+    ForallTemp(Fortran::lower::AbstractConverter& converter, mlir::Location loc, Fortran::lower::ExplicitIterSpace& iterSpace, const Fortran::lower::SomeExpr& rhs, Fortran::lower::StatementContext& stmtCtx);
+
+    Fortran::lower::Variable getOrCreateTempAt(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> zeroBasedForallInduction, llvm::ArrayRef<mlir::Value> rhsExtents, llvm::ArrayRef<mlir::Value> typeParams);
+
+    Fortran::lower::Variable getTempAt(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> zeroBasedForallInduction);
+  private:
+    mlir::Type tempType;
+    mlir::Type rhsType;
+    llvm::SmallVector<mlir::Value> forallShape;
+    mlir::Value temp;  
+    llvm::SmallVector<mlir::Value> extents;
+    llvm::SmallVector<mlir::Value> lengths;
+};
+
+/// When inside a Forall, get zero based indices
+llvm::SmallVector<mlir::Value> getZeroBasedInductions(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExplicitIterSpace& explicitIterSpace);
 } // namespace lower
 } // namespace Fortran
 

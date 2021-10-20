@@ -568,15 +568,17 @@ void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir
   assert(shape && "shape must have been prepared");
 
   auto idxTy = builder.getIndexType(); 
-  auto extents = fir::factory::getExtents(shape);
-  
-  llvm::SmallVector<mlir::Value> uppers;
-  for (auto extent : llvm::reverse(extents))
-    uppers.push_back(builder.createConvert(loc, idxTy, extent));
+  auto extents = getExtents(builder, loc);
 
   auto one = builder.createIntegerConstant(loc, idxTy, 1);
   auto zero = builder.createIntegerConstant(loc, idxTy, 0);
-   
+  
+  llvm::SmallVector<mlir::Value> uppers;
+  for (auto extent : llvm::reverse(extents)) {
+    extent = builder.createConvert(loc, idxTy, extent);
+    uppers.push_back(builder.create<mlir::SubIOp>(loc, extent, one));
+  }
+
   llvm::SmallVector<mlir::Value> inductionVariables;
   fir::DoLoopOp outerLoop;
    
@@ -608,7 +610,30 @@ llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getTypeParams(fir::FirO
   }, var);
 }
 
+/// Compute the shape of a slice.
+static llvm::SmallVector<mlir::Value> computeSliceShape(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value slice) {
+  llvm::SmallVector<mlir::Value> slicedShape;
+  auto slOp = mlir::cast<fir::SliceOp>(slice.getDefiningOp());
+  auto triples = slOp.triples();
+  auto idxTy = builder.getIndexType();
+  for (unsigned i = 0, end = triples.size(); i < end; i += 3) {
+    if (!mlir::isa_and_nonnull<fir::UndefOp>(
+            triples[i + 1].getDefiningOp())) {
+      // (..., lb:ub:step, ...) case:  extent = max((ub-lb+step)/step, 0)
+      // See Fortran 2018 9.5.3.3.2 section for more details.
+      auto res = builder.genExtentFromTriplet(loc, triples[i], triples[i + 1],
+                                              triples[i + 2], idxTy);
+      slicedShape.emplace_back(res);
+    } else {
+      // do nothing. `..., i, ...` case, so dimension is dropped.
+    }
+  }
+  return slicedShape;
+}
+
 llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getExtents(fir::FirOpBuilder &builder, mlir::Location loc) const {
+  if (slice)
+    return computeSliceShape(builder, loc, slice);
   if (shape) {
     auto extents = fir::factory::getExtents(shape);
     return {extents.begin(), extents.end()};
