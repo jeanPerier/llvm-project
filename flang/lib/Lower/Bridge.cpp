@@ -1913,10 +1913,10 @@ private:
         Fortran::lower::StatementContext stmtCtx;
         const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
         auto rhs = Fortran::lower::initExprLowering(*this, loc, assign.rhs, localSymbols, stmtCtx);
-        auto zeroBasedForallIndexes = Fortran::lower::getZeroBasedInductions(*builder, loc, explicitIterSpace);
+        auto forallIterationId = forallTemp.getForallIterationId(*builder, loc, explicitIterSpace);
         auto rhsExtents = rhs.getExtents(*builder, loc);
         auto typeParams = rhs.getTypeParams(*builder, loc);
-        auto temp = forallTemp.getOrCreateTempAt(*builder, loc, zeroBasedForallIndexes, rhsExtents, typeParams);
+        auto temp = forallTemp.getOrCreateIterationTemp(*builder, loc, forallIterationId, rhsExtents, typeParams);
         temp.prepareForAddressing(*builder, loc);
         
         // TODO: prefer a rhs.evaluateIn(temp, filter) to underline this is an evaluation, no an
@@ -1932,8 +1932,8 @@ private:
       {
         Fortran::lower::StatementContext stmtCtx;
         const Fortran::lower::Variable::ElementalMask* whereStmtFilter = nullptr;
-        auto zeroBasedForallIndexes = Fortran::lower::getZeroBasedInductions(*builder, loc, explicitIterSpace);
-        auto temp = forallTemp.getTempAt(*builder, loc, zeroBasedForallIndexes);
+        auto forallIterationId = forallTemp.getForallIterationId(*builder, loc, explicitIterSpace);
+        auto temp = forallTemp.getIterationTemp(*builder, loc, forallIterationId);
         temp.prepareForAddressing(*builder, loc);
         auto lhs = Fortran::lower::genVariable(*this, loc, stmtCtx, assign.lhs);
         if (isWholeAllocatable(assign.lhs)) {
@@ -1952,6 +1952,7 @@ private:
         // TODO: Else user defined array assignment.
         //  auto rhsArg = materializeRhs(assign.lhs.Rank());
         //  TODO: Is Scalar to array user def assignment a thing?
+        forallTemp.freeIterationTemp(*builder, loc, temp);
       }
       Fortran::lower::createArrayMergeStores(*this, explicitIterSpace);
   }

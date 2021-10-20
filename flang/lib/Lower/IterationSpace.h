@@ -446,20 +446,51 @@ class ForallTemp {
   public:
     ForallTemp(Fortran::lower::AbstractConverter& converter, mlir::Location loc, Fortran::lower::ExplicitIterSpace& iterSpace, const Fortran::lower::SomeExpr& rhs, Fortran::lower::StatementContext& stmtCtx);
 
-    Fortran::lower::Variable getOrCreateTempAt(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> zeroBasedForallInduction, llvm::ArrayRef<mlir::Value> rhsExtents, llvm::ArrayRef<mlir::Value> typeParams);
+    /// Inside a forall loop nest, get the current iteration id to be used by to identify the forall iteration temp.
+    mlir::Value getForallIterationId(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExplicitIterSpace& explicitIterSpace) const;
 
-    Fortran::lower::Variable getTempAt(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> zeroBasedForallInduction);
+    /// Get the iteration temp or created it was not already.
+    Fortran::lower::Variable getOrCreateIterationTemp(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value iteration, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const;
+
+    /// Get the iteration temp that must have been previously created.
+    Fortran::lower::Variable getIterationTemp(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value iteration) const;
+
+    /// Free the iteration temp if its storage is independent from the overall storage.
+    void freeIterationTemp(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::Variable& iterationTemp) const;
+
+    /// Is this forall temp composed of sub-temps allocated at each iteration ?
+    bool isRagged() const;
+
+    mlir::Value getOverallStorage() const {return overallStorage;}
+
+    /// Returns the iteration temp extents independently of the current iteration.
+    /// This can only be called if these extents are actually independent of the
+    /// forall iteration.
+    llvm::ArrayRef<mlir::Value> getExtents() const {
+      assert(!isRagged() && "need to get iteration temp");
+      return invariantExtents;
+    }
+
+    /// Returns the iteration temp type parameters independently of the current iteration.
+    /// This can only be called if these parameters are actually independent of the
+    /// forall iteration.
+    llvm::ArrayRef<mlir::Value> getTypeParams() const {
+      assert(!isRagged() && "need to get iteration temp");
+      return invariantTypeParams;
+    }
+
+    mlir::Type getIterationTempType() const {
+      return  iterationTempType;
+    }
+     
   private:
-    mlir::Type tempType;
-    mlir::Type rhsType;
+    llvm::SmallVector<mlir::Value> invariantExtents;
+    llvm::SmallVector<mlir::Value> invariantTypeParams;
     llvm::SmallVector<mlir::Value> forallShape;
-    mlir::Value temp;  
-    llvm::SmallVector<mlir::Value> extents;
-    llvm::SmallVector<mlir::Value> lengths;
+    mlir::Value overallStorage;  
+    mlir::Type iterationTempType;
 };
 
-/// When inside a Forall, get zero based indices
-llvm::SmallVector<mlir::Value> getZeroBasedInductions(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExplicitIterSpace& explicitIterSpace);
 } // namespace lower
 } // namespace Fortran
 

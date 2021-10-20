@@ -546,9 +546,11 @@ Fortran::lower::Variable Fortran::lower::genVariable(Fortran::lower::AbstractCon
 void Fortran::lower::Variable::prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc) {
   if (readyForAddressing)
     return;
-  if (const auto *exv = std::get_if<fir::ExtendedValue>(&var))
-    if (const auto *mutableBox = exv->getBoxOf<fir::MutableBoxValue>())
+  if (const auto *exv = std::get_if<fir::ExtendedValue>(&var)) {
+    if (const auto *mutableBox = exv->getBoxOf<fir::MutableBoxValue>()) {
       var = fir::factory::genMutableBoxRead(builder, loc, *mutableBox);
+    }
+  }
 
   std::visit(Fortran::common::visitors{
     [&](const fir::ExtendedValue& exv) {
@@ -565,7 +567,6 @@ void Fortran::lower::Variable::prepareForAddressing(fir::FirOpBuilder& builder, 
 
 void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
   prepareForAddressing(builder, loc);
-  assert(shape && "shape must have been prepared");
 
   auto idxTy = builder.getIndexType(); 
   auto extents = getExtents(builder, loc);
@@ -610,7 +611,7 @@ llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getTypeParams(fir::FirO
   }, var);
 }
 
-/// Compute the shape of a slice.
+/// Compute the shape of a slice (TODO share in fir::factory)
 static llvm::SmallVector<mlir::Value> computeSliceShape(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value slice) {
   llvm::SmallVector<mlir::Value> slicedShape;
   auto slOp = mlir::cast<fir::SliceOp>(slice.getDefiningOp());
@@ -634,7 +635,7 @@ static llvm::SmallVector<mlir::Value> computeSliceShape(fir::FirOpBuilder& build
 llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getExtents(fir::FirOpBuilder &builder, mlir::Location loc) const {
   if (slice)
     return computeSliceShape(builder, loc, slice);
-  if (shape) {
+  if (shape && !shape.getType().isa<fir::ShiftType>()) {
     auto extents = fir::factory::getExtents(shape);
     return {extents.begin(), extents.end()};
   }
