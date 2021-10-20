@@ -137,6 +137,14 @@ public:
                               mlir::ValueRange lenParams = {},
                               llvm::ArrayRef<mlir::NamedAttribute> attrs = {});
 
+  /// Create a temporary on the heap. A temp is allocated using `fir.allocmem` and can be read and written using `fir.load` and `fir.store`, resp.  The temporary can be given a name via a front-end `Symbol` or a `StringRef`.
+  /// It is up to the caller to free the temporary with `fir.freemem` after the last usage of the temporary.
+  mlir::Value createHeapTemporary(mlir::Location loc, mlir::Type type,
+                              llvm::StringRef name = {},
+                              mlir::ValueRange shape = {},
+                              mlir::ValueRange lenParams = {},
+                              llvm::ArrayRef<mlir::NamedAttribute> attrs = {});
+
   /// Create an unnamed and untracked temporary on the stack.
   mlir::Value createTemporary(mlir::Location loc, mlir::Type type,
                               mlir::ValueRange shape) {

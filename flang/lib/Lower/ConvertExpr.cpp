@@ -6486,12 +6486,7 @@ static fir::ExtendedValue createArrayTemp(fir::FirOpBuilder& builder, mlir::Loca
   if (auto recTy = seqTy.getEleTy().dyn_cast<fir::RecordType>())
     if (recTy.getNumLenParams() > 0)
       TODO(loc, "derived type array expression temp with length parameters");
-  // FIXME: need to removed some extents for the constant ones in the type.
-  mlir::Value temp = seqTy.hasConstantShape()
-                         ? builder.create<fir::AllocMemOp>(loc, type)
-                         : builder.create<fir::AllocMemOp>(
-                               loc, type, ".array.expr", allocTypeParams, extents);
-  
+  auto temp = builder.createHeapTemporary(loc, type, ".array.expr", extents, allocTypeParams);
   // TODO: StatementContext clean-up should be the one passing a builder argument to avoid bad capture.
   auto *bldr = &builder;
   stmtCtx.attachCleanup(
@@ -6677,7 +6672,8 @@ class Fortran::lower::ExprLower::ExprLowerImpl {
         loweredExpr = temp;
       },
       [&](const Variable& var) {
-        // TODO
+        // TODO: scalar.
+        auto temp = createArrayTemp
         TODO(loc, "var to temp");
       },
       [&](const TempOrRegister&) {

@@ -1928,6 +1928,7 @@ private:
         temp.loopOverElements(*builder, loc, elemAssign, whereStmtFilter, rhs.canLoopUnorderedOverElements());
       }
       Fortran::lower::createArrayMergeStores(*this, explicitIterSpace);
+      forallTemp.resetForallIterationCount(*builder, loc);
       explicitIterSpace.genLoopNest();
       {
         Fortran::lower::StatementContext stmtCtx;

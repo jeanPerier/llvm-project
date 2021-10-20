@@ -372,28 +372,6 @@ void Fortran::lower::ExplicitIterSpace::dump() const {
   llvm::errs() << *this << '\n';
 }
 
-/// Get the current number of fir.do_loop nest. The loop nest must have been created.
-static unsigned getForallDepth(const Fortran::lower::ExplicitIterSpace& iterSpace) {
-  unsigned depth = 0;
-  for (auto nest : iterSpace.getLoopStack())
-    depth += nest.size();
-  return depth;
-}
-
-/// Get the zero based forall fir.do_loop inductions
-static llvm::SmallVector<mlir::Value> getZeroBasedInductions(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExplicitIterSpace& explicitIterSpace) {
-  llvm::SmallVector<mlir::Value> indices;
-  for (auto loopNest : explicitIterSpace.getLoopStack())
-    for (auto loop : loopNest) {
-      auto diff = builder.create<mlir::SubIOp>(loc, loop.getInductionVar(), loop.lowerBound());
-      auto idx =
-        builder.create<mlir::SignedDivIOp>(loc, diff, loop.step()); 
-      indices.push_back(idx);
-    }
-  return indices;   
-}
-
-
 Fortran::lower::ForallTemp::ForallTemp(Fortran::lower::AbstractConverter& converter, mlir::Location loc, Fortran::lower::ExplicitIterSpace& iterSpace, const Fortran::lower::SomeExpr& rhs, Fortran::lower::StatementContext& stmtCtx) {
   // Dumb forall temp size = max(i0) * ... * max(in) * max(rhs size).
   // General case: evaluating the max requires running the loops.
@@ -431,47 +409,29 @@ Fortran::lower::ForallTemp::ForallTemp(Fortran::lower::AbstractConverter& conver
     if (auto charTy = fir::unwrapSequenceType(iterationTempType).dyn_cast<fir::CharacterType>())
       invariantTypeParams.push_back(builder.createIntegerConstant(loc, idxTy, charTy.getLen()));
   }
-  // Compute the maximum size of the forall nest (maximum number of time the assignment
-  // inside the forall will be executed), right now this is done in a dumb way by executing
-  // the forall loops (but not the assignments) and gathering the maximum zero based
-  // inductions to cover the cases where the loop bounds are not constants and/or requires
-  // evaluating functions. More clever analysis could be done looking at the loop bounds expression here.
+  // count the number of forall iteration by looping through them a first time
+  // (without executing any assignment statements).
+  // This is the most general way of finding the number of iteration given loop
+  // bounds may use pure functions preventing static analysis. For simple cases,
+  // this could be simplified by analyzing the bounds expression to find an
+  // expression computing the maximum.
   auto one = builder.createIntegerConstant(loc, idxTy, 1);
   auto zero = builder.createIntegerConstant(loc, idxTy, 0);
-  /// Get ForallDepth can only be called after loop nest generation.
+
+  forallIterationCounter = builder.createTemporary(loc, idxTy);
+  builder.create<fir::StoreOp>(loc, zero, forallIterationCounter);
+
   iterSpace.genLoopNest();
-  auto depth = getForallDepth(iterSpace);
-  auto inLoops  = builder.saveInsertionPoint();
-  builder.setInsertionPoint(iterSpace.getOuterLoop());
-
-  llvm::SmallVector<mlir::Value> maxIndices;
-  for (decltype(depth) i = 0; i < depth; ++i) {
-    auto maxIdx = builder.createTemporary(loc, idxTy);
-    builder.create<fir::StoreOp>(loc, zero, maxIdx);
-    maxIndices.push_back(maxIdx);
-  }
-
-  builder.restoreInsertionPoint(inLoops);
   {
-    auto indices = getZeroBasedInductions(builder, loc, iterSpace);
-    for (auto [maxVar, idx] : llvm::zip(maxIndices, indices)) {
-      auto oldMax = builder.create<fir::LoadOp>(loc, maxVar);
-      auto newMax = Fortran::lower::genMax(builder, loc, {oldMax, idx});
-      builder.create<fir::StoreOp>(loc, newMax, maxVar);
-    }
+    auto numIters = builder.create<fir::LoadOp>(loc, forallIterationCounter);
+    auto numItersInc = builder.create<mlir::AddIOp>(loc, numIters, one);
+    builder.create<fir::StoreOp>(loc, numItersInc, forallIterationCounter);
   }
   Fortran::lower::createArrayMergeStores(converter, iterSpace);
 
-  for (auto maxVar : maxIndices) {
-    auto max = builder.create<fir::LoadOp>(loc, maxVar);
-    auto maxExtent = builder.create<mlir::AddIOp>(loc, max, one);
-    forallShape.push_back(maxExtent);
-  }
-  assert(!forallShape.empty() && "at least one forall loop expected");
-  mlir::Value size = forallShape[0];
-  for (auto extent: llvm::ArrayRef<mlir::Value>(forallShape).drop_front())
-    size = builder.create<mlir::MulIOp>(loc, size, extent);
-
+  auto size = builder.create<fir::LoadOp>(loc, forallIterationCounter);
+  // Reset counter for further usages
+  resetForallIterationCount(builder, loc);
 
   mlir::Value tmp = builder.create<fir::AllocMemOp>(loc, tempType, ".forall.temp", llvm::None, mlir::ValueRange{size});
   overallStorage = tmp;
@@ -538,13 +498,13 @@ Fortran::lower::Variable Fortran::lower::ForallTemp::getOrCreateIterationTemp(fi
   // Allocate a temp for the current iteration.
   auto tempBox = getRaggedForallTemp(builder, loc, *this, iteration);
   auto rhsType = getIterationTempType();
-  // TODO clean-up type params and extents
-  mlir::Value temp = builder.create<fir::AllocMemOp>(loc, rhsType, ".forall.temp.ragged", typeParams, extents);
+  auto temp = builder.createHeapTemporary(loc, rhsType, ".forall.temp.ragged", extents, typeParams);
+  // Store temp, shape and parameters in the iteration fir.ref<fir.box> for later usage.
   auto shapeTy = fir::ShapeType::get(builder.getContext(), extents.size());
   auto shape =  builder.create<fir::ShapeOp>(loc, shapeTy, extents);
-  // TODO clean-up type params.
   mlir::Value emptySlice;
-  auto newBox = builder.create<fir::EmboxOp>(loc, tempBox.getBoxTy(), temp, shape, emptySlice, typeParams);
+  const bool hasDynamicParams = fir::hasDynamicSize(fir::unwrapSequenceType(rhsType));
+  auto newBox = builder.create<fir::EmboxOp>(loc, tempBox.getBoxTy(), temp, shape, emptySlice, hasDynamicParams ? mlir::ValueRange{typeParams} : mlir::ValueRange{});
   builder.create<fir::StoreOp>(loc, newBox, fir::getBase(tempBox));
   auto exv = toExtendedValue(temp, extents, typeParams);
   return Fortran::lower::Variable(std::move(exv));
@@ -574,21 +534,14 @@ void Fortran::lower::ForallTemp::freeIterationTemp(fir::FirOpBuilder& builder, m
 }
 
 mlir::Value Fortran::lower::ForallTemp::getForallIterationId(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExplicitIterSpace& explicitIterSpace) const {
- // Return the zero based current iteration number inside a forall nest as the id.
- // It directly can be used to address the overall temp storage.
-  auto zeroBasedForallInduction = getZeroBasedInductions(builder, loc, explicitIterSpace);
-  // Get temp storage for iteration.
-  assert(!zeroBasedForallInduction.empty() && "at least one forall loop expected");
-  mlir::ArrayRef<mlir::Value> idxs = zeroBasedForallInduction;
-  mlir::ArrayRef<mlir::Value> exts = forallShape;
-  auto at = idxs.back();
-  auto stride = exts.back();
-  auto idxsIt = llvm::reverse(idxs.drop_front());
-  auto extsIt = llvm::reverse(exts.drop_front());
-  for (auto [idx, ext] : llvm::zip(idxsIt, extsIt)) {
-    auto dim = builder.create<mlir::MulIOp>(loc, idx, stride); 
-    at = builder.create<mlir::AddIOp>(loc, at, dim);
-    stride = builder.create<mlir::MulIOp>(loc, stride, ext); 
-  }
-  return at;
+  auto one = builder.createIntegerConstant(loc, builder.getIndexType(), 1);
+  auto numIters = builder.create<fir::LoadOp>(loc, forallIterationCounter);
+  auto numItersInc = builder.create<mlir::AddIOp>(loc, numIters, one);
+  builder.create<fir::StoreOp>(loc, numItersInc, forallIterationCounter);
+  return numIters;
+}
+
+void Fortran::lower::ForallTemp::resetForallIterationCount(fir::FirOpBuilder& builder, mlir::Location loc) const {
+  auto zero = builder.createIntegerConstant(loc, builder.getIndexType(), 0);
+  builder.create<fir::StoreOp>(loc, zero, forallIterationCounter);
 }

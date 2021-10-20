@@ -449,6 +449,9 @@ class ForallTemp {
     /// Inside a forall loop nest, get the current iteration id to be used by to identify the forall iteration temp.
     mlir::Value getForallIterationId(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExplicitIterSpace& explicitIterSpace) const;
 
+    /// Reset the forall iteration count after the end of a forall fir.do_loop nest.
+    void resetForallIterationCount(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
     /// Get the iteration temp or created it was not already.
     Fortran::lower::Variable getOrCreateIterationTemp(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value iteration, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const;
 
@@ -486,7 +489,7 @@ class ForallTemp {
   private:
     llvm::SmallVector<mlir::Value> invariantExtents;
     llvm::SmallVector<mlir::Value> invariantTypeParams;
-    llvm::SmallVector<mlir::Value> forallShape;
+    mlir::Value forallIterationCounter;
     mlir::Value overallStorage;  
     mlir::Type iterationTempType;
 };
