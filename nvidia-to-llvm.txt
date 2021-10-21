@@ -43,9 +43,18 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-e6a911d12cfd5f7c77d03dae0dbc8fef1b952423 fold LGE & al.
+a53e113c051e59514787c795a16306ba62d4de69 NAMELIST input of short arrays
+c7d28baa964e74beb89712e3ee2ba469464e286f fix bogus folding error for ISHFT(x, negative)
+785843d35989f3a78a6e61753025279eb399ac79 emit unformatted headers & footers even with RECL=
+be1dddd4bb97fda57021f72c45fe1ef675cbbb80 enforce C919b
+544382ac52ba92ed4061e838300bb74a0474c2c9 fix generic resolution case (don't convert ints)
+bd8ffe266adaee57b0ed575a2abf0010ee3f5aa7 speed up DOT_PRODUCT / MATMUL
+28c32347b5d87590fb51921d1e2ab186039a99d1 extension to distinguish specific procedures
 
 Done (oldest last, omitting no-ops):
+f4445e82dfb0009f2d54ac6d05dbbbc16ce9903a fold BTEST
+4599446e070a0c8069d4bb1a7a45415c88085677 admit NULL actual arguments to generics unless ambiguous
+e6a911d12cfd5f7c77d03dae0dbc8fef1b952423 fold LGE & al.
 4dcb5e38bbbd5bc0db847ad4b3b2a2ad360e70d4 expunge bogus semantic check for ELEMENTAL w/o dummies
 dd5cb845bf151381c2d580b796bc9fecfb53882a fix output B/O/Z editing of "negative" values
 37cf31bd8a89b9e7c7fbe26c74fdde5f76aa11bb document extension: scalars simply contiguous

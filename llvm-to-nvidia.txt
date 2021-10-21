@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 1062f989af23c52a472892ff54a55557fca35528
+with llvm-project commit dccfaddc6bcc711bd972b43bff5ce6d71c1b39dc
 
 Log of cherry-picked commits in reverse order (latest first):
+e9fe8ef4b0aa68be782a9139e08e9337ef79a462 Johs Mottley: flang-omp-report: std::map -> DenseMap
+660c511e5b79d3724b8a139c8865c790d77b1f8f Josh Mottley: flang-omp-report: std::string -> StringRef
+c983aeddcf5af992d2a807d3f4f8cdc27cbf63b1 Valentin: FIRBuilder character utilities
+45503fc044499a5dc88be273a2d599f8ad5bccd3 Valentin: FIRBuilder utilities
+f17f694a0fcf8eae7de4e051678e47f15d7855ff Valentin: IfBuilder
+dd8c8d4b7cee7cb58b40e0456d656d68a31ef3b4 Peixin: checks for THREADPRIVATE
 cb3aa49ec04d4c16863e363bd5d13396d06fffe5 Mogball: fix comments
 0b48b015b5740ac9e91b21ad4e61188e80b211cf Josh Mottley: std::vector -> llvm::SmallVector
 0fbd3aad75f957da5a76e761509efed1988d562b Valentin: remove unused variable
