@@ -343,69 +343,113 @@ Fortran::lower::VectorSubscriptBox Fortran::lower::genVectorSubscriptBox(
   return VectorSubscriptBoxBuilder(loc, converter, stmtCtx).gen(expr);
 }
 
-template <typename LoopType, typename Generator>
-mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsBase(
-    fir::FirOpBuilder &builder, mlir::Location loc,
-    const Generator &elementalGenerator,
-    [[maybe_unused]] mlir::Value initialCondition) {
-  auto shape = createShape(builder, loc);
-  auto slice = createSlice(builder, loc);
+static llvm::SmallVector<mlir::Value> reverseAndSubstractOne(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> extents, mlir::Value one) {
+  llvm::SmallVector<mlir::Value> uppers;
+  auto idxTy = builder.getIndexType();
+  for (auto extent : llvm::reverse(extents)) {
+    extent = builder.createConvert(loc, idxTy, extent);
+    uppers.push_back(builder.create<mlir::SubIOp>(loc, extent, one));
+  }
+  return uppers;
+}
 
-  // Create loop nest for triplets and vector subscripts in column
-  // major order.
+void Fortran::lower::VectorSubscriptBox::prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc) {
+  if (readyForAddressing)
+    return;
+
+  if (const auto *mutableBox = loweredBase.getBoxOf<fir::MutableBoxValue>())
+    loweredBase = fir::factory::genMutableBoxRead(builder, loc, *mutableBox);
+
+  if (isArray()) {
+    shape = createShape(builder, loc);
+    slice = createSlice(builder, loc);
+  }
+  readyForAddressing = true;
+}
+
+bool Fortran::lower::VectorSubscriptBox::isArray() const {
+  return !loweredSubscripts.empty() || loweredBase.rank() == 0;
+}
+
+
+mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsWhile(
+    fir::FirOpBuilder &builder, mlir::Location loc,
+    const ElementalGeneratorWithBoolReturn &elementalGenerator,
+    mlir::Value initialCondition) {
+
+  prepareForAddressing(builder, loc);
+
+  if (!isArray()) {
+    auto elem = getElementAt(builder, loc, llvm::None);
+    return elementalGenerator(builder, loc, loweredBase, /*inductionVariables*/llvm::None);
+  }
+
+  auto idxTy = builder.getIndexType(); 
+  auto extents = getExtents(builder, loc);
+  auto one = builder.createIntegerConstant(loc, idxTy, 1);
+  auto zero = builder.createIntegerConstant(loc, idxTy, 0);
+  auto uppers = reverseAndSubstractOne(builder, loc, extents, one);
   llvm::SmallVector<mlir::Value> inductionVariables;
-  LoopType outerLoop;
-  for (auto [lb, ub, step] : genLoopBounds(builder, loc)) {
-    LoopType loop;
-    if constexpr (std::is_same_v<LoopType, fir::IterWhileOp>) {
-      loop =
-          builder.create<fir::IterWhileOp>(loc, lb, ub, step, initialCondition);
-      initialCondition = loop.getIterateVar();
-      if (!outerLoop)
-        outerLoop = loop;
-      else
-        builder.create<fir::ResultOp>(loc, loop.getResult(0));
-    } else {
-      loop =
-          builder.create<fir::DoLoopOp>(loc, lb, ub, step, /*unordered=*/false);
-      if (!outerLoop)
-        outerLoop = loop;
-    }
+  fir::IterWhileOp outerLoop;
+  for (auto ub : uppers) {
+    auto loop =
+        builder.create<fir::IterWhileOp>(loc, zero, ub, one, initialCondition);
+    initialCondition = loop.getIterateVar();
+    if (!outerLoop)
+      outerLoop = loop;
+    else
+      builder.create<fir::ResultOp>(loc, loop.getResult(0));
     builder.setInsertionPointToStart(loop.getBody());
     inductionVariables.push_back(loop.getInductionVar());
   }
   assert(outerLoop && !inductionVariables.empty() &&
          "at least one loop should be created");
 
-  auto elem = getElementAt(builder, loc, shape, slice, inductionVariables);
+  auto elem = getElementAt(builder, loc, inductionVariables);
 
-  if constexpr (std::is_same_v<LoopType, fir::IterWhileOp>) {
-    auto res = elementalGenerator(elem);
-    builder.create<fir::ResultOp>(loc, res);
-    builder.setInsertionPointAfter(outerLoop);
-    return outerLoop.getResult(0);
-  } else {
-    elementalGenerator(elem);
-    builder.setInsertionPointAfter(outerLoop);
-    return {};
+  auto res = elementalGenerator(builder, loc, elem, inductionVariables);
+  builder.create<fir::ResultOp>(loc, res);
+  builder.setInsertionPointAfter(outerLoop);
+  return outerLoop.getResult(0);
+}
+
+void Fortran::lower::VectorSubscriptBox::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
+  prepareForAddressing(builder, loc);
+  
+  if (!isArray()) {
+    assert(!filter && "no filter expected for scalars");
+    auto elem = getElementAt(builder, loc, llvm::None);
+    doOnEachElement(builder, loc, elem, /*inductionVariables*/llvm::None);
+    return; 
   }
-}
 
-void Fortran::lower::VectorSubscriptBox::loopOverElements(
-    fir::FirOpBuilder &builder, mlir::Location loc,
-    const ElementalGenerator &elementalGenerator) {
-  mlir::Value initialCondition;
-  loopOverElementsBase<fir::DoLoopOp, ElementalGenerator>(
-      builder, loc, elementalGenerator, initialCondition);
-}
+  auto idxTy = builder.getIndexType(); 
+  auto extents = getExtents(builder, loc);
 
-mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsWhile(
-    fir::FirOpBuilder &builder, mlir::Location loc,
-    const ElementalGeneratorWithBoolReturn &elementalGenerator,
-    mlir::Value initialCondition) {
-  return loopOverElementsBase<fir::IterWhileOp,
-                              ElementalGeneratorWithBoolReturn>(
-      builder, loc, elementalGenerator, initialCondition);
+  auto one = builder.createIntegerConstant(loc, idxTy, 1);
+  auto zero = builder.createIntegerConstant(loc, idxTy, 0);
+  auto uppers = reverseAndSubstractOne(builder, loc, extents, one);
+  
+  llvm::SmallVector<mlir::Value> inductionVariables;
+  fir::DoLoopOp outerLoop;
+   
+  for (auto ub: uppers) {
+    auto loop = builder.create<fir::DoLoopOp>(loc, zero, ub, one, canLoopUnordered);
+    if (!outerLoop)
+      outerLoop = loop;
+    builder.setInsertionPointToStart(loop.getBody());
+    inductionVariables.push_back(loop.getInductionVar());
+  }
+
+  assert(outerLoop && !inductionVariables.empty() &&
+         "at least one loop should be created");
+
+  // Create if-ops nest filter if any.
+  if (filter)
+    (*filter)(builder, loc, inductionVariables);
+  auto elem = getElementAt(builder, loc, inductionVariables);
+  doOnEachElement(builder, loc, elem, inductionVariables);
+  builder.setInsertionPointAfter(outerLoop);
 }
 
 const fir::ExtendedValue&
@@ -495,39 +539,72 @@ Fortran::lower::VectorSubscriptBox::createSlice(fir::FirOpBuilder &builder,
   return builder.create<fir::SliceOp>(loc, sliceTy, triples, componentPath);
 }
 
-/// Generate zero base loop bounds.
-llvm::SmallVector<std::tuple<mlir::Value, mlir::Value, mlir::Value>>
-Fortran::lower::VectorSubscriptBox::genLoopBounds(fir::FirOpBuilder &builder,
-                                                  mlir::Location loc) {
+/// Compute the shape of a slice (TODO share in fir::factory)
+static llvm::SmallVector<mlir::Value> computeSliceShape(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value slice) {
+  llvm::SmallVector<mlir::Value> slicedShape;
+  auto slOp = mlir::cast<fir::SliceOp>(slice.getDefiningOp());
+  auto triples = slOp.triples();
   auto idxTy = builder.getIndexType();
-  auto one = builder.createIntegerConstant(loc, idxTy, 1);
-  auto zero = builder.createIntegerConstant(loc, idxTy, 0);
-  llvm::SmallVector<std::tuple<mlir::Value, mlir::Value, mlir::Value>> bounds;
-  auto dimension = loweredSubscripts.size();
-  for (const auto &subscript : llvm::reverse(loweredSubscripts)) {
-    --dimension;
+  for (unsigned i = 0, end = triples.size(); i < end; i += 3) {
+    if (!mlir::isa_and_nonnull<fir::UndefOp>(
+            triples[i + 1].getDefiningOp())) {
+      // (..., lb:ub:step, ...) case:  extent = max((ub-lb+step)/step, 0)
+      // See Fortran 2018 9.5.3.3.2 section for more details.
+      auto res = builder.genExtentFromTriplet(loc, triples[i], triples[i + 1],
+                                              triples[i + 2], idxTy);
+      slicedShape.emplace_back(res);
+    } else {
+      // do nothing. `..., i, ...` case, so dimension is dropped.
+    }
+  }
+  return slicedShape;
+}
+
+llvm::SmallVector<mlir::Value>
+Fortran::lower::VectorSubscriptBox::getExtents(fir::FirOpBuilder &builder,
+                                                  mlir::Location loc) const {
+  if (slice)
+    return computeSliceShape(builder, loc, slice);
+  if (shape && !shape.getType().isa<fir::ShiftType>()) {
+    auto extents = fir::factory::getExtents(shape);
+    return {extents.begin(), extents.end()};
+  }
+  
+  if (loweredSubscripts.empty())
+    return fir::factory::getExtents(builder, loc, loweredBase);
+  
+  auto idxTy = builder.getIndexType();
+  llvm::SmallVector<mlir::Value> extents;
+  for (const auto &subscript : loweredSubscripts) {
     if (std::holds_alternative<mlir::Value>(subscript))
       continue;
-    mlir::Value lb, ub, step;
     if (const auto *triplet = std::get_if<LoweredTriplet>(&subscript)) {
-      lb = zero;
-      ub = builder.genExtentFromTriplet(loc, triplet->lb, triplet->ub,
+      auto ext = builder.genExtentFromTriplet(loc, triplet->lb, triplet->ub,
                                                  triplet->stride, idxTy);
-      step = one;
+      extents.push_back(ext);
     } else {
       const auto &vector = std::get<LoweredVectorSubscript>(subscript);
-      lb = zero;
-      ub = builder.create<mlir::SubIOp>(loc, idxTy, vector.size, one);
-      step = one;
+      extents.push_back(vector.size);
     }
-    bounds.emplace_back(lb, ub, step);
   }
-  return bounds;
+  return extents;
 }
 
 fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
-    fir::FirOpBuilder &builder, mlir::Location loc, mlir::Value shape,
-    mlir::Value slice, mlir::ValueRange indices) const {
+    fir::FirOpBuilder &builder, mlir::Location loc,
+    mlir::ValueRange indices) const {
+  auto element = isArray() ? genArrayCoor(builder, loc, indices) : loweredBase;
+  if (!substringBounds.empty()) {
+    auto *charBox = element.getCharBox();
+    assert(charBox && "substring requires CharBox base");
+    fir::factory::CharacterExprHelper helper{builder, loc};
+    return helper.createSubstring(*charBox, substringBounds);
+  }
+  return element;
+}
+
+fir::ExtendedValue Fortran::lower::VectorSubscriptBox::genArrayCoor(
+    fir::FirOpBuilder &builder, mlir::Location loc, mlir::ValueRange indices) const {
   /// Generate the indexes for the array_coor inside the loops.
   llvm::SmallVector<mlir::Value> inductionVariables;
   auto memrefTy = fir::getBase(getBase()).getType();
@@ -557,15 +634,8 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
   auto elementAddr = builder.create<fir::ArrayCoorOp>(
       loc, refTy, fir::getBase(loweredBase), shape, slice, indexes,
       fir::getTypeParams(loweredBase));
-  auto element = fir::factory::arraySectionElementToExtendedValue(
+  return fir::factory::arraySectionElementToExtendedValue(
       builder, loc, loweredBase, elementAddr, slice);
-  if (!substringBounds.empty()) {
-    auto *charBox = element.getCharBox();
-    assert(charBox && "substring requires CharBox base");
-    fir::factory::CharacterExprHelper helper{builder, loc};
-    return helper.createSubstring(*charBox, substringBounds);
-  }
-  return element;
 }
 
 bool Fortran::lower::VectorSubscriptBox::hasVectorSubscripts() const {
@@ -583,7 +653,20 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::asBox(fir::FirOpBuilder& 
   auto slice = createSlice(builder, loc);
   if (memref.getType().isa<fir::BoxType>())
     return builder.create<fir::ReboxOp>(loc, boxTy, memref, shape, slice);
-  return builder.create<fir::EmboxOp>(loc, boxTy, memref, shape, slice, fir::getTypeParams(memref));
+  return builder.create<fir::EmboxOp>(loc, boxTy, memref, shape, slice, fir::getTypeParams(loweredBase));
+}
+
+fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const {
+  if (isExtendedValue())
+    return loweredBase;
+  auto memref = fir::getBase(loweredBase);
+  auto type = fir::unwrapPassByRefType(memref.getType());
+  auto boxTy = fir::BoxType::get(type);
+  auto shape = createShape(builder, loc);
+  auto slice = createSlice(builder, loc);
+  if (memref.getType().isa<fir::BoxType>())
+    return builder.create<fir::ReboxOp>(loc, boxTy, memref, shape, slice);
+  return builder.create<fir::EmboxOp>(loc, boxTy, memref, shape, slice, fir::getTypeParams(loweredBase));
 }
 
 fir::ExtendedValue Fortran::lower::Variable::getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const {
@@ -595,7 +678,7 @@ fir::ExtendedValue Fortran::lower::Variable::getElementAt(fir::FirOpBuilder& bui
       return exv;
     },
     [&](const ArraySection& arraySection) {
-      return arraySection.getElementAt(builder, loc, shape, slice, indices);
+      return arraySection.getElementAt(builder, loc, indices);
     }
   }, var);
 }
@@ -657,13 +740,8 @@ void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir
 
   auto one = builder.createIntegerConstant(loc, idxTy, 1);
   auto zero = builder.createIntegerConstant(loc, idxTy, 0);
+  auto uppers = reverseAndSubstractOne(builder, loc, extents, one);
   
-  llvm::SmallVector<mlir::Value> uppers;
-  for (auto extent : llvm::reverse(extents)) {
-    extent = builder.createConvert(loc, idxTy, extent);
-    uppers.push_back(builder.create<mlir::SubIOp>(loc, extent, one));
-  }
-
   llvm::SmallVector<mlir::Value> inductionVariables;
   fir::DoLoopOp outerLoop;
    
@@ -695,27 +773,6 @@ llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getTypeParams(fir::FirO
       return arraySection.getTypeParams(builder, loc);
     },
   }, var);
-}
-
-/// Compute the shape of a slice (TODO share in fir::factory)
-static llvm::SmallVector<mlir::Value> computeSliceShape(fir::FirOpBuilder& builder, mlir::Location loc, mlir::Value slice) {
-  llvm::SmallVector<mlir::Value> slicedShape;
-  auto slOp = mlir::cast<fir::SliceOp>(slice.getDefiningOp());
-  auto triples = slOp.triples();
-  auto idxTy = builder.getIndexType();
-  for (unsigned i = 0, end = triples.size(); i < end; i += 3) {
-    if (!mlir::isa_and_nonnull<fir::UndefOp>(
-            triples[i + 1].getDefiningOp())) {
-      // (..., lb:ub:step, ...) case:  extent = max((ub-lb+step)/step, 0)
-      // See Fortran 2018 9.5.3.3.2 section for more details.
-      auto res = builder.genExtentFromTriplet(loc, triples[i], triples[i + 1],
-                                              triples[i + 2], idxTy);
-      slicedShape.emplace_back(res);
-    } else {
-      // do nothing. `..., i, ...` case, so dimension is dropped.
-    }
-  }
-  return slicedShape;
 }
 
 llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getExtents(fir::FirOpBuilder &builder, mlir::Location loc) const {

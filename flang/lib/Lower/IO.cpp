@@ -557,18 +557,18 @@ static void genInputItemList(Fortran::lower::AbstractConverter &converter,
           loc, builder, vectorSubscriptBox.getElementType(), isFormatted);
       const bool mustBox = inputFunc.getType().getInput(1).isa<fir::BoxType>();
       if (!checkResult) {
-        auto elementalGenerator = [&](const fir::ExtendedValue &element) {
-          createIoRuntimeCallForItem(loc, builder, inputFunc, cookie,
-                                     mustBox ? builder.createBox(loc, element)
+        auto elementalGenerator = [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue &element, llvm::ArrayRef<mlir::Value>) {
+          createIoRuntimeCallForItem(l, b, inputFunc, cookie,
+                                     mustBox ? b.createBox(loc, element)
                                              : element);
         };
-        vectorSubscriptBox.loopOverElements(builder, loc, elementalGenerator);
+        vectorSubscriptBox.loopOverElements(builder, loc, elementalGenerator, /*filter=*/nullptr, /*canLoopUnordered=*/false);
       } else {
         auto elementalGenerator =
-            [&](const fir::ExtendedValue &element) -> mlir::Value {
+            [&](fir::FirOpBuilder& b, mlir::Location l, const fir::ExtendedValue &element, llvm::ArrayRef<mlir::Value>) -> mlir::Value {
           return createIoRuntimeCallForItem(
-              loc, builder, inputFunc, cookie,
-              mustBox ? builder.createBox(loc, element) : element);
+              l, b, inputFunc, cookie,
+              mustBox ? b.createBox(l, element) : element);
         };
         if (!ok)
           ok = builder.createBool(loc, true);

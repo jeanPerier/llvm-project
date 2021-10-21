@@ -42,6 +42,8 @@ class AbstractConverter;
 class StatementContext;
 class ExprLower;
 
+class Variable;
+
 /// VectorSubscriptBox is a lowered representation for any Designator<T> that
 /// contain at least one vector subscript.
 ///
@@ -61,9 +63,10 @@ class VectorSubscriptBox {
 public:
   /// Type of the callbacks that can be passed to work with the element
   /// addresses.
-  using ElementalGenerator = std::function<void(const fir::ExtendedValue &)>;
-  using ElementalGeneratorWithBoolReturn =
-      std::function<mlir::Value(const fir::ExtendedValue &)>;
+  using ElementalGenerator = std::function<void(fir::FirOpBuilder&, mlir::Location, const fir::ExtendedValue&, llvm::ArrayRef<mlir::Value>)>;
+  using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
+  using ElementalGeneratorWithBoolReturn = std::function<mlir::Value(fir::FirOpBuilder&, mlir::Location, const fir::ExtendedValue&, llvm::ArrayRef<mlir::Value>)>;
+
   struct LoweredVectorSubscript {
     Fortran::lower::ExprLower& getVector();
     const Fortran::lower::ExprLower& getVector() const;
@@ -79,29 +82,30 @@ public:
     // Vector size, guaranteed to be of indexType.
     mlir::Value size;
   };
+
   struct LoweredTriplet {
     // Triplets value, guaranteed to be of indexType.
     mlir::Value lb;
     mlir::Value ub;
     mlir::Value stride;
   };
+
   using LoweredSubscript =
       std::variant<mlir::Value, LoweredTriplet, LoweredVectorSubscript>;
   using MaybeSubstring = llvm::SmallVector<mlir::Value, 2>;
+
+  explicit VectorSubscriptBox(const fir::ExtendedValue& exv) : loweredBase{exv} {}
+  explicit VectorSubscriptBox(fir::ExtendedValue&& exv) : loweredBase{std::move(exv)} {}
+
   VectorSubscriptBox(
       fir::ExtendedValue &&loweredBase,
-      llvm::SmallVector<LoweredSubscript, 16> &&loweredSubscripts,
+      llvm::SmallVector<LoweredSubscript, 4> &&loweredSubscripts,
       llvm::SmallVector<mlir::Value> &&componentPath,
       MaybeSubstring substringBounds, mlir::Type elementType)
       : loweredBase{std::move(loweredBase)}, loweredSubscripts{std::move(
                                                  loweredSubscripts)},
         componentPath{std::move(componentPath)},
         substringBounds{substringBounds}, elementType{elementType} {};
-
-  /// Loop over the elements described by the VectorSubscriptBox, and call
-  /// \p elementalGenerator inside the loops with the element addresses.
-  void loopOverElements(fir::FirOpBuilder &builder, mlir::Location loc,
-                        const ElementalGenerator &elementalGenerator);
 
   /// Loop over the elements described by the VectorSubscriptBox while a
   /// condition is true, and call \p elementalGenerator inside the loops with
@@ -113,8 +117,51 @@ public:
       const ElementalGeneratorWithBoolReturn &elementalGenerator,
       mlir::Value initialCondition);
 
+  void loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered);
+
   /// Return the type of the elements of the array section.
   mlir::Type getElementType() const { return elementType; }
+
+  /// Get extents, empty for scalars.
+  llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  /// Get lower bounds, empty if scalar or if all-ones.
+  llvm::SmallVector<mlir::Value> getLBounds(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+  /// Get type parameters if this is a character designator or a derived type with length parameters. Return empty vector otherwise.
+  llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const;
+
+  void reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> lbounds, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const;
+
+  /// Generate code to assign an expression to this variable.
+  /// For arrays, if expr overlaps with the variable, expr should have been
+  /// temporized before calling this.
+  /// This does not perform any allocatable assignment semantics (if the variable is
+  /// a whole allocatable, it should be reallocated if needed before).
+  void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const ExprLower& expr, const ElementalMask* filter);
+
+  /// Generate code to assign one variable to another.
+  /// This behaves similarly to assign with an expression.
+  void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Variable& var, const ElementalMask* filter);
+  
+
+  /// Returns an fir::ExtendedValue representing the variable without making a temp.
+  /// Cannot be called for variable with vector subscripts.
+  /// Will generate a fir.embox or fir.rebox for ArraySection.
+  fir::ExtendedValue getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
+
+  bool hasVectorSubscripts() const;
+
+  bool isArray() const;
+
+  void prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc);
+  /// Get variable element given implied shape indices. If the variable
+  /// is a scalar, the indices are ignored, and the same value is always
+  /// returned.
+  fir::ExtendedValue getElementAt(fir::FirOpBuilder &builder,
+                                  mlir::Location loc,
+                                  mlir::ValueRange indices) const;
 
   /// Create sliceOp for the designator.
   mlir::Value createSlice(fir::FirOpBuilder &builder, mlir::Location loc) const;
@@ -122,40 +169,27 @@ public:
   /// Create shapeOp for the designator.
   mlir::Value createShape(fir::FirOpBuilder &builder, mlir::Location loc) const;
 
+  fir::ExtendedValue asBox(fir::FirOpBuilder& builder, mlir::Location loc) const;
+
   /// Get array base.
   const fir::ExtendedValue& getBase() const;
 
-  /// Get type parameters if this is a character designator or a derived type with length parameters. Return empty vector otherwise.
-  llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const;
-
-  /// Create ExtendedValue the element inside the loop.
-  fir::ExtendedValue getElementAt(fir::FirOpBuilder &builder,
-                                  mlir::Location loc, mlir::Value shape,
-                                  mlir::Value slice,
-                                  mlir::ValueRange indices) const;
-
-  bool hasVectorSubscripts() const;
-
-  fir::ExtendedValue asBox(fir::FirOpBuilder& builder, mlir::Location loc) const;
 
 private:
-  /// Common implementation for DoLoop and IterWhile loop creations.
-  template <typename LoopType, typename Generator>
-  mlir::Value loopOverElementsBase(fir::FirOpBuilder &builder,
-                                   mlir::Location loc,
-                                   const Generator &elementalGenerator,
-                                   mlir::Value initialCondition);
 
-  /// Generate the [lb, ub, step] to loop over the section (in loop order, not
-  /// Fortran dimension order).
-  llvm::SmallVector<std::tuple<mlir::Value, mlir::Value, mlir::Value>>
-  genLoopBounds(fir::FirOpBuilder &builder, mlir::Location loc);
+  bool isExtendedValue() const {
+    return preRankedPath.empty() && loweredSubscripts.empty() && componentPath.empty() && substringBounds.empty();
+  }
+
+  fir::ExtendedValue genArrayCoor(fir::FirOpBuilder &builder,
+                                  mlir::Location loc,
+                                  mlir::ValueRange indices) const;
 
   /// Lowered base of the ranked array ref.
   fir::ExtendedValue loweredBase;
 
   /// Scalar subscripts and components at the left of the ranked
-  /// array ref.
+  /// array ref (only intended to cover forall raising).
   llvm::SmallVector<mlir::Value> preRankedPath;
 
   /// Subscripts values of the rank arrayRef part.
@@ -168,6 +202,11 @@ private:
   MaybeSubstring substringBounds;
   /// Type of the elements described by this array section.
   mlir::Type elementType;
+
+  mlir::Value shape;
+  mlir::Value slice;
+  // shape/slice created if needed, allocatable/pointer unwrapped.
+  bool readyForAddressing = false;
 };
 
 /// Lower \p expr, that must be an designator containing vector subscripts, to a
@@ -215,7 +254,6 @@ public:
   /// Generate code to assign one variable to another.
   /// This behaves similarly to assign with an expression.
   void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Variable& var, const ElementalMask* filter);
-  
 
   /// Returns an fir::ExtendedValue representing the variable without making a temp.
   /// Cannot be called for variable with vector subscripts.
