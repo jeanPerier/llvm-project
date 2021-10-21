@@ -23,6 +23,15 @@
 #include "flang/Semantics/expression.h"
 
 namespace {
+
+static fir::ExtendedValue addressComponents(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& exv, llvm::ArrayRef<fir::FieldIndexOp> fields) {
+  TODO(loc, "address components");
+}
+
+static fir::ExtendedValue addressArray(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& exv, llvm::ArrayRef<mlir::Value> arrays) {
+  TODO(loc, "address array");
+}
+
 /// Helper class to lower a designator containing vector subscripts into a
 /// lowered representation that can be worked with.
 class VectorSubscriptBoxBuilder {
@@ -35,6 +44,7 @@ public:
   Fortran::lower::VectorSubscriptBox
   gen(const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr) {
     elementType = genDesignator(expr);
+    applyLeftAddressingPart();
     return Fortran::lower::VectorSubscriptBox(
         std::move(loweredBase), std::move(loweredSubscripts),
         std::move(componentPath), substringBounds, elementType);
@@ -75,10 +85,11 @@ private:
   }
 
   mlir::Type gen(const Fortran::evaluate::SymbolRef &symRef) {
-    // Never visited because expr lowering is used to lowered the ranked
-    // ArrayRef.
-    fir::emitFatalError(
-        loc, "expected at least one ArrayRef with vector susbcripts");
+    loweredBase = converter.getSymbolExtendedValue(symRef);
+    auto ty = fir::getBase(loweredBase).getType();
+    if (symRef->Rank() > 0)
+      lastPartWasRanked = true;
+    return fir::unwrapPassByRefType(fir::unwrapSequenceType(ty));
   }
 
   mlir::Type gen(const Fortran::evaluate::Substring &substring) {
@@ -86,6 +97,7 @@ private:
     // subscripted, so the base must be a DataRef here.
     auto baseElementType =
         gen(std::get<Fortran::evaluate::DataRef>(substring.parent()));
+    startRightPartIfLastPartWasRanked();
     auto &builder = converter.getFirOpBuilder();
     auto idxTy = builder.getIndexType();
     auto lb = genScalarValue(substring.lower());
@@ -99,18 +111,23 @@ private:
 
   mlir::Type gen(const Fortran::evaluate::ComplexPart &complexPart) {
     auto complexType = gen(complexPart.complex());
+    startRightPartIfLastPartWasRanked();
     auto &builder = converter.getFirOpBuilder();
     auto i32Ty = builder.getI32Type(); // llvm's GEP requires i32
     auto offset = builder.createIntegerConstant(
         loc, i32Ty,
         complexPart.part() == Fortran::evaluate::ComplexPart::Part::RE ? 0 : 1);
-    componentPath.emplace_back(offset);
+    if (isAfterRankedPart)
+      componentPath.emplace_back(offset);
+    else
+      preRankedPath.emplace_back(offset);
     return fir::factory::ComplexExprHelper{builder, loc}.getComplexPartType(
         complexType);
   }
 
   mlir::Type gen(const Fortran::evaluate::Component &component) {
     auto recTy = gen(component.base()).cast<fir::RecordType>();
+    startRightPartIfLastPartWasRanked();
     const auto &componentSymbol = component.GetLastSymbol();
     // Parent components will not be found here, they are not part
     // of the FIR type and cannot be used in the path yet.
@@ -124,8 +141,14 @@ private:
     if (recTy.getNumLenParams() != 0)
       TODO(loc, "threading length parameters in field index op");
     auto &builder = converter.getFirOpBuilder();
-    componentPath.emplace_back(builder.create<fir::FieldIndexOp>(
-        loc, fldTy, componentName, recTy, /*typeParams*/ llvm::None));
+    auto fieldIndex = builder.create<fir::FieldIndexOp>(
+        loc, fldTy, componentName, recTy, /*typeParams*/ llvm::None);
+    if (isAfterRankedPart)
+      componentPath.emplace_back(fieldIndex);
+    else
+      preRankedPath.emplace_back(fieldIndex);
+    if (componentSymbol.Rank() > 0)
+      lastPartWasRanked = true;
     return fir::unwrapSequenceType(recTy.getType(componentName));
   }
 
@@ -151,8 +174,14 @@ private:
       const auto &expr =
           std::get<Fortran::evaluate::IndirectSubscriptIntegerExpr>(
               subscript.u);
-      componentPath.emplace_back(genScalarValue(expr.value()));
+      auto subscriptValue = genScalarValue(expr.value());
+      if (isAfterRankedPart)
+        componentPath.emplace_back(subscriptValue);
+      else
+        preRankedPath.emplace_back(subscriptValue);
     }
+    // The last part rank was "consumed" by the subscripts.
+    lastPartWasRanked = false;
     return elementType;
   }
 
@@ -161,7 +190,7 @@ private:
   /// according to C925).
   mlir::Type genRankedArrayRefSubscriptAndBase(
       const Fortran::evaluate::ArrayRef &arrayRef) {
-    // Lower the save the base
+    // Lower and save the base
     auto baseExpr = namedEntityToExpr(arrayRef.base());
     loweredBase = converter.genExprAddr(baseExpr, stmtCtx);
     // Lower and save the subscripts
@@ -216,6 +245,7 @@ private:
           },
           subscript.value().u);
     }
+    isAfterRankedPart = true;
     return fir::unwrapSequenceType(
         fir::unwrapPassByRefType(fir::getBase(loweredBase).getType()));
   }
@@ -225,9 +255,57 @@ private:
     TODO(loc, "Coarray ref with vector subscript in IO input");
   }
 
+  void applyLeftAddressingPart() {
+    auto &builder = converter.getFirOpBuilder();
+    if (preRankedPath.empty() && substringBounds.empty())
+      return;
+    auto prePath = preRankedPath.begin();
+    while (prePath != preRankedPath.end()) {
+      if (!prePath->getType().isa<fir::FieldType>()) {
+        llvm::SmallVector<fir::FieldIndexOp> fields;
+        while (prePath != preRankedPath.end()) {
+          auto fieldOp = prePath->getDefiningOp<fir::FieldIndexOp>();
+          if (!fieldOp)
+            break;
+          fields.push_back(fieldOp);
+          prePath++;
+        }
+        ++prePath; 
+        loweredBase = addressComponents(builder, loc, loweredBase, fields);
+      } else {
+        auto rank = loweredBase.rank();
+        if (rank > 0) {
+          llvm::SmallVector<mlir::Value> coors;
+          while (prePath != preRankedPath.end() && rank > 0) {
+            if (prePath->getType().isa<fir::FieldType>())
+              break;
+            coors.push_back(*prePath);
+            prePath++;
+            rank --;
+          }
+          assert(rank == 0 && "rank mismatch");
+          loweredBase = addressArray(builder, loc, loweredBase, coors);
+        } else {
+          TODO(loc, "complex part");
+        }
+      }
+    }
+
+    // Keep substring info if this is a ranked array section.
+    if (!loweredSubscripts.empty())
+      return;
+
+    if (!substringBounds.empty())
+      TODO(loc, "substring");
+  }
+
   template <typename A>
   mlir::Value genScalarValue(const A &expr) {
     return fir::getBase(converter.genExprValue(toEvExpr(expr), stmtCtx));
+  }
+  void startRightPartIfLastPartWasRanked() {
+    if (lastPartWasRanked)
+      isAfterRankedPart = true;
   }
 
   Fortran::evaluate::DataRef
@@ -248,9 +326,12 @@ private:
   mlir::Location loc;
   /// Elements of VectorSubscriptBox being built.
   fir::ExtendedValue loweredBase;
-  llvm::SmallVector<LoweredSubscript, 16> loweredSubscripts;
+  llvm::SmallVector<mlir::Value> preRankedPath;
+  llvm::SmallVector<LoweredSubscript, 4> loweredSubscripts;
   llvm::SmallVector<mlir::Value> componentPath;
   MaybeSubstring substringBounds;
+  bool isAfterRankedPart = false;
+  bool lastPartWasRanked = false;
   mlir::Type elementType;
 };
 } // namespace
@@ -759,4 +840,3 @@ const Fortran::lower::ExprLower& Fortran::lower::VectorSubscriptBox::LoweredVect
 Fortran::lower::ExprLower& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::getVector() {
   return vector.value();
 }
-

@@ -71,6 +71,9 @@ public:
   /// Get the mlir instance of a symbol.
   virtual mlir::Value getSymbolAddress(SymbolRef sym) = 0;
 
+  /// Get the fir::ExtendedValue instance of a symbol.
+  virtual fir::ExtendedValue getSymbolExtendedValue(SymbolRef sym) = 0;
+
   /// Get the binding of an implied do variable by name.
   virtual mlir::Value impliedDoBinding(llvm::StringRef name) = 0;
 

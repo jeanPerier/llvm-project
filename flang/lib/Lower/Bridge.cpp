@@ -230,6 +230,9 @@ public:
   mlir::Value getSymbolAddress(Fortran::lower::SymbolRef sym) override final {
     return lookupSymbol(sym).getAddr();
   }
+  fir::ExtendedValue getSymbolExtendedValue(Fortran::lower::SymbolRef sym) override final {
+    return lookupSymbol(sym).toExtendedValue();
+  }
 
   mlir::Value impliedDoBinding(llvm::StringRef name) override final {
     auto val = localSymbols.lookupImpliedDo(name);

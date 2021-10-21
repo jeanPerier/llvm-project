@@ -6791,10 +6791,11 @@ fir::ExtendedValue Fortran::lower::ExprLower::getElementAt(fir::FirOpBuilder& bu
   return impl.value().getElementAt(builder, loc, indices);
 }
 
-Fortran::lower::ExprLower Fortran::lower::initExprLowering(
+template<typename T>
+Fortran::lower::ExprLower Fortran::lower::InitExprLower<T>::gen(
   Fortran::lower::AbstractConverter& converter,
   mlir::Location loc,
-  const Fortran::lower::SomeExpr& expr,
+  const Fortran::evaluate::Expr<T>& expr,
   Fortran::lower::SymMap& symMap,
   Fortran::lower::StatementContext& stmtCtx) {
   // TODO:
@@ -6819,6 +6820,8 @@ Fortran::lower::ExprLower Fortran::lower::initExprLowering(
   auto asElementalFunction = ArrayExpr::genArrayExprAsFunction(converter, loc, expr, stmtCtx);
   return ExprLower::ExprLowerImpl(std::move(asElementalFunction));
 }
+
+template struct Fortran::lower::InitExprLower<Fortran::evaluate::SomeType>;
 
 Fortran::lower::ExprLower::ExprLower(const ExprLower&) = default;
 Fortran::lower::ExprLower::ExprLower(ExprLower&&) = default;

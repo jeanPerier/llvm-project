@@ -249,8 +249,15 @@ class ExprLower {
     Fortran::common::Indirection<ExprLowerImpl, /*copy-able*/true> impl;
 };
 
-ExprLower initExprLowering(AbstractConverter &converter, mlir::Location loc, const evaluate::Expr<evaluate::SomeType> &expr, SymMap &symMap, StatementContext &stmtCtx);
 
+template<typename T>
+struct InitExprLower {
+  static ExprLower gen(AbstractConverter &converter, mlir::Location loc, const evaluate::Expr<T> &expr, SymMap &symMap, StatementContext &stmtCtx);
+};
+
+inline ExprLower initExprLowering(AbstractConverter &converter, mlir::Location loc, const evaluate::Expr<evaluate::SomeType> &expr, SymMap &symMap, StatementContext &stmtCtx) {
+  return InitExprLower<evaluate::SomeType>::gen(converter, loc, expr, symMap, stmtCtx);
+}
 
 } // namespace Fortran::lower
 

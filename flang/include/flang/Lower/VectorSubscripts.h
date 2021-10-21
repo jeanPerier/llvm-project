@@ -31,6 +31,8 @@ namespace Fortran {
 namespace evaluate {
 template <typename>
 class Expr;
+template <typename>
+class Designator;
 struct SomeType;
 } // namespace evaluate
 
@@ -151,10 +153,15 @@ private:
 
   /// Lowered base of the ranked array ref.
   fir::ExtendedValue loweredBase;
+
+  /// Scalar subscripts and components at the left of the ranked
+  /// array ref.
+  llvm::SmallVector<mlir::Value> preRankedPath;
+
   /// Subscripts values of the rank arrayRef part.
   llvm::SmallVector<LoweredSubscript, 4> loweredSubscripts;
   /// Scalar subscripts and components at the right of the ranked
-  /// array ref part of any.
+  /// array ref part.
   llvm::SmallVector<mlir::Value, 4> componentPath;
   /// List of substring bounds if this is a substring (only the lower bound if
   /// the upper is implicit).
@@ -234,6 +241,17 @@ private:
 Variable genVariable(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
   Fortran::lower::StatementContext &stmtCtx,
   const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
+
+template<typename T>
+struct VariableBuilder {
+  Variable gen(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
+    Fortran::lower::StatementContext &stmtCtx,
+    const Fortran::evaluate::Expr<T> &expr);
+
+  Variable gen(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
+    Fortran::lower::StatementContext &stmtCtx,
+    const Fortran::evaluate::Designator<T> &expr);
+};
 
 } // namespace lower
 } // namespace Fortran
