@@ -20,7 +20,7 @@
 #include "flang/Evaluate/expression.h"
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
-#include <memory>
+#include "flang/Common/indirection.h"
 
 namespace mlir {
 class Location;
@@ -218,7 +218,11 @@ class ExprLower {
   class ExprLowerImpl;
   using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
 
-  ExprLower(std::unique_ptr<ExprLowerImpl>&& exprImpl);
+  ExprLower(ExprLowerImpl&&);
+  ExprLower(const ExprLower&);
+  ExprLower(ExprLower&&);
+  ExprLower& operator=(const ExprLower&);
+  ExprLower& operator=(ExprLower&&);
   ExprLower(Fortran::lower::Variable&& var);
   ~ExprLower();
 
@@ -242,7 +246,7 @@ class ExprLower {
   fir::ExtendedValue materializeExpr(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter, Fortran::lower::StatementContext& stmtCtx);
 
  private:
-    std::unique_ptr<ExprLowerImpl> impl;
+    Fortran::common::Indirection<ExprLowerImpl, /*copy-able*/true> impl;
 };
 
 ExprLower initExprLowering(AbstractConverter &converter, mlir::Location loc, const evaluate::Expr<evaluate::SomeType> &expr, SymMap &symMap, StatementContext &stmtCtx);

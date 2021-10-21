@@ -298,6 +298,12 @@ public:
         builder->createBox(loc, genExprAddr(expr, context, &loc)));
   }
 
+  Fortran::lower::ExprLower genExpr(const Fortran::lower::SomeExpr &expr,
+                                Fortran::lower::StatementContext &stmtCtx,
+                                mlir::Location loc) override final {
+    return Fortran::lower::initExprLowering(*this, loc, expr, localSymbols, stmtCtx);
+  }
+
   Fortran::evaluate::FoldingContext &getFoldingContext() override final {
     return foldingContext;
   }

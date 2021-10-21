@@ -180,11 +180,12 @@ private:
                   // Remove conversion if any to avoid temp creation that may
                   // have been added by the front-end to avoid the creation of a
                   // temp array value.
-                  auto vector = converter.genExprAddr(
-                      ignoreEvConvert(expr.value()), stmtCtx);
-                  auto size =
-                      fir::factory::readExtent(builder, loc, vector, /*dim=*/0);
-                  size = builder.createConvert(loc, idxTy, size);
+                  // TODO: ignoreEvConvert is making a copy and breaks forall raising. Consider unwrapping instead, and adding Expr<T> entry points to converter.genExpr.
+                  auto vector = converter.genExpr(
+                      ignoreEvConvert(expr.value()), stmtCtx, loc);
+                  auto extents = vector.getExtents(builder, loc);
+                  assert(extents.size() == 1);
+                  auto size = builder.createConvert(loc, idxTy, extents[0]);
                   loweredSubscripts.emplace_back(
                       LoweredVectorSubscript{std::move(vector), size});
                 }
@@ -461,14 +462,8 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
                    },
                    [&](const LoweredVectorSubscript &vector) {
                      auto vecIndex = inductionVariables[inductionIdx--];
-                     auto vecBase = fir::getBase(vector.vector);
-                     auto vecEleTy = fir::unwrapSequenceType(
-                         fir::unwrapPassByRefType(vecBase.getType()));
-                     auto refTy = builder.getRefType(vecEleTy);
-                     auto vecEltRef = builder.create<fir::CoordinateOp>(
-                         loc, refTy, vecBase, vecIndex);
-                     auto vecElt =
-                         builder.create<fir::LoadOp>(loc, vecEleTy, vecEltRef);
+                     auto vecEltRef = vector.getVector().getElementAt(builder, loc, {vecIndex});
+                     auto vecElt = builder.create<fir::LoadOp>(loc, fir::getBase(vecEltRef));
                      indexes.emplace_back(
                          builder.createConvert(loc, idxTy, vecElt));
                    },
@@ -749,3 +744,19 @@ void Fortran::lower::Variable::genAssign(fir::FirOpBuilder& builder, mlir::Locat
   Fortran::lower::ExprLower expr(std::move(v));
   genAssign(builder, loc, expr, filter);
 }
+
+Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::LoweredVectorSubscript(const LoweredVectorSubscript&) = default;
+Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::LoweredVectorSubscript(LoweredVectorSubscript&&) = default;
+Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::operator=(const LoweredVectorSubscript&) = default;
+Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::operator=(LoweredVectorSubscript&&) = default;
+Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::~LoweredVectorSubscript() = default;
+
+Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::LoweredVectorSubscript(Fortran::lower::ExprLower&& expr, mlir::Value size) : vector{std::move(expr)}, size{size} {}
+
+const Fortran::lower::ExprLower& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::getVector() const {
+  return vector.value();
+}
+Fortran::lower::ExprLower& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::getVector() {
+  return vector.value();
+}
+

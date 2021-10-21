@@ -6649,8 +6649,9 @@ class Fortran::lower::ExprLower::ExprLowerImpl {
     llvm::Optional<mlir::Value> shape;
     llvm::Optional<mlir::Value> slice;
   };
-  template<typename T>
-  ExprLowerImpl(T&& t) : loweredExpr{std::move(t)} {} 
+  ExprLowerImpl(TempOrRegister&& t) : loweredExpr{std::move(t)} {} 
+  ExprLowerImpl(Fortran::lower::Variable&& t) : loweredExpr{std::move(t)} {} 
+  ExprLowerImpl(ArrayExprAsAFunction&& t) : loweredExpr{std::move(t)} {} 
 
   bool canLoopUnorderedOverElements() const {
     return std::visit(Fortran::common::visitors{
@@ -6762,32 +6763,32 @@ class Fortran::lower::ExprLower::ExprLowerImpl {
 };
 
 bool Fortran::lower::ExprLower::canLoopUnorderedOverElements() const {
-  return impl->canLoopUnorderedOverElements();
+  return impl.value().canLoopUnorderedOverElements();
 }
 
 void Fortran::lower::ExprLower::ensureIsInTempOrRegister(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter, Fortran::lower::StatementContext& stmtCtx) {
-  impl->ensureIsInTempOrRegister(builder, loc, filter, stmtCtx);
+  impl.value().ensureIsInTempOrRegister(builder, loc, filter, stmtCtx);
 }
 
 llvm::SmallVector<mlir::Value> Fortran::lower::ExprLower::getTypeParams(fir::FirOpBuilder& builder, mlir::Location loc) const {
-  return impl->getTypeParams(builder, loc);
+  return impl.value().getTypeParams(builder, loc);
 }
 
 llvm::SmallVector<mlir::Value> Fortran::lower::ExprLower::getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const {
-  return impl->getExtents(builder, loc);
+  return impl.value().getExtents(builder, loc);
 }
 
 llvm::SmallVector<mlir::Value> Fortran::lower::ExprLower::getLBounds(fir::FirOpBuilder& builder, mlir::Location loc) const {
-  return impl->getLBounds(builder, loc);
+  return impl.value().getLBounds(builder, loc);
 }
 
 fir::ExtendedValue Fortran::lower::ExprLower::materializeExpr(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalMask* filter, Fortran::lower::StatementContext& stmtCtx) {
-  return impl->materializeExpr(builder, loc, filter, stmtCtx);
+  return impl.value().materializeExpr(builder, loc, filter, stmtCtx);
 }
 
 
 fir::ExtendedValue Fortran::lower::ExprLower::getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> indices) const {
-  return impl->getElementAt(builder, loc, indices);
+  return impl.value().getElementAt(builder, loc, indices);
 }
 
 Fortran::lower::ExprLower Fortran::lower::initExprLowering(
@@ -6804,7 +6805,7 @@ Fortran::lower::ExprLower Fortran::lower::initExprLowering(
   if (Fortran::evaluate::IsVariable(expr)) {
     auto var = genVariable(converter, loc, stmtCtx, expr);
     var.prepareForAddressing(builder, loc);
-    return std::unique_ptr<ExprLower::ExprLowerImpl>(new ExprLower::ExprLowerImpl(std::move(var)));
+    return ExprLower::ExprLowerImpl(std::move(var));
   }
   if (expr.Rank() == 0 || isTransformationalRef(expr)) {
     // Expression is directly lowered to a temp or an SSA register an packaged
@@ -6813,18 +6814,21 @@ Fortran::lower::ExprLower Fortran::lower::initExprLowering(
     ExprLower::ExprLowerImpl::TempOrRegister tempOrReg{exv, llvm::None, llvm::None};
     if (expr.Rank() != 0)
       tempOrReg.shape = builder.createShape(loc, exv);
-    return std::unique_ptr<ExprLower::ExprLowerImpl>(new ExprLower::ExprLowerImpl(std::move(tempOrReg)));
+    return ExprLower::ExprLowerImpl(std::move(tempOrReg));
   }
   auto asElementalFunction = ArrayExpr::genArrayExprAsFunction(converter, loc, expr, stmtCtx);
-  return std::unique_ptr<ExprLower::ExprLowerImpl>(new ExprLower::ExprLowerImpl(std::move(asElementalFunction)));
+  return ExprLower::ExprLowerImpl(std::move(asElementalFunction));
 }
 
-Fortran::lower::ExprLower::ExprLower(std::unique_ptr<Fortran::lower::ExprLower::ExprLowerImpl>&& exprImpl) : impl{std::move(exprImpl)} {}
-
-Fortran::lower::ExprLower::ExprLower(Variable&& var) :
-impl{std::unique_ptr<Fortran::lower::ExprLower::ExprLowerImpl>(new Fortran::lower::ExprLower::ExprLowerImpl(std::move(var)))} {}
-
+Fortran::lower::ExprLower::ExprLower(const ExprLower&) = default;
+Fortran::lower::ExprLower::ExprLower(ExprLower&&) = default;
+Fortran::lower::ExprLower& Fortran::lower::ExprLower::operator=(const ExprLower&) = default;
+Fortran::lower::ExprLower& Fortran::lower::ExprLower::operator=(ExprLower&&) = default;
 Fortran::lower::ExprLower::~ExprLower() = default;
+
+Fortran::lower::ExprLower::ExprLower(Fortran::lower::ExprLower::ExprLowerImpl&& exprImpl) : impl{std::move(exprImpl)} {}
+Fortran::lower::ExprLower::ExprLower(Variable&& var) :
+impl{Fortran::lower::ExprLower::ExprLowerImpl(std::move(var))} {}
 
 fir::ExtendedValue Fortran::lower::createSomeArrayTempValue(
     Fortran::lower::AbstractConverter &converter,

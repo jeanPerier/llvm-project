@@ -20,6 +20,7 @@
 #define FORTRAN_LOWER_VECTORSUBSCRIPTS_H
 
 #include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Common/indirection.h"
 
 namespace fir {
 class FirOpBuilder;
@@ -37,6 +38,7 @@ namespace lower {
 
 class AbstractConverter;
 class StatementContext;
+class ExprLower;
 
 /// VectorSubscriptBox is a lowered representation for any Designator<T> that
 /// contain at least one vector subscript.
@@ -61,7 +63,17 @@ public:
   using ElementalGeneratorWithBoolReturn =
       std::function<mlir::Value(const fir::ExtendedValue &)>;
   struct LoweredVectorSubscript {
-    fir::ExtendedValue vector;
+    Fortran::lower::ExprLower& getVector();
+    const Fortran::lower::ExprLower& getVector() const;
+    /// Copy assignments needed to allow lambda capture.
+    LoweredVectorSubscript(const LoweredVectorSubscript&);
+    LoweredVectorSubscript(LoweredVectorSubscript&&);
+    LoweredVectorSubscript &operator=(const LoweredVectorSubscript &);
+    LoweredVectorSubscript &operator=(LoweredVectorSubscript &&);
+    LoweredVectorSubscript(Fortran::lower::ExprLower&& vector, mlir::Value size);
+    ~LoweredVectorSubscript();
+    // Lowered vector expression 
+    Fortran::common::Indirection<Fortran::lower::ExprLower, /*copy-able*/true> vector;
     // Vector size, guaranteed to be of indexType.
     mlir::Value size;
   };
@@ -140,10 +152,10 @@ private:
   /// Lowered base of the ranked array ref.
   fir::ExtendedValue loweredBase;
   /// Subscripts values of the rank arrayRef part.
-  llvm::SmallVector<LoweredSubscript, 16> loweredSubscripts;
+  llvm::SmallVector<LoweredSubscript, 4> loweredSubscripts;
   /// Scalar subscripts and components at the right of the ranked
   /// array ref part of any.
-  llvm::SmallVector<mlir::Value> componentPath;
+  llvm::SmallVector<mlir::Value, 4> componentPath;
   /// List of substring bounds if this is a substring (only the lower bound if
   /// the upper is implicit).
   MaybeSubstring substringBounds;
@@ -159,8 +171,6 @@ VectorSubscriptBox genVectorSubscriptBox(
     mlir::Location loc, Fortran::lower::AbstractConverter &converter,
     Fortran::lower::StatementContext &stmtCtx,
     const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
-
-class ExprLower;
 
 /// Generalized variable representation.
 class Variable {

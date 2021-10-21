@@ -49,6 +49,8 @@ namespace pft {
 struct Variable;
 }
 
+class ExprLower;
+
 using SomeExpr = Fortran::evaluate::Expr<Fortran::evaluate::SomeType>;
 using SymbolRef = Fortran::common::Reference<const Fortran::semantics::Symbol>;
 class StatementContext;
@@ -135,6 +137,8 @@ public:
   /// Get FoldingContext that is required for some expression
   /// analysis.
   virtual Fortran::evaluate::FoldingContext &getFoldingContext() = 0;
+
+  virtual ExprLower genExpr(const SomeExpr &, StatementContext&, mlir::Location) = 0;
 
   /// Host associated variables are grouped as a tuple. This returns that value,
   /// which is itself a reference. Use bindTuple() to set this value.
