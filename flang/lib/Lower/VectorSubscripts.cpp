@@ -28,8 +28,124 @@ static fir::ExtendedValue addressComponents(fir::FirOpBuilder& builder, mlir::Lo
   TODO(loc, "address components");
 }
 
-static fir::ExtendedValue addressArray(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& exv, llvm::ArrayRef<mlir::Value> arrays) {
-  TODO(loc, "address array");
+static constexpr bool mustGenArrayCoor = false;
+
+
+static fir::ExtendedValue genArrayCoor(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& array, llvm::ArrayRef<mlir::Value> coordinates) {
+  auto addr = fir::getBase(array);
+  auto eleTy = fir::unwrapSequenceType(fir::unwrapPassByRefType(addr.getType()));
+  auto eleRefTy = builder.getRefType(eleTy);
+  auto shape = builder.createShape(loc, array);
+  auto elementAddr = builder.create<fir::ArrayCoorOp>(
+      loc, eleRefTy, addr, shape, /*slice=*/mlir::Value{}, coordinates,
+      fir::getTypeParams(array));
+  return fir::factory::arrayElementToExtendedValue(builder, loc, array,
+                                                   elementAddr);
+}
+
+static llvm::SmallVector<mlir::Value> toZeroBasedIndices(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& array, llvm::ArrayRef<mlir::Value> coordinates) {
+  llvm::SmallVector<mlir::Value> zeroBased;
+  auto one = builder.createIntegerConstant(loc, builder.getIndexType(), 1);
+  for (auto coor : llvm::enumerate(coordinates)) {
+    auto lb = fir::factory::readLowerBound(builder, loc, array, coor.index(), one);
+    auto ty = coor.value().getType();
+    lb = builder.createConvert(loc, ty, lb);
+    zeroBased.push_back(builder.create<mlir::SubIOp>(loc, ty, coor.value(), lb));
+  }
+  return zeroBased;
+}
+
+/// Lower an ArrayRef to a fir.coordinate_of using an element offset instead
+/// of array indexes.
+/// This generates offset computation from the indexes and length parameters,
+/// and use the offset to access the element with a fir.coordinate_of. This
+/// must only be used if it is not possible to generate a normal
+/// fir.coordinate_of using array indexes (i.e. when the shape information is
+/// unavailable in the IR).
+fir::ExtendedValue genOffsetAndCoordinateOp(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& array, llvm::ArrayRef<mlir::Value> coordinates) {
+  auto addr = fir::getBase(array);
+  auto arrTy = fir::dyn_cast_ptrEleTy(addr.getType());
+  auto eleTy = arrTy.cast<fir::SequenceType>().getEleTy();
+  auto seqTy = builder.getRefType(builder.getVarLenSeqTy(eleTy));
+  auto refTy = builder.getRefType(eleTy);
+  auto base = builder.createConvert(loc, seqTy, addr);
+  auto idxTy = builder.getIndexType();
+  auto one = builder.createIntegerConstant(loc, idxTy, 1);
+  auto zero = builder.createIntegerConstant(loc, idxTy, 0);
+  auto getLB = [&](const auto &arr, unsigned dim) -> mlir::Value {
+    return arr.getLBounds().empty() ? one : arr.getLBounds()[dim];
+  };
+  auto genFullDim = [&](const auto &arr, mlir::Value delta) -> mlir::Value {
+    mlir::Value total = zero;
+    assert(arr.getExtents().size() == coordinates.size());
+    delta = builder.createConvert(loc, idxTy, delta);
+    unsigned dim = 0;
+    for (auto [ext, sub] : llvm::zip(arr.getExtents(), coordinates)) {
+      auto val = builder.createConvert(loc, idxTy, sub);
+      auto lb = builder.createConvert(loc, idxTy, getLB(arr, dim));
+      auto diff = builder.create<mlir::SubIOp>(loc, val, lb);
+      auto prod = builder.create<mlir::MulIOp>(loc, delta, diff);
+      total = builder.create<mlir::AddIOp>(loc, prod, total);
+      if (ext)
+        delta = builder.create<mlir::MulIOp>(loc, delta, ext);
+      ++dim;
+    }
+    auto origRefTy = refTy;
+    if (fir::factory::CharacterExprHelper::isCharacterScalar(refTy)) {
+      auto chTy = fir::factory::CharacterExprHelper::getCharacterType(refTy);
+      if (fir::characterWithDynamicLen(chTy)) {
+        auto ctx = builder.getContext();
+        auto kind = fir::factory::CharacterExprHelper::getCharacterKind(chTy);
+        auto singleTy = fir::CharacterType::getSingleton(ctx, kind);
+        refTy = builder.getRefType(singleTy);
+        auto seqRefTy = builder.getRefType(builder.getVarLenSeqTy(singleTy));
+        base = builder.createConvert(loc, seqRefTy, base);
+      }
+    }
+    auto coor = builder.create<fir::CoordinateOp>(
+        loc, refTy, base, llvm::ArrayRef<mlir::Value>{total});
+    // Convert to expected, original type after address arithmetic.
+    return builder.createConvert(loc, origRefTy, coor);
+  };
+  return array.match(
+      [&](const fir::ArrayBoxValue &arr) -> fir::ExtendedValue {
+        return genFullDim(arr, one);
+      },
+      [&](const fir::CharArrayBoxValue &arr) -> fir::ExtendedValue {
+        auto delta = arr.getLen();
+        // If the length is known in the type, fir.coordinate_of will
+        // already take the length into account.
+        if (fir::factory::CharacterExprHelper::hasConstantLengthInType(arr))
+          delta = one;
+        return fir::CharBoxValue(genFullDim(arr, delta), arr.getLen());
+      },
+      [&](const fir::BoxValue &arr) -> fir::ExtendedValue {
+        // CoordinateOp for BoxValue is not generated here. The dimensions
+        // must be kept in the fir.coordinate_op so that potential fir.box
+        // strides can be applied by codegen.
+        fir::emitFatalError(
+            loc, "internal: BoxValue in dim-collapsed fir.coordinate_of");
+      },
+      [&](const auto &) -> fir::ExtendedValue {
+        fir::emitFatalError(loc, "internal: array lowering failed");
+      });
+}
+
+/// Address an array with user coordinates (not zero based).
+static fir::ExtendedValue addressArray(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& array, llvm::ArrayRef<mlir::Value> coordinates) {
+  if (mustGenArrayCoor)
+    return genArrayCoor(builder, loc, array, coordinates);
+  auto base = fir::getBase(array);
+  auto baseType = fir::unwrapPassByRefType(base.getType());
+  if ((array.rank() > 1 && fir::hasDynamicSize(baseType)) ||
+      fir::characterWithDynamicLen(fir::unwrapSequenceType(baseType)))
+    if (!array.getBoxOf<fir::BoxValue>())
+      return genOffsetAndCoordinateOp(builder, loc, array, coordinates);
+  auto eleRefTy = builder.getRefType(fir::unwrapSequenceType(baseType));
+  // fir::CoordinateOp is zero based.
+  auto zeroBasedIndices = toZeroBasedIndices(builder, loc, array, coordinates);
+  auto addr = builder.create<fir::CoordinateOp>(loc, eleRefTy, base, zeroBasedIndices);
+  return fir::factory::arrayElementToExtendedValue(builder, loc, array, addr);
 }
 
 /// Helper class to lower a designator containing vector subscripts into a
@@ -286,7 +402,7 @@ private:
           assert(rank == 0 && "rank mismatch");
           loweredBase = addressArray(builder, loc, loweredBase, coors);
         } else {
-          TODO(loc, "complex part");
+          TODO(loc, "scalar complex part");
         }
       }
     }
