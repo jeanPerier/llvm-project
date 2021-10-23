@@ -42,10 +42,8 @@ class AbstractConverter;
 class StatementContext;
 class ExprLower;
 
-class Variable;
-
-/// VectorSubscriptBox is a lowered representation for any Designator<T> that
-/// contain at least one vector subscript.
+/// Variable is a lowered representation for any Designator<T> that
+///
 ///
 /// A designator `x%a(i,j)%b(1:foo():1, vector, k)%c%d(m)%e1
 /// Is lowered into:
@@ -59,7 +57,7 @@ class Variable;
 /// This representation allows later creating loops over the designator elements
 /// and fir.array_coor to get the element addresses without re-evaluating any
 /// sub-expressions.
-class VectorSubscriptBox {
+class Variable {
 public:
   /// Type of the callbacks that can be passed to work with the element
   /// addresses.
@@ -94,10 +92,10 @@ public:
       std::variant<mlir::Value, LoweredTriplet, LoweredVectorSubscript>;
   using MaybeSubstring = llvm::SmallVector<mlir::Value, 2>;
 
-  explicit VectorSubscriptBox(const fir::ExtendedValue& exv) : loweredBase{exv} {}
-  explicit VectorSubscriptBox(fir::ExtendedValue&& exv) : loweredBase{std::move(exv)} {}
+  explicit Variable(const fir::ExtendedValue& exv) : loweredBase{exv} {}
+  explicit Variable(fir::ExtendedValue&& exv) : loweredBase{std::move(exv)} {}
 
-  VectorSubscriptBox(
+  Variable(
       fir::ExtendedValue &&loweredBase,
       llvm::SmallVector<LoweredSubscript, 4> &&loweredSubscripts,
       llvm::SmallVector<mlir::Value> &&componentPath,
@@ -107,7 +105,7 @@ public:
         componentPath{std::move(componentPath)},
         substringBounds{substringBounds}, elementType{elementType} {};
 
-  /// Loop over the elements described by the VectorSubscriptBox while a
+  /// Loop over the elements described by the Variable while a
   /// condition is true, and call \p elementalGenerator inside the loops with
   /// the element addresses. The initial condition value is \p initialCondition,
   /// and then it is the result of \p elementalGenerator. The value of the
@@ -206,71 +204,6 @@ private:
   mlir::Value shape;
   mlir::Value slice;
   // shape/slice created if needed, allocatable/pointer unwrapped.
-  bool readyForAddressing = false;
-};
-
-/// Lower \p expr, that must be an designator containing vector subscripts, to a
-/// VectorSubscriptBox representation. This causes evaluation of all the
-/// subscripts. Any required clean-ups from subscript expression are added to \p
-/// stmtCtx.
-VectorSubscriptBox genVectorSubscriptBox(
-    mlir::Location loc, Fortran::lower::AbstractConverter &converter,
-    Fortran::lower::StatementContext &stmtCtx,
-    const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr);
-
-/// Generalized variable representation.
-class Variable {
-public:
-  using ElementalGenerator = std::function<void(fir::FirOpBuilder&, mlir::Location, const fir::ExtendedValue&, llvm::ArrayRef<mlir::Value>)>;
-  using ElementalMask = std::function<void(fir::FirOpBuilder&, mlir::Location, llvm::ArrayRef<mlir::Value>)>;
-
-  using ArraySection = VectorSubscriptBox;
-
-  explicit Variable(const fir::ExtendedValue& exv) : var{exv} {}
-  explicit Variable(fir::ExtendedValue&& exv) : var{std::move(exv)} {}
-  explicit Variable(ArraySection&& arraySection) : var{std::move(arraySection)} {}
-
-  void loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered);
-
-  void prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc);
-
-  fir::ExtendedValue getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const;
-
-  llvm::SmallVector<mlir::Value> getExtents(fir::FirOpBuilder& builder, mlir::Location loc) const;
-
-  llvm::SmallVector<mlir::Value> getTypeParams(fir::FirOpBuilder& builder, mlir::Location loc) const;
-
-  llvm::SmallVector<mlir::Value> getLBounds(fir::FirOpBuilder& builder, mlir::Location loc) const;
-
-  void reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> lbounds, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const;
-
-  /// Generate code to assign an expression to this variable.
-  /// For arrays, if expr overlaps with the variable, expr should have been
-  /// temporized before calling this.
-  /// This does not perform any allocatable assignment semantics (if the variable is
-  /// a whole allocatable, it should be reallocated if needed before).
-  void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const ExprLower& expr, const ElementalMask* filter);
-
-  /// Generate code to assign one variable to another.
-  /// This behaves similarly to assign with an expression.
-  void genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Variable& var, const ElementalMask* filter);
-
-  /// Returns an fir::ExtendedValue representing the variable without making a temp.
-  /// Cannot be called for variable with vector subscripts.
-  /// Will generate a fir.embox or fir.rebox for ArraySection.
-  fir::ExtendedValue getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const;
-
-  bool hasVectorSubscripts() const;
-
-  bool isArray() const;
-
-private:
-  // TODO consider using some pointer for ArraySection
-  // that is heavy. This is not made easy by the lambda that
-  // capture variables by copy in array expression lowering.
-  std::variant<fir::ExtendedValue, ArraySection> var;
-  mlir::Value shape;
-  mlir::Value slice;
   bool readyForAddressing = false;
 };
 

@@ -552,7 +552,7 @@ static void genInputItemList(Fortran::lower::AbstractConverter &converter,
       fir::emitFatalError(loc, "internal error: could not get evaluate::Expr");
     if (Fortran::evaluate::HasVectorSubscript(*expr)) {
       auto vectorSubscriptBox =
-          Fortran::lower::genVectorSubscriptBox(loc, converter, stmtCtx, *expr);
+          Fortran::lower::genVariable(converter, loc, stmtCtx, *expr);
       auto inputFunc = getInputFunc(
           loc, builder, vectorSubscriptBox.getElementType(), isFormatted);
       const bool mustBox = inputFunc.getType().getInput(1).isa<fir::BoxType>();

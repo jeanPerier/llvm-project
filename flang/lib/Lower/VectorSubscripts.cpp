@@ -161,28 +161,28 @@ static fir::ExtendedValue getComplexPart(fir::FirOpBuilder& builder, mlir::Locat
 
 /// Helper class to lower a designator containing vector subscripts into a
 /// lowered representation that can be worked with.
-class VectorSubscriptBoxBuilder {
+class VariableBuilderImpl {
 public:
-  VectorSubscriptBoxBuilder(mlir::Location loc,
+  VariableBuilderImpl(mlir::Location loc,
                             Fortran::lower::AbstractConverter &converter,
                             Fortran::lower::StatementContext &stmtCtx)
       : converter{converter}, stmtCtx{stmtCtx}, loc{loc} {}
 
-  Fortran::lower::VectorSubscriptBox
+  Fortran::lower::Variable
   gen(const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr) {
     elementType = genDesignator(expr);
     applyLeftAddressingPart();
-    return Fortran::lower::VectorSubscriptBox(
+    return Fortran::lower::Variable(
         std::move(loweredBase), std::move(loweredSubscripts),
         std::move(componentPath), substringBounds, elementType);
   }
 
 private:
   using LoweredVectorSubscript =
-      Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript;
-  using LoweredTriplet = Fortran::lower::VectorSubscriptBox::LoweredTriplet;
-  using LoweredSubscript = Fortran::lower::VectorSubscriptBox::LoweredSubscript;
-  using MaybeSubstring = Fortran::lower::VectorSubscriptBox::MaybeSubstring;
+      Fortran::lower::Variable::LoweredVectorSubscript;
+  using LoweredTriplet = Fortran::lower::Variable::LoweredTriplet;
+  using LoweredSubscript = Fortran::lower::Variable::LoweredSubscript;
+  using MaybeSubstring = Fortran::lower::Variable::MaybeSubstring;
 
   /// genDesignator unwraps a Designator<T> and calls `gen` on what the
   /// designator actually contains.
@@ -216,7 +216,7 @@ private:
     auto ty = fir::getBase(loweredBase).getType();
     if (symRef->Rank() > 0)
       lastPartWasRanked = true;
-    return fir::unwrapPassByRefType(fir::unwrapSequenceType(ty));
+    return fir::unwrapSequenceType(fir::unwrapPassByRefType(ty));
   }
 
   mlir::Type gen(const Fortran::evaluate::Substring &substring) {
@@ -388,7 +388,7 @@ private:
       return;
     auto prePath = preRankedPath.begin();
     while (prePath != preRankedPath.end()) {
-      if (!prePath->getType().isa<fir::FieldType>()) {
+      if (prePath->getType().isa<fir::FieldType>()) {
         llvm::SmallVector<fir::FieldIndexOp> fields;
         while (prePath != preRankedPath.end()) {
           auto fieldOp = prePath->getDefiningOp<fir::FieldIndexOp>();
@@ -458,7 +458,7 @@ private:
   Fortran::lower::AbstractConverter &converter;
   Fortran::lower::StatementContext &stmtCtx;
   mlir::Location loc;
-  /// Elements of VectorSubscriptBox being built.
+  /// Elements of Variable being built.
   fir::ExtendedValue loweredBase;
   llvm::SmallVector<mlir::Value> preRankedPath;
   llvm::SmallVector<LoweredSubscript, 4> loweredSubscripts;
@@ -470,11 +470,12 @@ private:
 };
 } // namespace
 
-Fortran::lower::VectorSubscriptBox Fortran::lower::genVectorSubscriptBox(
-    mlir::Location loc, Fortran::lower::AbstractConverter &converter,
+Fortran::lower::Variable Fortran::lower::genVariable(
+    Fortran::lower::AbstractConverter &converter, mlir::Location loc,
     Fortran::lower::StatementContext &stmtCtx,
     const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr) {
-  return VectorSubscriptBoxBuilder(loc, converter, stmtCtx).gen(expr);
+  // TODO: catch pointer function ref
+  return VariableBuilderImpl(loc, converter, stmtCtx).gen(expr);
 }
 
 static llvm::SmallVector<mlir::Value> reverseAndSubstractOne(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> extents, mlir::Value one) {
@@ -487,7 +488,7 @@ static llvm::SmallVector<mlir::Value> reverseAndSubstractOne(fir::FirOpBuilder& 
   return uppers;
 }
 
-void Fortran::lower::VectorSubscriptBox::prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc) {
+void Fortran::lower::Variable::prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc) {
   if (readyForAddressing)
     return;
 
@@ -501,12 +502,12 @@ void Fortran::lower::VectorSubscriptBox::prepareForAddressing(fir::FirOpBuilder&
   readyForAddressing = true;
 }
 
-bool Fortran::lower::VectorSubscriptBox::isArray() const {
-  return !loweredSubscripts.empty() || loweredBase.rank() == 0;
+bool Fortran::lower::Variable::isArray() const {
+  return !loweredSubscripts.empty() || loweredBase.rank() != 0;
 }
 
 
-mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsWhile(
+mlir::Value Fortran::lower::Variable::loopOverElementsWhile(
     fir::FirOpBuilder &builder, mlir::Location loc,
     const ElementalGeneratorWithBoolReturn &elementalGenerator,
     mlir::Value initialCondition) {
@@ -547,7 +548,7 @@ mlir::Value Fortran::lower::VectorSubscriptBox::loopOverElementsWhile(
   return outerLoop.getResult(0);
 }
 
-void Fortran::lower::VectorSubscriptBox::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
+void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
   prepareForAddressing(builder, loc);
   
   if (!isArray()) {
@@ -587,12 +588,12 @@ void Fortran::lower::VectorSubscriptBox::loopOverElements(fir::FirOpBuilder& bui
 }
 
 const fir::ExtendedValue&
-Fortran::lower::VectorSubscriptBox::getBase() const {
+Fortran::lower::Variable::getBase() const {
   return loweredBase;
 }
 
 mlir::Value
-Fortran::lower::VectorSubscriptBox::createShape(fir::FirOpBuilder &builder,
+Fortran::lower::Variable::createShape(fir::FirOpBuilder &builder,
                                                 mlir::Location loc) const {
   return builder.createShape(loc, loweredBase);
 }
@@ -616,7 +617,10 @@ static mlir::Value getLengthFromComponentPath(fir::FirOpBuilder &builder, mlir::
 }
 
 llvm::SmallVector<mlir::Value>
-Fortran::lower::VectorSubscriptBox::getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const {
+Fortran::lower::Variable::getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const {
+  if (isExtendedValue())
+    return fir::factory::getTypeParams(builder, loc, loweredBase);
+  
   auto elementType = getElementType();
   if (elementType.isa<fir::CharacterType>()) {
     mlir::Value len = componentPath.empty() ?
@@ -643,7 +647,7 @@ Fortran::lower::VectorSubscriptBox::getTypeParams(fir::FirOpBuilder &builder, ml
 }
 
 mlir::Value
-Fortran::lower::VectorSubscriptBox::createSlice(fir::FirOpBuilder &builder,
+Fortran::lower::Variable::createSlice(fir::FirOpBuilder &builder,
                                                 mlir::Location loc) const {
   auto idxTy = builder.getIndexType();
   llvm::SmallVector<mlir::Value> triples;
@@ -695,7 +699,7 @@ static llvm::SmallVector<mlir::Value> computeSliceShape(fir::FirOpBuilder& build
 }
 
 llvm::SmallVector<mlir::Value>
-Fortran::lower::VectorSubscriptBox::getExtents(fir::FirOpBuilder &builder,
+Fortran::lower::Variable::getExtents(fir::FirOpBuilder &builder,
                                                   mlir::Location loc) const {
   if (slice)
     return computeSliceShape(builder, loc, slice);
@@ -724,7 +728,7 @@ Fortran::lower::VectorSubscriptBox::getExtents(fir::FirOpBuilder &builder,
   return extents;
 }
 
-fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
+fir::ExtendedValue Fortran::lower::Variable::getElementAt(
     fir::FirOpBuilder &builder, mlir::Location loc,
     mlir::ValueRange indices) const {
   auto element = isArray() ? genArrayCoor(builder, loc, indices) : loweredBase;
@@ -737,7 +741,7 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getElementAt(
   return element;
 }
 
-fir::ExtendedValue Fortran::lower::VectorSubscriptBox::genArrayCoor(
+fir::ExtendedValue Fortran::lower::Variable::genArrayCoor(
     fir::FirOpBuilder &builder, mlir::Location loc, mlir::ValueRange indices) const {
   /// Generate the indexes for the array_coor inside the loops.
   llvm::SmallVector<mlir::Value> inductionVariables;
@@ -772,14 +776,14 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::genArrayCoor(
       builder, loc, loweredBase, elementAddr, slice);
 }
 
-bool Fortran::lower::VectorSubscriptBox::hasVectorSubscripts() const {
+bool Fortran::lower::Variable::hasVectorSubscripts() const {
   for (const auto &subscript : loweredSubscripts)
     if (std::holds_alternative<LoweredVectorSubscript>(subscript))
       return true;
   return false;
 }
 
-fir::ExtendedValue Fortran::lower::VectorSubscriptBox::asBox(fir::FirOpBuilder& builder, mlir::Location loc) const {
+fir::ExtendedValue Fortran::lower::Variable::asBox(fir::FirOpBuilder& builder, mlir::Location loc) const {
   auto memref = fir::getBase(loweredBase);
   auto type = fir::unwrapPassByRefType(memref.getType());
   auto boxTy = fir::BoxType::get(type);
@@ -790,7 +794,7 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::asBox(fir::FirOpBuilder& 
   return builder.create<fir::EmboxOp>(loc, boxTy, memref, shape, slice, fir::getTypeParams(loweredBase));
 }
 
-fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const {
+fir::ExtendedValue Fortran::lower::Variable::getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const {
   if (isExtendedValue())
     return loweredBase;
   auto memref = fir::getBase(loweredBase);
@@ -803,203 +807,39 @@ fir::ExtendedValue Fortran::lower::VectorSubscriptBox::getAsExtendedValue(fir::F
   return builder.create<fir::EmboxOp>(loc, boxTy, memref, shape, slice, fir::getTypeParams(loweredBase));
 }
 
-fir::ExtendedValue Fortran::lower::Variable::getElementAt(fir::FirOpBuilder& builder, mlir::Location loc, mlir::ValueRange indices) const {
-  assert(readyForAddressing && "array was not prepared for addressing");
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      if (fir::isArray(exv))
-        return fir::factory::getElementAt(builder, loc, exv, shape, slice, indices);
-      return exv;
-    },
-    [&](const ArraySection& arraySection) {
-      return arraySection.getElementAt(builder, loc, indices);
-    }
-  }, var);
-}
-
-Fortran::lower::Variable Fortran::lower::genVariable(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
-  Fortran::lower::StatementContext &stmtCtx,
-  const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr) {
-  // TODO: catch pointer function ref
-  //if (const auto* sym = Fortran::evaluate::UnwrapWholeSymbolOrComponentDataRef(expr)) {
-  //  // Whole symbol like `x` of `a(i, j)%p1%...%pn` where non of the parts before
-  //  // pn are ranked.
-  //  if (Fortran::semantics::IsAllocatableOrPointer(*sym))
-  //    return Variable(converter.genExprMutableBox(loc, expr));
-  //  return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
-  //}
-
-  //// Scalar array reference.
-  //if (expr.Rank() == 0)
-  //  return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
-
-  // Ranked array sections.
-  return Variable(Fortran::lower::genVectorSubscriptBox(loc, converter, stmtCtx, expr));
-}
-
-void Fortran::lower::Variable::prepareForAddressing(fir::FirOpBuilder& builder, mlir::Location loc) {
-  if (readyForAddressing)
-    return;
-  if (const auto *exv = std::get_if<fir::ExtendedValue>(&var)) {
-    if (const auto *mutableBox = exv->getBoxOf<fir::MutableBoxValue>()) {
-      var = fir::factory::genMutableBoxRead(builder, loc, *mutableBox);
-    }
-  }
-
-  if (isArray())
-    std::visit(Fortran::common::visitors{
-      [&](const fir::ExtendedValue& exv) {
-        shape = builder.createShape(loc, exv);
-      },
-      [&](const ArraySection& arraySection) {
-        shape = arraySection.createShape(builder, loc);
-        slice = arraySection.createSlice(builder, loc);
-      }
-      }, var);
-  readyForAddressing = true;
-}
-
-void Fortran::lower::Variable::loopOverElements(fir::FirOpBuilder& builder, mlir::Location loc, const ElementalGenerator& doOnEachElement, const ElementalMask* filter, bool canLoopUnordered){
-  prepareForAddressing(builder, loc);
-  
-  if (!isArray()) {
-    assert(!filter && "no filter expected for scalars");
-    const auto& elem = std::get<fir::ExtendedValue>(var);
-    doOnEachElement(builder, loc, elem, /*inductionVariables*/llvm::None);
-    return; 
-  }
-
-  auto idxTy = builder.getIndexType(); 
-  auto extents = getExtents(builder, loc);
-
-  auto one = builder.createIntegerConstant(loc, idxTy, 1);
-  auto zero = builder.createIntegerConstant(loc, idxTy, 0);
-  auto uppers = reverseAndSubstractOne(builder, loc, extents, one);
-  
-  llvm::SmallVector<mlir::Value> inductionVariables;
-  fir::DoLoopOp outerLoop;
-   
-  for (auto ub: uppers) {
-    auto loop = builder.create<fir::DoLoopOp>(loc, zero, ub, one, canLoopUnordered);
-    if (!outerLoop)
-      outerLoop = loop;
-    builder.setInsertionPointToStart(loop.getBody());
-    inductionVariables.push_back(loop.getInductionVar());
-  }
-
-  assert(outerLoop && !inductionVariables.empty() &&
-         "at least one loop should be created");
-
-  // Create if-ops nest filter if any.
-  if (filter)
-    (*filter)(builder, loc, inductionVariables);
-  auto elem = getElementAt(builder, loc, inductionVariables);
-  doOnEachElement(builder, loc, elem, inductionVariables);
-  builder.setInsertionPointAfter(outerLoop);
-}
-
-llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getTypeParams(fir::FirOpBuilder &builder, mlir::Location loc) const {
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      return fir::factory::getTypeParams(builder, loc, exv);
-    },
-    [&](const ArraySection& arraySection) {
-      return arraySection.getTypeParams(builder, loc);
-    },
-  }, var);
-}
-
-llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getExtents(fir::FirOpBuilder &builder, mlir::Location loc) const {
-  if (slice)
-    return computeSliceShape(builder, loc, slice);
-  if (shape && !shape.getType().isa<fir::ShiftType>()) {
-    auto extents = fir::factory::getExtents(shape);
-    return {extents.begin(), extents.end()};
-  }
-  
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      return fir::factory::getExtents(builder, loc, exv);
-    },
-    [&](const ArraySection& arraySection) {
-      return fir::factory::getExtents(builder, loc, arraySection.getBase());
-    },
-  }, var);
-}
-
 llvm::SmallVector<mlir::Value> Fortran::lower::Variable::getLBounds(fir::FirOpBuilder &builder, mlir::Location loc) const {
-  if (shape) {
+  if (shape && !slice) {
     auto origins = fir::factory::getOrigins(shape);
     return {origins.begin(), origins.end()};
   }
-  
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) -> llvm::SmallVector<mlir::Value> {
-      auto lbs = exv.match(
-        [&](fir::CharArrayBoxValue& array) -> llvm::ArrayRef<mlir::Value> {
-          return array.getLBounds();
-        },
-        [&](fir::ArrayBoxValue& array) -> llvm::ArrayRef<mlir::Value> {
-          return array.getLBounds();
-        },
-        [&](fir::BoxValue& array) -> llvm::ArrayRef<mlir::Value> {
-          return array.getLBounds();
-        },
-        [&](auto&) -> llvm::ArrayRef<mlir::Value> {
-          return {};
-        }
-      );
-      return {lbs.begin(), lbs.end()};
+
+  // Array sections do not have default lower bounds.
+  if (!isExtendedValue())
+    return {};
+
+  auto lbs = loweredBase.match(
+    [&](fir::CharArrayBoxValue& array) -> llvm::ArrayRef<mlir::Value> {
+      return array.getLBounds();
     },
-    [&](const ArraySection&) -> llvm::SmallVector<mlir::Value> {
-      // Array section that are not whole symbols or component have
-      // no lower bounds.
+    [&](fir::ArrayBoxValue& array) -> llvm::ArrayRef<mlir::Value> {
+      return array.getLBounds();
+    },
+    [&](fir::BoxValue& array) -> llvm::ArrayRef<mlir::Value> {
+      return array.getLBounds();
+    },
+    [&](auto&) -> llvm::ArrayRef<mlir::Value> {
+      // TODO: mutableBox ?
       return {};
-    },
-  }, var);
-}
-
-bool Fortran::lower::Variable::hasVectorSubscripts() const {
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      return false;
-    },
-    [&](const ArraySection& arraySection) {
-      return arraySection.hasVectorSubscripts();
-    },
-  }, var);
-}
-
-bool Fortran::lower::Variable::isArray() const {
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      return exv.rank() > 0;
-    },
-    [&](const ArraySection& arraySection) {
-      return true;
-    },
-  }, var);
-}
-
-fir::ExtendedValue Fortran::lower::Variable::getAsExtendedValue(fir::FirOpBuilder& builder, mlir::Location loc) const {
-  return std::visit(Fortran::common::visitors{
-    [&](const fir::ExtendedValue& exv) {
-      return exv;
-    },
-    [&](const ArraySection& arraySection) {
-      return arraySection.asBox(builder, loc);
-    },
-  }, var);
+    }
+  );
+  return {lbs.begin(), lbs.end()};
 }
 
 void Fortran::lower::Variable::reallocate(fir::FirOpBuilder& builder, mlir::Location loc, llvm::ArrayRef<mlir::Value> lbounds, llvm::ArrayRef<mlir::Value> extents, llvm::ArrayRef<mlir::Value> typeParams) const {
-  if (const auto *exv = std::get_if<fir::ExtendedValue>(&var))
-    if (const auto *mutableBox = exv->getBoxOf<fir::MutableBoxValue>()) {
-      fir::factory::genReallocIfNeeded(builder, loc, *mutableBox, lbounds, extents, typeParams);
-      return;
-  }
-  
-  fir::emitFatalError(loc, "trying to reallocate non-allocatable");
+  const auto *mutableBox = loweredBase.getBoxOf<fir::MutableBoxValue>();
+  if (!mutableBox)
+    fir::emitFatalError(loc, "trying to reallocate non-allocatable");
+  fir::factory::genReallocIfNeeded(builder, loc, *mutableBox, lbounds, extents, typeParams);
 }
 
 void Fortran::lower::Variable::genAssign(fir::FirOpBuilder& builder, mlir::Location loc, const Fortran::lower::ExprLower& expr, const ElementalMask* filter) {
@@ -1017,17 +857,17 @@ void Fortran::lower::Variable::genAssign(fir::FirOpBuilder& builder, mlir::Locat
   genAssign(builder, loc, expr, filter);
 }
 
-Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::LoweredVectorSubscript(const LoweredVectorSubscript&) = default;
-Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::LoweredVectorSubscript(LoweredVectorSubscript&&) = default;
-Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::operator=(const LoweredVectorSubscript&) = default;
-Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::operator=(LoweredVectorSubscript&&) = default;
-Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::~LoweredVectorSubscript() = default;
+Fortran::lower::Variable::LoweredVectorSubscript::LoweredVectorSubscript(const LoweredVectorSubscript&) = default;
+Fortran::lower::Variable::LoweredVectorSubscript::LoweredVectorSubscript(LoweredVectorSubscript&&) = default;
+Fortran::lower::Variable::LoweredVectorSubscript& Fortran::lower::Variable::LoweredVectorSubscript::operator=(const LoweredVectorSubscript&) = default;
+Fortran::lower::Variable::LoweredVectorSubscript& Fortran::lower::Variable::LoweredVectorSubscript::operator=(LoweredVectorSubscript&&) = default;
+Fortran::lower::Variable::LoweredVectorSubscript::~LoweredVectorSubscript() = default;
 
-Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::LoweredVectorSubscript(Fortran::lower::ExprLower&& expr, mlir::Value size) : vector{std::move(expr)}, size{size} {}
+Fortran::lower::Variable::LoweredVectorSubscript::LoweredVectorSubscript(Fortran::lower::ExprLower&& expr, mlir::Value size) : vector{std::move(expr)}, size{size} {}
 
-const Fortran::lower::ExprLower& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::getVector() const {
+const Fortran::lower::ExprLower& Fortran::lower::Variable::LoweredVectorSubscript::getVector() const {
   return vector.value();
 }
-Fortran::lower::ExprLower& Fortran::lower::VectorSubscriptBox::LoweredVectorSubscript::getVector() {
+Fortran::lower::ExprLower& Fortran::lower::Variable::LoweredVectorSubscript::getVector() {
   return vector.value();
 }
