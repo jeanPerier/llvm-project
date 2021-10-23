@@ -148,6 +148,17 @@ static fir::ExtendedValue addressArray(fir::FirOpBuilder& builder, mlir::Locatio
   return fir::factory::arrayElementToExtendedValue(builder, loc, array, addr);
 }
 
+static fir::ExtendedValue getComplexPart(fir::FirOpBuilder& builder, mlir::Location loc, const fir::ExtendedValue& scalarComplex, mlir::Value part) {
+  fir::factory::ComplexExprHelper helper(builder, loc);
+  auto base = fir::getBase(scalarComplex);
+  auto cmplxType = fir::dyn_cast_ptrEleTy(base.getType());
+  assert(cmplxType && "complex variable must be in memory");
+  auto eleTy = helper.getComplexPartType(cmplxType);
+  mlir::Value result = builder.create<fir::CoordinateOp>(
+      loc, builder.getRefType(eleTy), base, mlir::ValueRange{part});
+  return result;
+}
+
 /// Helper class to lower a designator containing vector subscripts into a
 /// lowered representation that can be worked with.
 class VectorSubscriptBoxBuilder {
@@ -396,23 +407,30 @@ private:
             if (prePath->getType().isa<fir::FieldType>())
               break;
             coors.push_back(*prePath);
-            prePath++;
-            rank --;
+            ++prePath;
+            rank--;
           }
           assert(rank == 0 && "rank mismatch");
           loweredBase = addressArray(builder, loc, loweredBase, coors);
         } else {
-          TODO(loc, "scalar complex part");
+          loweredBase = getComplexPart(builder, loc, loweredBase, *prePath);
+          ++prePath;
         }
       }
     }
+    preRankedPath.clear();
 
     // Keep substring info if this is a ranked array section.
     if (!loweredSubscripts.empty())
       return;
 
-    if (!substringBounds.empty())
-      TODO(loc, "substring");
+    if (!substringBounds.empty()) {
+      auto charBox = loweredBase.getCharBox();
+      assert(charBox && "substring must have character base");
+      loweredBase = fir::factory::CharacterExprHelper{builder, loc}.createSubstring(
+          *charBox, substringBounds);
+      substringBounds.clear();
+    }
   }
 
   template <typename A>
@@ -802,18 +820,18 @@ fir::ExtendedValue Fortran::lower::Variable::getElementAt(fir::FirOpBuilder& bui
 Fortran::lower::Variable Fortran::lower::genVariable(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
   Fortran::lower::StatementContext &stmtCtx,
   const Fortran::evaluate::Expr<Fortran::evaluate::SomeType> &expr) {
-  if (const auto* sym = Fortran::evaluate::UnwrapWholeSymbolOrComponentDataRef(expr)) {
-    // Whole symbol like `x` of `a(i, j)%p1%...%pn` where non of the parts before
-    // pn are ranked.
-    if (Fortran::semantics::IsAllocatableOrPointer(*sym))
-      return Variable(converter.genExprMutableBox(loc, expr));
-    return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
-  }
   // TODO: catch pointer function ref
+  //if (const auto* sym = Fortran::evaluate::UnwrapWholeSymbolOrComponentDataRef(expr)) {
+  //  // Whole symbol like `x` of `a(i, j)%p1%...%pn` where non of the parts before
+  //  // pn are ranked.
+  //  if (Fortran::semantics::IsAllocatableOrPointer(*sym))
+  //    return Variable(converter.genExprMutableBox(loc, expr));
+  //  return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
+  //}
 
-  // Scalar array reference.
-  if (expr.Rank() == 0)
-    return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
+  //// Scalar array reference.
+  //if (expr.Rank() == 0)
+  //  return Variable(converter.genExprAddr(expr, stmtCtx, &loc));
 
   // Ranked array sections.
   return Variable(Fortran::lower::genVectorSubscriptBox(loc, converter, stmtCtx, expr));
