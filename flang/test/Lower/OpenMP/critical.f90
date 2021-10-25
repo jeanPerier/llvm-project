@@ -12,10 +12,10 @@
 program mn
         use omp_lib
         integer :: x, y
-!FIRDialect: omp.critical.declare @help
-!LLVMDialect: omp.critical.declare @help
-!FIRDialect: omp.critical(@help) hint(contended)
-!LLVMIRDialect: omp.critical(@help) hint(contended)
+!FIRDialect: omp.critical.declare @help hint(contended)
+!LLVMDialect: omp.critical.declare @help hint(contended)
+!FIRDialect: omp.critical(@help)
+!LLVMIRDialect: omp.critical(@help)
 !LLVMIR: call void @__kmpc_critical_with_hint({{.*}}, {{.*}}, {{.*}} @{{.*}}help.var, i32 2)
 !$OMP CRITICAL(help) HINT(omp_lock_hint_contended)
         x = x + y
@@ -26,9 +26,9 @@ program mn
 
 ! Test that the same name can be used again
 ! Also test with the zero hint expression
-!FIRDialect: omp.critical(@help) hint(none)
-!LLVMIRDialect: omp.critical(@help) hint(none)
-!LLVMIR: call void @__kmpc_critical_with_hint({{.*}}, {{.*}}, {{.*}} @{{.*}}help.var, i32 0)
+!FIRDialect: omp.critical(@help)
+!LLVMIRDialect: omp.critical(@help)
+!LLVMIR: call void @__kmpc_critical_with_hint({{.*}}, {{.*}}, {{.*}} @{{.*}}help.var, i32 2)
 !$OMP CRITICAL(help) HINT(omp_lock_hint_none)
         x = x - y
 !FIRDialect: omp.terminator
