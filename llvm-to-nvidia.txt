@@ -40,10 +40,19 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit dccfaddc6bcc711bd972b43bff5ce6d71c1b39dc
+with llvm-project commit b283d55c90dd0b9495c9e91a76c2c62e587eb9b6
 
 Log of cherry-picked commits in reverse order (latest first):
-e9fe8ef4b0aa68be782a9139e08e9337ef79a462 Johs Mottley: flang-omp-report: std::map -> DenseMap
+d8699391a431af5730fe36ac4b05840020c42203 Mike: OMP5.1 declare variant (in clang)
+608eb3d9c2128b3cb2725e1b24da097b35200325 Valentin: format and homogenize FIROps.td
+84486cb22265204c5b8abc5da940aea9d2cd64b2 Valentin: move MLIR includes
+fc3f92a8f457d3067aeb7043e876cfa437c24e31 me: fix buildbot warnings on older code (?)
+3085e678519ed5375d9c33753591610c9ff48888 Andrzej: remove obsolete doc section
+a2e7af75166dd840a7537aab29099d666296a7b3 Valentin: add utility function
+0bf230d4220660af8b2667506f8905df2f716bdf Valentin: remove unused function
+2ba572a82a35051cdee91f6bb00d3db322ae13a3 Valentin: remove test
+13c31539f7da403fee11fe2163249837460c3bf2 Valentin: add Character helper
+e9fe8ef4b0aa68be782a9139e08e9337ef79a462 Josh Mottley: flang-omp-report: std::map -> DenseMap
 660c511e5b79d3724b8a139c8865c790d77b1f8f Josh Mottley: flang-omp-report: std::string -> StringRef
 c983aeddcf5af992d2a807d3f4f8cdc27cbf63b1 Valentin: FIRBuilder character utilities
 45503fc044499a5dc88be273a2d599f8ad5bccd3 Valentin: FIRBuilder utilities
