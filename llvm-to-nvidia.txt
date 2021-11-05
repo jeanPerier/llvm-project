@@ -40,9 +40,35 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b283d55c90dd0b9495c9e91a76c2c62e587eb9b6
+with llvm-project commit a83a6c22e63ad84e9c210c71b36413bed72ac23c
 
 Log of cherry-picked commits in reverse order (latest first):
+ea55503d7ca5b6ded73b0fd01a8c528f68e00521 Valentin: add fir.extract_value
+8c239909495eafac9f9f765af70bbea660af6d6c Valentin: add fir.select
+4eac7bcf1af1a94d76aec8d54f4a0f0014dd121c Mike: OMP 'bind' clause
+48dc5c8e731b1198c4ba4b2f08b235c55e6d5aef Kiran: use GetUltimate to avoid bad semantic error message
+a0f29fec657e8511651e7c6179795ec057cdce35 Josh: add script
+2aec2549e8e52f57bc9e9b082be06ece69be61ad Josh: remove workarounds
+0a95abb7dcf3ae4d4c5bb7ecc739c217d20b7fc3 Josh: remove comments
+3ae8e44215e4cf8272597ae39872229eb8934ebf Valentin: add fir.insert_on_range
+c86b4503a94c277534ce4b9a5c015a6ac151b98a Valentin: restrict array type
+52d813edcc78f1e616da7bea61f7e6ad8a5b441a Valentin: use notifyMatchFailure
+3c7ff45cbb4876d359f6bd0423c5d8080c7703ec Valentin: add substr information to embox
+ca0ed40e0000833e739f997f320bfafae35b4996 Mehdi: remove a builder
+32e08248aa113bf3a5008d580753876fe3bcf021 Andrzej: fir.unreachable -> llvm.unreachable
+a7a61359253c8e288f239c11b34be802a9d07566 Valentin: add zero_bits conversion pattern
+0c4a7a52636ef0b76e0a81aca8dcbc36eb38c0b2 Valentin: nfc address post-commit comments
+9df0ba599c3c777a37557ddcc567c85dae4c33d3 Diana: GET_ENVIRONMENT_VARIABLE(VALUE)
+044d5b5dd184ebdf20bcdfc62fa4bc7f1efd047c Valentin: add base of FIR->LLVM pass
+9faed889cfebf5d77faf1fab1ef8f0a2f0255e5c Nimish: fixed bad semantic errors from previous patch
+848cca6c5bf0e79c45cf03d4b3fd33be803c30d3 Emil K.: checks for pointers to intrinsic functions
+824bf908194c9267f1f09065ba8e41d7969006ab Diana: read runtime variables directly
+9fb52cb3f1235639a5a357fb5de18e1aeeb5b5f4 Shraiysh V.: OMP: add omp.atomic.read/write
+42831686034bd799ef5af4914e27e66b353338b6 River: fix AffineDemotion pass
+9daec0955132e6e33b086edc63c6f3e0f5712323 Valentin: avoid slice with substr
+d43f779f8204bada2f09b295e26581b75b27ce83 Valentin: move RewritePatterns.md
+1189d97d12a354376832a11eff1b3940b95be3f4 Valentin: fix indentation
+7812f510d28f34ed6209b1a382cdad7247b9090c Valentin: add substring
 d8699391a431af5730fe36ac4b05840020c42203 Mike: OMP5.1 declare variant (in clang)
 608eb3d9c2128b3cb2725e1b24da097b35200325 Valentin: format and homogenize FIROps.td
 84486cb22265204c5b8abc5da940aea9d2cd64b2 Valentin: move MLIR includes
