@@ -242,8 +242,7 @@ bool Descriptor::EstablishPointerSection(const Descriptor &source,
   }
   raw_.rank = newRank;
   if (const auto *sourceAddendum = source.Addendum()) {
-    auto *addendum = Addendum();
-    if (addendum) {
+    if (auto *addendum{Addendum()}) {
       *addendum = *sourceAddendum;
     } else {
       return false;
