@@ -87,10 +87,9 @@ TypeBuilderFunc getModel<Fortran::ISO::CFI_type_t>() {
   };
 }
 template <>
-TypeBuilderFunc getModel<Fortran::ISO::CFI_index_t>() {
+TypeBuilderFunc getModel<long>() {
   return [](mlir::MLIRContext *context) -> mlir::Type {
-    return mlir::IntegerType::get(context,
-                                  sizeof(Fortran::ISO::CFI_index_t) * 8);
+    return mlir::IntegerType::get(context, sizeof(long) * 8);
   };
 }
 template <>

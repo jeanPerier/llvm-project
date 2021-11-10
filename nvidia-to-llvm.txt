@@ -43,14 +43,14 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-96e302230f3002cdd91e5fb9722e28e1138cedc6 namelist look-ahead for external units
-4b52a46b1587b1a1de132070ff46654834487baa error recovery crash
+
+Done (oldest last, omitting no-ops):
 da18a079f0ff57e44186ea4d956ca2f41cb83821 only invariant symbols in shape expressions
 9cc471a1e4de8b99f1fbe566201cf0ec82d176a8 nullable subscript list
 a363425e6c9c0a4ccd0d9cf697b0b00a4f78b14f errors (not warnings) for bad jumps into constructs
+4b52a46b1587b1a1de132070ff46654834487baa error recovery crash
 d5d9e1659fda9c74e3779e89e8ef82e669f72878 fix folding of EPSILON
-
-Done (oldest last, omitting no-ops):
+96e302230f3002cdd91e5fb9722e28e1138cedc6 namelist look-ahead for external units
 30e30c6a3a5046c7d210f6c85a07ebd501462b5e fix appended blanks in output (regression)
 72e8e062cecca5994518d0062892005a9ece8b0e fix folding of findloc/maxloc/minloc
 f64c710fb405928b9171e6a130b75e479174af33 improve error message for misuse of NULL(mold)

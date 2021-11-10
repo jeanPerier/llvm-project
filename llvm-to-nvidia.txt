@@ -40,9 +40,37 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a83a6c22e63ad84e9c210c71b36413bed72ac23c
+with llvm-project commit 5731381594e07cead545c442db686f853ba59e8e
 
 Log of cherry-picked commits in reverse order (latest first):
+df3b9810c790cb0bfe1a8012ce4cecdfea3c99e3 Valentin: add fir.box_rank, &c conversion
+5eca6ad75274115571a6ded7bd014de534a92067 Valentin: use contralized values for indexing box
+81c99c5404c1aa92eadb7fb93dbeaae7bfaa5195 Diana: nfc commit fixup
+a343b74f8532c8e04e600d5d6e1ba7959f950808 Diana: add !fir.char type conversion
+deafc6fc6de6bb0781984c0a0182a7b75c55926e Diana: add !fir.ptr type conversion
+18334a1c1afe1b8a83c2a6108413bc48d80107df Mehdi: mlir API change
+e3349fa1a35130ce7434ea62ba50921411093d22 Andrzej: fir.store/load -> llvm
+384b4e0d332ec6fc4f9fc279d12aadc162eaf3a0 Emil: fix proc ptr ass't characteristics check
+092cee5f7fe991cc0cfef6a6d52ae150723ce7a0 Valentin: add fir.convert op conversion (take 2)
+9d9019c77c55b286159a83fc1bf2db2798bfe3c1 Valentin: revert ...
+165879ec31ed5cc6e4e1a2524c86fc80b81ebbda Valentin: add fir.convert op conversion
+fcb5a2b7d954e4a93ea0ef91bd396a5ab77c76c8 Valentin: force target for llvm conversion
+7b5132dae8e0d0645aacfb41c09cbc3ef33a330e Valentin: add complex ops conversion (take 2)
+b0de656bdf0ee3f4e51d04ae29160dab99819e8e David: OMP 'align' clause
+9b7c584ed876546731d59ef6c8d60a74199d38bb Valentin: revert ...
+b9bc64ba147fb90c199c56ec644e24fcabe74a5c Valentin: add complex ops conversion
+65431d3aeb9067c5df92827652fbb480859e8078 Diana: TargetRewrite: rewrite complex
+4c263ede5471a7fe3b06e8208b3f1aba1b9dcef2 Diana: add TargetRewrite pass
+c4921663cf8e291f3efc1ce52c60104bd5092ba0 Andrzej: docs
+59a4bbe26cfb11aca11f3992f138f86d43acb8c1 Valentin: add !fir.logical type conversion
+c3b15b71ce009b3dff9fb3bd664d087057b8376e Quinn: master -> main
+7e92b759ed69ef3732b4341e8588ae07085d5f90 Valentin: add fir.box type conversion
+ddd11b9a4b0709b3835fa8fad2beed00a60df631 Andrzej: fir.call -> llvm.call
+437543068935b718d4eac5702e04e8438820b4d2 Jean: set addendum when establishing pointer section
+29abf2a4a488629888411f9e1abdc3b47b8f84f0 Valentin: add test for FIR types conversion
+54c563474ab69fa8fbbbf68da6fab84cb0ee6e6b Valentin: add fir.extract_value (take 2)
+7a189fb2678c5a690cda5c0bb75efa70edf2e384 Valentin: revert eo55503d
+d75ab7d548c020f37ed3391a0002b206336fe46e Valentin: remove getModel<CFI_dim_t>
 ea55503d7ca5b6ded73b0fd01a8c528f68e00521 Valentin: add fir.extract_value
 8c239909495eafac9f9f765af70bbea660af6d6c Valentin: add fir.select
 4eac7bcf1af1a94d76aec8d54f4a0f0014dd121c Mike: OMP 'bind' clause
