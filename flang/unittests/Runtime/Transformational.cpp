@@ -93,6 +93,27 @@ TEST(Transformational, Shifts) {
   }
   vectorResult.Destroy();
 
+  // VECTOR  1 3 5 2 4 6 WITH non zero lower bound in a negative cshift.
+  auto vectorWithLowerBounds{MakeArray<TypeCategory::Integer, 4>(
+      std::vector<int>{6}, std::vector<std::int32_t>{1, 2, 3, 4, 5, 6})};
+  vector->GetDimension(0).SetLowerBound(2);
+  StaticDescriptor<1, true> vectorDesc2;
+  Descriptor &vectorResult2{vectorDesc2.descriptor()};
+
+  RTNAME(CshiftVector)
+  (vectorResult2, *vectorWithLowerBounds, -2, __FILE__, __LINE__);
+  EXPECT_EQ(vectorResult2.type(), array->type());
+  EXPECT_EQ(vectorResult2.rank(), 1);
+  EXPECT_EQ(vectorResult2.GetDimension(0).LowerBound(), 1);
+  EXPECT_EQ(vectorResult2.GetDimension(0).Extent(), 6);
+  EXPECT_EQ(vectorResult2.type(), (TypeCode{TypeCategory::Integer, 4}));
+  static std::int32_t cshiftExpect5[6]{5, 6, 1, 2, 3, 4};
+  for (int j{0}; j < 6; ++j) {
+    EXPECT_EQ(*vectorResult2.ZeroBasedIndexedElement<std::int32_t>(j),
+        cshiftExpect5[j]);
+  }
+  vectorResult2.Destroy();
+
   auto boundary{MakeArray<TypeCategory::Integer, 4>(
       std::vector<int>{3}, std::vector<std::int32_t>{-1, -2, -3})};
   boundary->GetDimension(0).SetLowerBound(9); // shouldn't matter
