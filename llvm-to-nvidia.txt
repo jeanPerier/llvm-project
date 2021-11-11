@@ -40,9 +40,20 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 5731381594e07cead545c442db686f853ba59e8e
+with llvm-project commit 420ad7ce7d5a9a10224efd8045abc0e85af972d9
 
 Log of cherry-picked commits in reverse order (latest first):
+420ad7ce7d5a9a10224efd8045abc0e85af972d9 Andrzej: transform IsPresentOpConversion, AbsenOpConversion
+b67be520548ec3c251f8e723ad36e0b311b3dbc3 Valentin: add !fir.field type conversion
+39f4ef81463d66779ea3430bd3a95284fe34b6bf Valentin: add fir.select_case conversion
+9534e361ea12aaecde52b8ac4c947f9a301d0c9b Valentin: add placeholder conversion pattern
+1e6d9c06a5d20b65499b74a891a0e79cada3803e Diana: add !fir.alloca conversion
+bb2018261e8000828144e91ffd11153ba2a12a16 Andrzej: add type conversion for fer.boxchar
+afcacccd5adc5ef79f50590f842c276b2979449f Valentin: add !fir.vector type conversion
+f1a2b507896c3fec8b725e489d9c0a9816d292c0 Andrzej: rearrange TypeConverter.h, CodeGen.cpp
+b6e44ecd6e0ab7fa3060e2d198cdd09ccda69f24 Valentin: add fir.box_isarray, &c. conversion
+f97e72aaca4a7534341f67a8f93fa3246882622a Mehdi: mlir NFC
+92d205672a91ee2c56b586412fd3a18bef888a87 Valentin: remove fir.unbox operation
 df3b9810c790cb0bfe1a8012ce4cecdfea3c99e3 Valentin: add fir.box_rank, &c conversion
 5eca6ad75274115571a6ded7bd014de534a92067 Valentin: use contralized values for indexing box
 81c99c5404c1aa92eadb7fb93dbeaae7bfaa5195 Diana: nfc commit fixup
