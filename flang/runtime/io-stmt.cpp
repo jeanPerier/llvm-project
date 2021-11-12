@@ -1240,8 +1240,8 @@ InquireIOLengthState::InquireIOLengthState(
     : NoUnitIoStatementState{sourceFile, sourceLine, *this} {}
 
 bool InquireIOLengthState::Emit(
-    const char *, std::size_t n, std::size_t elementBytes) {
-  bytes_ += n * elementBytes;
+    const char *, std::size_t n, std::size_t) {
+  bytes_ += n;
   return true;
 }
 
