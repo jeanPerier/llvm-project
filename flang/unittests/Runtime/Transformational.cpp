@@ -98,21 +98,20 @@ TEST(Transformational, Shifts) {
       std::vector<int>{6}, std::vector<std::int32_t>{1, 2, 3, 4, 5, 6})};
   vector->GetDimension(0).SetLowerBound(2);
   StaticDescriptor<1, true> vectorDesc2;
-  Descriptor &vectorResult2{vectorDesc2.descriptor()};
 
   RTNAME(CshiftVector)
-  (vectorResult2, *vectorWithLowerBounds, -2, __FILE__, __LINE__);
-  EXPECT_EQ(vectorResult2.type(), array->type());
-  EXPECT_EQ(vectorResult2.rank(), 1);
-  EXPECT_EQ(vectorResult2.GetDimension(0).LowerBound(), 1);
-  EXPECT_EQ(vectorResult2.GetDimension(0).Extent(), 6);
-  EXPECT_EQ(vectorResult2.type(), (TypeCode{TypeCategory::Integer, 4}));
+  (vectorResult, *vectorWithLowerBounds, -2, __FILE__, __LINE__);
+  EXPECT_EQ(vectorResult.type(), array->type());
+  EXPECT_EQ(vectorResult.rank(), 1);
+  EXPECT_EQ(vectorResult.GetDimension(0).LowerBound(), 1);
+  EXPECT_EQ(vectorResult.GetDimension(0).Extent(), 6);
+  EXPECT_EQ(vectorResult.type(), (TypeCode{TypeCategory::Integer, 4}));
   static std::int32_t cshiftExpect5[6]{5, 6, 1, 2, 3, 4};
   for (int j{0}; j < 6; ++j) {
-    EXPECT_EQ(*vectorResult2.ZeroBasedIndexedElement<std::int32_t>(j),
+    EXPECT_EQ(*vectorResult.ZeroBasedIndexedElement<std::int32_t>(j),
         cshiftExpect5[j]);
   }
-  vectorResult2.Destroy();
+  vectorResult.Destroy();
 
   auto boundary{MakeArray<TypeCategory::Integer, 4>(
       std::vector<int>{3}, std::vector<std::int32_t>{-1, -2, -3})};
@@ -149,6 +148,22 @@ TEST(Transformational, Shifts) {
   for (int j{0}; j < 6; ++j) {
     EXPECT_EQ(*vectorResult.ZeroBasedIndexedElement<std::int32_t>(j),
         eoshiftVectorExpect[j]);
+  }
+  vectorResult.Destroy();
+
+  // VECTOR EOSHIFT on input with non zero lower bounds
+  RTNAME(EoshiftVector)
+  (vectorResult, *vectorWithLowerBounds, -2, &vectorBoundary, __FILE__,
+      __LINE__);
+  EXPECT_EQ(vectorResult.type(), array->type());
+  EXPECT_EQ(vectorResult.rank(), 1);
+  EXPECT_EQ(vectorResult.GetDimension(0).LowerBound(), 1);
+  EXPECT_EQ(vectorResult.GetDimension(0).Extent(), 6);
+  EXPECT_EQ(vectorResult.type(), (TypeCode{TypeCategory::Integer, 4}));
+  static std::int32_t eoshiftVectorExpect2[6]{343, 343, 1, 2, 3, 4};
+  for (int j{0}; j < 6; ++j) {
+    EXPECT_EQ(*vectorResult.ZeroBasedIndexedElement<std::int32_t>(j),
+        eoshiftVectorExpect2[j]);
   }
   vectorResult.Destroy();
 }
