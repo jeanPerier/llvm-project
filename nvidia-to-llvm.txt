@@ -41,15 +41,16 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-cf390997927cf30e502b73e9e033df8c1fc0ee5b fix branch to outermost WHERE
-0dd83b73d6dccb0520fb2e7ea27b68b6ef0d5128 NO_STOP_MESSAGE
-a8bcb30033f60580412087f8445ae62293bd1b07 fix Fw.d rounding
-314850ae0e6b1512383267a6b6b39c3e15d99d58 fix ORDER=
-c1b724a99af447228ce7fb224ee84cbc0714d649 speed real reads
 
 In review:
 
 Done (oldest last, omitting no-ops):
+91f76e49fdcd91da63c4d2475408bb02a9772b7d handle ENTRY in IsPureProcedure()
+c1b724a99af447228ce7fb224ee84cbc0714d649 speed real reads
+a8bcb30033f60580412087f8445ae62293bd1b07 fix Fw.d rounding
+0dd83b73d6dccb0520fb2e7ea27b68b6ef0d5128 NO_STOP_MESSAGE
+314850ae0e6b1512383267a6b6b39c3e15d99d58 fix ORDER=
+cf390997927cf30e502b73e9e033df8c1fc0ee5b fix branch to outermost WHERE
 da18a079f0ff57e44186ea4d956ca2f41cb83821 only invariant symbols in shape expressions
 9cc471a1e4de8b99f1fbe566201cf0ec82d176a8 nullable subscript list
 a363425e6c9c0a4ccd0d9cf697b0b00a4f78b14f errors (not warnings) for bad jumps into constructs

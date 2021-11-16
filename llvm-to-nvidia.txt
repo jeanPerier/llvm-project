@@ -40,9 +40,29 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 420ad7ce7d5a9a10224efd8045abc0e85af972d9
+with llvm-project commit 078279ff017f799d9cb8fe515808fcc518fe0c41
 
 Log of cherry-picked commits in reverse order (latest first):
+ea8cdf322f3962765218829a0aece71e0bb5e989 Val: fix bug in INQUIRE(IOLENGTH=) (reformatting)
+30d87d4a5d02f00ef58ebc24a0ee5c6c370b8b4c William: expand int types for switch
+50acc6d0f7dd120a1de589d241423fe5bdf54add Andrzej: add missing HasParent
+2e65c8e8db1887a39c9140b75a9f5bb892ddd93f Jean: write after non-advancing read in runtime
+6c3d7fd4c55cfacbf9536373857eb496b3cfedcf Andrzej: transform fir.boxchar_len to llvm
+3124618704c5a9d1442b75d6372307654fea0827 Valentin: add fir.gentypedecs conversion
+f1dfc0275c543db14b1723ee2e33f0910dcc7f24 Diana: add fir.cmpc conversion
+4f11944652dec790c56e029d9a207db284831479 Peter: allow implicit proc ptrs to associate with explicit procs
+49c08a22edc36abc3c6bf381565bf1963338a57d Kiran: add FIR LLVMPointer type
+677df8c709d8c3913c6c1d03a30c4485e22419dc Valentin: add fir.global_len placeholder
+14867ffc7c6dd78665b332fe2e815c83909eb93e Andrzej: transform fir.unboxchar to llvm
+37c7211f110839bd54707c0f25bc434d596dbda1 Valentin: remove extra return in ...
+2a299e4f0636bd6664ddabb36a8a1dfa8cbd59e5 Valentin: add fir.select_type conversion placeholder
+1e77b09538c1bcba4936fee2e3f1a54de2467157 Andrzej: transform fir.emboxchar to llvm
+6c8eecd6769db3f8ef42d368f6d959504330968a Valentin: add !fir.len type conversion
+faf869dc6560844e14eada04f8c8d9dd34d0bf7d Diana: NFC comments
+aa26119b82cdabcba7c215bdd3a224a6ec3eedc0 Kiran: add type conversion for FIR integer kind
+2b247941cac6c278595b1c86ca3b895bd2b3f056 Kiran: add type conversion for FIR heap type
+1fda7baf8a0bcc1819b5471ad0590f5bd05a5b3f Jean: remove unused variable warning from ...
+6544d9a4a098c24ebafe2856259f927af8f211ec Jean: fix runtime CSHIFT
 420ad7ce7d5a9a10224efd8045abc0e85af972d9 Andrzej: transform IsPresentOpConversion, AbsenOpConversion
 b67be520548ec3c251f8e723ad36e0b311b3dbc3 Valentin: add !fir.field type conversion
 39f4ef81463d66779ea3430bd3a95284fe34b6bf Valentin: add fir.select_case conversion
