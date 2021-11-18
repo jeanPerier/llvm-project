@@ -45,6 +45,9 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+34a82d9f2c970092df0effa65ae8d69d621d14d8 fix off-by-one results from MAX/MINEXPONENT
+d7841005fb0843e202f89813df235603c1da9e9e fix INQUIRE(PAD=/POSITION=) for predefined units
+6765812f2f31a69cef1be601d8fd17b95f8954a4 deal with negative character lengths in semantics
 91f76e49fdcd91da63c4d2475408bb02a9772b7d handle ENTRY in IsPureProcedure()
 c1b724a99af447228ce7fb224ee84cbc0714d649 speed real reads
 a8bcb30033f60580412087f8445ae62293bd1b07 fix Fw.d rounding
