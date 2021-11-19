@@ -307,7 +307,7 @@ static bool TryFastPathRealInput(
     if (p >= limit || *p != ')') {
       return false;
     }
-    for (++ ++p; p < limit && (*p == ' ' || *p == '\t'); ++p) {
+    for (++p; p < limit && (*p == ' ' || *p == '\t'); ++p) {
     }
   }
   if (p < limit) {
