@@ -40,9 +40,11 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 7ca14f6044bfa46efdbb4d4080e36c3265a09a78
+with llvm-project commit de11de308b6480fc35d901c7104f46918674418c
 
 Log of cherry-picked commits in reverse order (latest first):
+b8207db700e60d1248c6b9d9d6559cdf877635ec Valentin: add fir.no_reassoc conversion
+ca3795541f49d96371f75a307363baef59478786 Diana: fix printing of constc
 7796d81ae8204289c6ea07f19e538cf287d3213f Jean: Skip Fortran STOP: before message under NO_STOP_MESSAGE=1
 a1f9bd32c57649b9f7695fa6564f3f92f09a1785 Kiran: add factory class for Complex ops
 e6c66ef55e63bb0e19f435de33eb12257680120c Andrzej: transform fir.field_index
