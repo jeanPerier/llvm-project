@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit de11de308b6480fc35d901c7104f46918674418c
+with llvm-project commit bb0d8e4bd9bc9426a5092368f086f52293dcc186
 
 Log of cherry-picked commits in reverse order (latest first):
+d02b318af636a887e85741a5fe699fe3852d1199 me: remove typo that broke complex namelist input
+42bfd059bf80c9b61b263747bfa31d97ac38b0c7 me: move IsCoarray() to fix shared build after ...
+996ef895cd3d1313665a42fc8e20d1d4e1cf2a28 me: add -fno-automatic, refine IsSaved()
+6f9cceb7751a6afdbf900d7dd7f84f9a5ce1c24d Jacques: move mlir trait
 b8207db700e60d1248c6b9d9d6559cdf877635ec Valentin: add fir.no_reassoc conversion
 ca3795541f49d96371f75a307363baef59478786 Diana: fix printing of constc
 7796d81ae8204289c6ea07f19e538cf287d3213f Jean: Skip Fortran STOP: before message under NO_STOP_MESSAGE=1
