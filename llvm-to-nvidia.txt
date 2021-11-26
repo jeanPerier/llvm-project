@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit bb0d8e4bd9bc9426a5092368f086f52293dcc186
+with llvm-project commit b0e27f4fff5e9ac7041f7af50b4d4570816c4b29
 
 Log of cherry-picked commits in reverse order (latest first):
+45a8caf1cdf6a9cbe6dd183df62f22c57e3310ae me: fix reversed comparison in runtime RESHAPE
+b90eef30048dfd1976b01dfdfec66af911721288 Quinn: master -> main
+8ec0f221843c51096cf3e7a479e780be371388a8 Mehdi: update fir.insert_on_range syntax (NFC)
+cdc476ab2f7d4aaabdd220f94c6446afdb6a339d Diana: set !fir.len_param_index conversion to unimplemented
 d02b318af636a887e85741a5fe699fe3852d1199 me: remove typo that broke complex namelist input
 42bfd059bf80c9b61b263747bfa31d97ac38b0c7 me: move IsCoarray() to fix shared build after ...
 996ef895cd3d1313665a42fc8e20d1d4e1cf2a28 me: add -fno-automatic, refine IsSaved()
