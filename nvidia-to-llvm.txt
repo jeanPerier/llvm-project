@@ -45,6 +45,12 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+8d68a9842270e52522fb1f622d9f335d26175f26 clean up changes to IsCoarray() from work on IsSaved()
+bf522307f898a56d7d2fefdaaa02f96f7bc82f8b IsContiguous() runtime
+36cf2c69846d58613e44e5e98b1ef1c5fb1dfcff correct INQUIRE(POSITION= & PAD=)
+d65727504f936fa326fea5fd403f34c8edfabb27 re-fold bounds expressions on DATA implied DO loops
+b0e27f4fff5e9ac7041f7af50b4d4570816c4b29 max/min(a3=,a4=,&c.)
+ab14e34fc91db987dbbbb168d6e66328d77593c1 address TODOs from IsSaved()
 e1c249fc61bf1b0cd72b7cf6c4053e5f9b940bdf fix keyword argument AIMAG(Z=...)
 57a617fb581bedceb29258d455402ca9ff39acb4 fix ++ ++p typo that broke namelist complex input
 060ed9de73653a74751f4e901ca80ad1fa80af07 predefine unit 0

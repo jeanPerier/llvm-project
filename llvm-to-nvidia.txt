@@ -40,9 +40,15 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b0e27f4fff5e9ac7041f7af50b4d4570816c4b29
+with llvm-project commit a20987adf4f80e2657eb3032a5a91e13f58106a0
 
 Log of cherry-picked commits in reverse order (latest first):
+1cc3b135aa61a31a7f7e488dd720e29bd8907bfc Valentin: expunge global option in FIRBuilder
+2e7202b0082fd0e22589949aa4d3472d201949b2 Valentin: add data flow optimization pass
+51e2c8c9bf96f19a3160a7da36be26943318a2cb Valentin: add assignment runtime API builder
+18452d1f12479ff5e1b437ef7efc9538e505c437 Valentin: add fir transformational intrinsic builder
+1b3cd35ade5daea163ac444324415d68af2513a7 Valentin: add base for runtime builder unittests
+9d1938fd1441935313ac0e44e39069bee8171a86 Jean: return true for allocatables is IsSimplyContiguous
 45a8caf1cdf6a9cbe6dd183df62f22c57e3310ae me: fix reversed comparison in runtime RESHAPE
 b90eef30048dfd1976b01dfdfec66af911721288 Quinn: master -> main
 8ec0f221843c51096cf3e7a479e780be371388a8 Mehdi: update fir.insert_on_range syntax (NFC)
