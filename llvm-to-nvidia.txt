@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a20987adf4f80e2657eb3032a5a91e13f58106a0
+with llvm-project commit 47f230ba2c8ff0e45e025163862ad699746b0ab0
 
 Log of cherry-picked commits in reverse order (latest first):
+1ee6f7add1ca824de4337991304ff737b953a968 me: rearrange prototype & code placement of IsCoarray()
+eb97c89cacb85c462e4e56057ae734716ed22324 Valentin: remove unused function
+47f759309eeaf9bd77debe4f6c3e1fe52913b537 Valentin: add array value copy pass
 1cc3b135aa61a31a7f7e488dd720e29bd8907bfc Valentin: expunge global option in FIRBuilder
 2e7202b0082fd0e22589949aa4d3472d201949b2 Valentin: add data flow optimization pass
 51e2c8c9bf96f19a3160a7da36be26943318a2cb Valentin: add assignment runtime API builder

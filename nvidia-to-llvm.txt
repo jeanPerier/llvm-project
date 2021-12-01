@@ -43,6 +43,7 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+42321b9c8c6ebba0c949a9682d937aa044c13320 adjust names & predicates for IsAssumedShape() &c.
 
 Done (oldest last, omitting no-ops):
 8d68a9842270e52522fb1f622d9f335d26175f26 clean up changes to IsCoarray() from work on IsSaved()
