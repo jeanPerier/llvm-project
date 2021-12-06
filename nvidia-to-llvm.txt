@@ -43,9 +43,13 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-42321b9c8c6ebba0c949a9682d937aa044c13320 adjust names & predicates for IsAssumedShape() &c.
+491988bf5943e3b78c2faaca09130676a4790ec2 remove CheckOpen() from OpenFile::Close()
 
 Done (oldest last, omitting no-ops):
+b0e366c97115c45548fb24065f202b6530f1574c RECL= on sequential
+7f5549a9e076c1672566c6b1b9f593ff0ea3e23b fix folding of EXPONENT
+d73009b51712131b69158ac8e9632d0f006d7d54 don't close stderr in runtime (fixes STOP)
+42321b9c8c6ebba0c949a9682d937aa044c13320 adjust names & predicates for IsAssumedShape() &c.
 8d68a9842270e52522fb1f622d9f335d26175f26 clean up changes to IsCoarray() from work on IsSaved()
 bf522307f898a56d7d2fefdaaa02f96f7bc82f8b IsContiguous() runtime
 36cf2c69846d58613e44e5e98b1ef1c5fb1dfcff correct INQUIRE(POSITION= & PAD=)
