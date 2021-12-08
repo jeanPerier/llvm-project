@@ -43,9 +43,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-491988bf5943e3b78c2faaca09130676a4790ec2 remove CheckOpen() from OpenFile::Close()
 
 Done (oldest last, omitting no-ops):
+de3f6add3e3ca006dd8a297d9bac40ab315f4cc0 inquire(file=,name=)
+8880ee5bb3b50243239bcba7a03da47dc0c3f694 avoid deadlock in CloseAll()
+491988bf5943e3b78c2faaca09130676a4790ec2 remove CheckOpen() from OpenFile::Close()
 b0e366c97115c45548fb24065f202b6530f1574c RECL= on sequential
 7f5549a9e076c1672566c6b1b9f593ff0ea3e23b fix folding of EXPONENT
 d73009b51712131b69158ac8e9632d0f006d7d54 don't close stderr in runtime (fixes STOP)

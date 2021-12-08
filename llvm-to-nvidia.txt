@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 7c0e066869de74ece2215095f2246e43d991b942
+with llvm-project commit 4dd8fccb7177585004a15d583bcba139d393f23c
 
 Log of cherry-picked commits in reverse order (latest first):
+89ebd35daabee5bd5b6baab7230072316ee252b6 Mehdi: fix flang tests declarative assembly
+c2acd4539396af2beb8f37e38e8da9e4a04565f5 AlexisPerry: convert fir.allocmem/freemem
+fa517555420b8d86268b733d371413d607db3358 Kiran: upstream conversion of XRebox
+6116ff297f52c32fbe617c5dcea33c54c2c274ee Valentin: add ragged array runtime
 5d27abe6295731bfbbf1d6703801f067e6ab9e24 Valentin: add fircp.ext_array_coor conversion
 d59a0f58f49a4289a7bbef2855cc0d5845715a2b Valentin: add fir character builder
 c32421c925131da39f028d3ea39a6cc5e9e1b365 Valentin: add fir.derived_type runtime builder
