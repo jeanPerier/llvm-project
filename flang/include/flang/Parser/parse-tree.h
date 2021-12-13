@@ -269,7 +269,8 @@ using Location = const char *;
 
 // A parse tree node with provenance only
 struct Verbatim {
-  BOILERPLATE(Verbatim);
+  COPY_AND_ASSIGN_BOILERPLATE(Verbatim);
+  constexpr Verbatim() {}
   using EmptyTrait = std::true_type;
   CharBlock source;
 };

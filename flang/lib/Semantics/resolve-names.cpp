@@ -5228,7 +5228,7 @@ ParamValue DeclarationVisitor::GetParamValue(
     const parser::TypeParamValue &x, common::TypeParamAttr attr) {
   return std::visit(
       common::visitors{
-          [=](const parser::ScalarIntExpr &x) { // C704
+          [this, attr](const parser::ScalarIntExpr &x) { // C704
             return ParamValue{EvaluateIntExpr(x), attr};
           },
           [=](const parser::Star &) { return ParamValue::Assumed(attr); },
@@ -5869,8 +5869,8 @@ const parser::Name *DeclarationVisitor::ResolveDataRef(
     const parser::DataRef &x) {
   return std::visit(
       common::visitors{
-          [=](const parser::Name &y) { return ResolveName(y); },
-          [=](const Indirection<parser::StructureComponent> &y) {
+          [this](const parser::Name &y) { return ResolveName(y); },
+          [this](const Indirection<parser::StructureComponent> &y) {
             return ResolveStructureComponent(y.value());
           },
           [&](const Indirection<parser::ArrayElement> &y) {
@@ -6351,10 +6351,10 @@ bool ModuleVisitor::Pre(const parser::AccessStmt &x) {
     for (const auto &accessId : accessIds) {
       std::visit(
           common::visitors{
-              [=](const parser::Name &y) {
+              [this, accessAttr](const parser::Name &y) {
                 Resolve(y, SetAccess(y.source, accessAttr));
               },
-              [=](const Indirection<parser::GenericSpec> &y) {
+              [this, accessAttr](const Indirection<parser::GenericSpec> &y) {
                 auto info{GenericSpecInfo{y.value()}};
                 const auto &symbolName{info.symbolName()};
                 if (auto *symbol{FindInScope(symbolName)}) {

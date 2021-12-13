@@ -128,14 +128,14 @@ public:
           rewriter->create<fir::AllocaOp>(loc, dyn_cast_ptrEleTy(resTy));
       newInTys.push_back(resTy);
       newOpers.push_back(stack);
-      return [=](mlir::Operation *) -> mlir::Value {
+      return [this, loc, stack, ty](mlir::Operation *) -> mlir::Value {
         auto memTy = ReferenceType::get(ty);
         auto cast = rewriter->create<ConvertOp>(loc, memTy, stack);
         return rewriter->create<fir::LoadOp>(loc, cast);
       };
     }
     newResTys.push_back(resTy);
-    return [=](mlir::Operation *call) -> mlir::Value {
+    return [this, loc, resTy, ty](mlir::Operation *call) -> mlir::Value {
       auto mem = rewriter->create<fir::AllocaOp>(loc, resTy);
       rewriter->create<fir::StoreOp>(loc, call->getResult(0), mem);
       auto memTy = ReferenceType::get(ty);
@@ -643,10 +643,11 @@ public:
     auto argTy = std::get<mlir::Type>(tup);
     if (attr.isSRet()) {
       unsigned argNo = newInTys.size();
-      fixups.emplace_back(
-          FixupTy::Codes::ReturnAsStore, argNo, [=](mlir::FuncOp func) {
-            func.setArgAttr(argNo, "llvm.sret", rewriter->getUnitAttr());
-          });
+      fixups.emplace_back(FixupTy::Codes::ReturnAsStore, argNo,
+                          [this, argNo](mlir::FuncOp func) {
+                            func.setArgAttr(argNo, "llvm.sret",
+                                            rewriter->getUnitAttr());
+                          });
       newInTys.push_back(argTy);
       return;
     }
@@ -675,7 +676,8 @@ public:
       if (attr.isByVal()) {
         if (auto align = attr.getAlignment())
           fixups.emplace_back(
-              FixupTy::Codes::ArgumentAsLoad, argNo, [=](mlir::FuncOp func) {
+              FixupTy::Codes::ArgumentAsLoad, argNo,
+              [this, align, argNo](mlir::FuncOp func) {
                 func.setArgAttr(argNo, "llvm.byval", rewriter->getUnitAttr());
                 func.setArgAttr(argNo, "llvm.align",
                                 rewriter->getIntegerAttr(
@@ -683,17 +685,18 @@ public:
               });
         else
           fixups.emplace_back(FixupTy::Codes::ArgumentAsLoad, newInTys.size(),
-                              [=](mlir::FuncOp func) {
+                              [this, argNo](mlir::FuncOp func) {
                                 func.setArgAttr(argNo, "llvm.byval",
                                                 rewriter->getUnitAttr());
                               });
       } else {
         if (auto align = attr.getAlignment())
-          fixups.emplace_back(fixupCode, argNo, index, [=](mlir::FuncOp func) {
-            func.setArgAttr(
-                argNo, "llvm.align",
-                rewriter->getIntegerAttr(rewriter->getIntegerType(32), align));
-          });
+          fixups.emplace_back(
+              fixupCode, argNo, index, [this, align, argNo](mlir::FuncOp func) {
+                func.setArgAttr(argNo, "llvm.align",
+                                rewriter->getIntegerAttr(
+                                    rewriter->getIntegerType(32), align));
+              });
         else
           fixups.emplace_back(fixupCode, argNo, index);
       }

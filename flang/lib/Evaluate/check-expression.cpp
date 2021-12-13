@@ -173,7 +173,7 @@ struct IsActuallyConstantHelper {
     return (*this)(x.left());
   }
   template <typename T> bool operator()(const Expr<T> &x) {
-    return std::visit([=](const auto &y) { return (*this)(y); }, x.u);
+    return std::visit([this](const auto &y) { return (*this)(y); }, x.u);
   }
   template <typename A> bool operator()(const A *x) { return x && (*this)(*x); }
   template <typename A> bool operator()(const std::optional<A> &x) {

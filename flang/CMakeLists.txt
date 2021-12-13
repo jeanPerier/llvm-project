@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.13.4)
 
 set(CMAKE_BUILD_WITH_INSTALL_NAME_DIR ON)
 
-# Flang requires C++17.
+# Flang requires C++17 or later.
 set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 20) # also works
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -115,7 +116,7 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # avoid some mixed compilation flangs (e.g. -std=c++11 ... -std=c++17).
   if (DEFINED LLVM_CXX_STD)
     message("LLVM configuration set a C++ standard: ${LLVM_CXX_STD}")
-    if (NOT LLVM_CXX_STD EQUAL "c++17")
+    if (NOT LLVM_CXX_STD EQUAL "c++17" AND NOT LLVM_CXX_STD EQUAL "c++20")
       message("Flang: Overriding LLVM's 'cxx_std' setting...")
       message("    removing '-std=${LLVM_CXX_STD}'")
       message("    CMAKE_CXX_FLAGS='${CMAKE_CXX_FLAGS}'")
