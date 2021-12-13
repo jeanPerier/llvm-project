@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 4dd8fccb7177585004a15d583bcba139d393f23c
+with llvm-project commit 6c3bc57f256d00433713b7f8052e542b0ec92496
 
 Log of cherry-picked commits in reverse order (latest first):
+f97731c76501788c61012156adfae138f4013500 Kiran: move decl of kindMap to class
+feeee78afcf194e4fd3cb4983239677bc61a2433 Jacques: flip dialects to _Prefixed
+e6e7da5515e56d3b26b705a3feff6225f2bf794b Andrzej: formatting for ...
+75db341d5a12783f8048ef9968896871c580e6b7 Andrzej: add conversion for !fir.coordinate_of
+3012f35f8727408550d5308a1c28a66cd005a852 Jacques: update FIR dialect to _Both
+ad3bb7c7da7b9e66cb98629d0f579546c8ead48f Valentin: simplify RaggedArrayHeader
+70638d997c63a9eb650bc87da391e18696706213 Valentin: keep runtime func name in comment
+627a8ac7903f26117faa782a27d2e87e9d0915c2 Peter: add CALL FLUSH() runtime
+de467afe182ed9ea4ca5454f79dc6ef29ca155cc Valentin: add fir ragged array builder
 89ebd35daabee5bd5b6baab7230072316ee252b6 Mehdi: fix flang tests declarative assembly
 c2acd4539396af2beb8f37e38e8da9e4a04565f5 AlexisPerry: convert fir.allocmem/freemem
 fa517555420b8d86268b733d371413d607db3358 Kiran: upstream conversion of XRebox

@@ -45,6 +45,7 @@ To do (oldest last):
 In review:
 
 Done (oldest last, omitting no-ops):
+00190841426911ab75bd794cbdcd1299c9d56ede fix folding of [(structcon(i),i=1,3)]
 de3f6add3e3ca006dd8a297d9bac40ab315f4cc0 inquire(file=,name=)
 8880ee5bb3b50243239bcba7a03da47dc0c3f694 avoid deadlock in CloseAll()
 491988bf5943e3b78c2faaca09130676a4790ec2 remove CheckOpen() from OpenFile::Close()
