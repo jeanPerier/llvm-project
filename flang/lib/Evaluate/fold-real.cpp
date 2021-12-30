@@ -133,13 +133,19 @@ Expr<Type<TypeCategory::Real, KIND>> FoldIntrinsicFunction(
   } else if (name == "scale") {
     if (const auto *byExpr{UnwrapExpr<Expr<SomeInteger>>(args[1])}) {
       return std::visit(
-          [&](const auto &byVal) -> Expr<T> {
+          [&](const auto &byVal) {
             using TBY = ResultType<decltype(byVal)>;
             return FoldElementalIntrinsic<T, T, TBY>(context,
                 std::move(funcRef),
                 ScalarFunc<T, T, TBY>(
                     [&](const Scalar<T> &x, const Scalar<TBY> &y) -> Scalar<T> {
-                      ValueWithRealFlags<Scalar<T>> result{x.template SCALE(y)};
+                      ValueWithRealFlags<Scalar<T>> result{x.
+// MSVC chokes on the keyword "template" here in a call to a
+// member function template.
+#ifndef _MSC_VER
+                                                           template
+#endif
+                                                           SCALE(y)};
                       if (result.flags.test(RealFlag::Overflow)) {
                         context.messages().Say(
                             "SCALE intrinsic folding overflow"_en_US);
@@ -194,6 +200,9 @@ Expr<Type<TypeCategory::Real, KIND>> FoldOperation(
   return Expr<Part>{std::move(x)};
 }
 
+#ifdef _MSC_VER // disable bogus warning about missing definitions
+#pragma warning(disable : 4661)
+#endif
 FOR_EACH_REAL_KIND(template class ExpressionBase, )
 template class ExpressionBase<SomeReal>;
 } // namespace Fortran::evaluate
