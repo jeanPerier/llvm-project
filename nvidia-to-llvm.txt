@@ -43,6 +43,8 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
+776812f9cd1751962bbaef362b75a5a319729523 avoid code duplication in mixed expressions
 
 Done (oldest last, omitting no-ops):
 00190841426911ab75bd794cbdcd1299c9d56ede fix folding of [(structcon(i),i=1,3)]

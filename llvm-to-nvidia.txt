@@ -40,9 +40,20 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 6c3bc57f256d00433713b7f8052e542b0ec92496
+with llvm-project commit 95c7dd8810b0bc93c0f76a285f1bcc3bd73f6a50
 
 Log of cherry-picked commits in reverse order (latest first):
+c7a589a2c4e2db496d732821a8dba59508326250 Shilei: OMP thing in clang
+e07736fe3c78bf02c1eb922a04065840a8e13935 Diana: add missing include
+b600215e80d0a490375c00662bd6e7fab9f22c43 Damian: test co_max
+e96e3912c9b626f289b7fefceacfad136259a12f Damian: test co_min
+2f581b380a41e12d88e625fe534e1fa7fc3c7051 Damian: test co_reduce
+6d655ad0111e4fcdcbfba924c89da9053d484095 Andrzej: add conversion
+d18a9aeae9e6b7514186188ba71d1d9b6956fe16 Andrzej: add driver error
+3ab67c3d62e97579af6975e7f597a12fcac390d1 Valentin: move Factory.h to /Builder
+80b1d472d6f7e10403e37cc74bfda278372ecb97 Kiran: add test with shape
+3d092e31c1f5fab9b427994970616bc5dde3b3be Eric: add memory allocation rewrite pass
+135d5d4a6d37f30173c1b9ea85a3a969c364b241 Kiran: make static function static inline
 f97731c76501788c61012156adfae138f4013500 Kiran: move decl of kindMap to class
 feeee78afcf194e4fd3cb4983239677bc61a2433 Jacques: flip dialects to _Prefixed
 e6e7da5515e56d3b26b705a3feff6225f2bf794b Andrzej: formatting for ...
