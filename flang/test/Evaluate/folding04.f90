@@ -17,23 +17,42 @@ module real_tests
   !WARN: division by zero
   real(4), parameter :: r4_ninf = -1._4/0._4
 
-  !WARN: invalid argument on intrinsic function
+  !WARN: argument 'x' is out of range [-1., 1.]
+  !WARN: invalid argument on intrinsic function call
   real(4), parameter :: nan_r4_acos1 = acos(1.1)
   TEST_ISNAN(nan_r4_acos1)
-  !WARN: invalid argument on intrinsic function
+  !WARN: argument 'x' is out of range [-1., 1.]
+  !WARN: invalid argument on intrinsic function call
   real(4), parameter :: nan_r4_acos2 = acos(r4_pmax)
   TEST_ISNAN(nan_r4_acos2)
-  !WARN: invalid argument on intrinsic function
+  !WARN: argument 'x' is out of range [-1., 1.]
+  !WARN: invalid argument on intrinsic function call
   real(4), parameter :: nan_r4_acos3 = acos(r4_nmax)
   TEST_ISNAN(nan_r4_acos3)
-  !WARN: invalid argument on intrinsic function
+  !WARN: argument 'x' is out of range [-1., 1.]
+  !WARN: invalid argument on intrinsic function call
   real(4), parameter :: nan_r4_acos4 = acos(r4_ninf)
   TEST_ISNAN(nan_r4_acos4)
-  !WARN: invalid argument on intrinsic function
+  !WARN: argument 'x' is out of range [-1., 1.]
+  !WARN: invalid argument on intrinsic function call
   real(4), parameter :: nan_r4_acos5 = acos(r4_pinf)
   TEST_ISNAN(nan_r4_acos5)
 
-  !WARN: overflow on intrinsic function
+  !WARN: argument 'x' is out of range [-1., 1.]
+  !WARN: invalid argument on intrinsic function call
+  real(8), parameter :: nan_r8_dasin1 = dasin(-1.1_8)
+  TEST_ISNAN(nan_r8_dasin1)
+
+  !WARN: argument 'x' must be strictly positive
+  !WARN: invalid argument on intrinsic function call
+  real(8), parameter :: nan_r8_dlog1 = dlog(-0.1_8)
+  TEST_ISNAN(nan_r8_dlog1)
+
+  !WARN: complex argument 'a' must be non-null
+  !WARN: overflow on intrinsic function call
+  complex(4), parameter :: nan_c4_clog1 = clog((0., 0.))
+
+  !WARN: overflow on intrinsic function call
   logical, parameter :: test_exp_overflow = exp(256._4).EQ.r4_pinf
 end module
 
