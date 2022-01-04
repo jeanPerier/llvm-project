@@ -141,7 +141,7 @@ void HostFloatingPointEnvironment::CheckAndRestoreFloatingPointEnvironment(
   }
 
   if (!flags_.empty()) {
-    RealFlagWarnings(context, flags_, "intrinsic function");
+    RealFlagWarnings(context, flags_, "intrinsic function call");
   }
   errno = 0;
   if (fesetenv(&originalFenv_) != 0) {
