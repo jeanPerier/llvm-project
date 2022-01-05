@@ -477,10 +477,267 @@ static DynamicType BiggerType(DynamicType type) {
   return type;
 }
 
+/// Structure to register intrinsic argument checks that must be performed.
+using ArgumentVerifierFunc = bool (*)(
+    const std::vector<Expr<SomeType>> &, FoldingContext &);
+struct ArgumentVerifier {
+  using Key = std::string_view;
+  // Needed for implicit compare with keys.
+  constexpr operator Key() const { return key; }
+  Key key; // intrinsic name
+  ArgumentVerifierFunc verifier;
+};
+
+/// Define limits that can be used to describe ranges in which intrinsic
+/// arguments must be.
+ENUM_CLASS(Limit, minusOne, zero, one)
+template <typename T> static constexpr Scalar<T> GetLimitValue(Limit limit) {
+  switch (limit) {
+  case Limit::minusOne:
+    return Scalar<T>::FromInteger(value::Integer<8>{-1}).value;
+  case Limit::zero:
+    return Scalar<T>{};
+  case Limit::one:
+    return Scalar<T>::FromInteger(value::Integer<8>{1}).value;
+  }
+}
+static const char *GetLimitString(Limit limit) {
+  switch (limit) {
+  case Limit::minusOne:
+    return "-1.";
+  case Limit::zero:
+    return "0.";
+  case Limit::one:
+    return "1.";
+  }
+}
+
+template <typename T>
+static bool IsInRange(const Expr<T> &expr, Limit lb, Limit ub) {
+  if (auto scalar{GetScalarConstantValue<T>(expr)}) {
+    return Satisfies(
+               RelationalOperator::LE, GetLimitValue<T>(lb).Compare(*scalar)) &&
+        Satisfies(
+            RelationalOperator::LE, scalar->Compare(GetLimitValue<T>(ub)));
+  }
+  return true;
+}
+
+/// Verify that the argument in an intrinsic call belongs to [lb, ub] if is
+/// real.
+template <Limit lb, Limit ub>
+static bool VerifyInRangeIfReal(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someReal = std::get_if<Expr<SomeReal>>(&args[0].u)) {
+    const bool isInRange{
+        std::visit([&](const auto &x) -> bool { return IsInRange(x, lb, ub); },
+            someReal->u)};
+    if (!isInRange) {
+      context.messages().Say("argument is out of range [%s, %s]"_en_US,
+          GetLimitString(lb), GetLimitString(ub));
+    }
+    return isInRange;
+  }
+  return true;
+}
+
+static constexpr int lastArg{-1};
+static constexpr int firstArg{0};
+
+const Expr<SomeType> &getArg(
+    int position, const std::vector<Expr<SomeType>> &args) {
+  if (position == lastArg) {
+    CHECK(!args.empty());
+    return args.back();
+  }
+  CHECK(position >= 0 && static_cast<std::size_t>(position) < args.size());
+  return args[position];
+}
+
+template <int argPosition, const char *argName>
+static bool VerifyStriclyPositiveIfReal(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someReal =
+          std::get_if<Expr<SomeReal>>(&getArg(argPosition, args).u)) {
+    const bool isStriclyPositive{std::visit(
+        [&](const auto &x) -> bool {
+          using T = typename std::decay_t<decltype(x)>::Result;
+          auto scalar{GetScalarConstantValue<T>(x)};
+          return Satisfies(
+              RelationalOperator::LT, Scalar<T>{}.Compare(*scalar));
+        },
+        someReal->u)};
+    if (!isStriclyPositive) {
+      context.messages().Say(
+          "argument '%s' must be strictly positive"_en_US, argName);
+    }
+    return isStriclyPositive;
+  }
+  return true;
+}
+
+/// Verify that an intrinsic call argument is not zero if it is real.
+template <int argPosition, const char *argName>
+static bool VerifyNotZeroIfReal(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someReal =
+          std::get_if<Expr<SomeReal>>(&getArg(argPosition, args).u)) {
+    const bool isNotZero{std::visit(
+        [&](const auto &x) -> bool {
+          using T = typename std::decay_t<decltype(x)>::Result;
+          auto scalar{GetScalarConstantValue<T>(x)};
+          return !scalar || !scalar->IsZero();
+        },
+        someReal->u)};
+    if (!isNotZero) {
+      context.messages().Say(
+          "argument '%s' must be different from zero"_en_US, argName);
+    }
+    return isNotZero;
+  }
+  return true;
+}
+
+/// Verify that the argument in an intrinsic call is not zero if is complex.
+static bool VerifyNotZeroIfComplex(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someComplex =
+          std::get_if<Expr<SomeComplex>>(&getArg(firstArg, args).u)) {
+    const bool isNotZero{std::visit(
+        [&](const auto &z) -> bool {
+          using T = typename std::decay_t<decltype(z)>::Result;
+          auto scalar{GetScalarConstantValue<T>(z)};
+          return !scalar || !scalar->IsZero();
+        },
+        someComplex->u)};
+    if (!isNotZero) {
+      context.messages().Say(
+          "complex argument must be different from zero"_en_US);
+    }
+    return isNotZero;
+  }
+  return true;
+}
+
+// Verify that the argument in an intrinsic call is not zero and not a negative
+// integer.
+static bool VerifyGammaLikeArgument(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someReal =
+          std::get_if<Expr<SomeReal>>(&getArg(firstArg, args).u)) {
+    const bool isValid{std::visit(
+        [&](const auto &x) -> bool {
+          using T = typename std::decay_t<decltype(x)>::Result;
+          auto scalar{GetScalarConstantValue<T>(x)};
+          if (scalar) {
+            return !scalar->IsZero() &&
+                !(scalar->IsNegative() &&
+                    scalar->ToWholeNumber().value == scalar);
+          }
+          return true;
+        },
+        someReal->u)};
+    if (!isValid) {
+      context.messages().Say(
+          "argument must not be a negative integer or zero"_en_US);
+    }
+    return isValid;
+  }
+  return true;
+}
+
+// Verify that two real arguments are not both zero.
+static bool VerifyAtan2LikeArguments(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someReal =
+          std::get_if<Expr<SomeReal>>(&getArg(firstArg, args).u)) {
+    const bool isValid{std::visit(
+        [&](const auto &typedExpr) -> bool {
+          using T = typename std::decay_t<decltype(typedExpr)>::Result;
+          auto x{GetScalarConstantValue<T>(typedExpr)};
+          auto y{GetScalarConstantValue<T>(getArg(lastArg, args))};
+          if (x && y) {
+            return !(x->IsZero() && y->IsZero());
+          }
+          return true;
+        },
+        someReal->u)};
+    if (!isValid) {
+      context.messages().Say(
+          "'x' and 'y' arguments must not be both zero"_en_US);
+    }
+    return isValid;
+  }
+  return true;
+}
+
+template <ArgumentVerifierFunc... F>
+static bool CombineVerifiers(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  return (... & F(args, context));
+}
+
+/// Define argument names to be used error messages when the intrinsic have
+/// several arguments.
+static constexpr char xName[]{"x"};
+static constexpr char pName[]{"p"};
+
+/// Register argument verifiers for all intrinsics folded with runtime.
+static constexpr ArgumentVerifier intrinsicArgumentVerifiers[]{
+    {"acos", VerifyInRangeIfReal<Limit::minusOne, Limit::one>},
+    {"asin", VerifyInRangeIfReal<Limit::minusOne, Limit::one>},
+    {"atan2", VerifyAtan2LikeArguments},
+    {"bessel_y0", VerifyStriclyPositiveIfReal<firstArg, xName>},
+    {"bessel_y1", VerifyStriclyPositiveIfReal<firstArg, xName>},
+    {"bessel_yn", VerifyStriclyPositiveIfReal<lastArg, xName>},
+    {"gamma", VerifyGammaLikeArgument},
+    {"log",
+        CombineVerifiers<VerifyStriclyPositiveIfReal<firstArg, xName>,
+            VerifyNotZeroIfComplex>},
+    {"log10", VerifyStriclyPositiveIfReal<firstArg, xName>},
+    {"log_gamma", VerifyGammaLikeArgument},
+    {"mod", VerifyNotZeroIfReal<lastArg, pName>},
+};
+
+const ArgumentVerifierFunc *findVerifier(const std::string &intrinsicName) {
+  static constexpr Fortran::common::StaticMultimapView<ArgumentVerifier>
+      verifiers(intrinsicArgumentVerifiers);
+  static_assert(verifiers.Verify(), "map must be sorted");
+  auto range{verifiers.equal_range(intrinsicName)};
+  if (range.first != range.second) {
+    return &range.first->verifier;
+  }
+  return nullptr;
+}
+
+/// Ensure argument verifiers, if any, are run before calling the runtime
+/// wrapper to fold an intrinsic.
+static std::optional<HostRuntimeWrapper> AddArgumentVerifierIfAny(
+    const std::string &intrinsicName, HostRuntimeWrapper &&runtimeWrapper) {
+  if (const auto *verifier{findVerifier(intrinsicName)}) {
+    return [runtimeWrapper, verifier](
+               FoldingContext &context, std::vector<Expr<SomeType>> &&args) {
+      const bool validArguments{(*verifier)(args, context)};
+      if (!validArguments) {
+        // Silence fp signal warnings since a more detailed warning about
+        // invalid arguments was already emitted.
+        parser::Messages localBuffer;
+        parser::Messages *finalBuffer{context.messages().messages()};
+        parser::ContextualMessages localMessages{
+            context.messages().at(), finalBuffer ? &localBuffer : nullptr};
+        FoldingContext localContext{context, localMessages};
+        return runtimeWrapper(localContext, std::move(args));
+      }
+      return runtimeWrapper(context, std::move(args));
+    };
+  }
+  return std::move(runtimeWrapper);
+}
+
 std::optional<HostRuntimeWrapper> GetHostRuntimeWrapper(const std::string &name,
     DynamicType resultType, const std::vector<DynamicType> &argTypes) {
   if (const auto *hostFunction{SearchHostRuntime(name, resultType, argTypes)}) {
-    return hostFunction->folder;
+    return AddArgumentVerifierIfAny(name, hostFunction->folder);
   }
   // If no exact match, search with "bigger" types and insert type
   // conversions around the folder.
@@ -491,8 +748,8 @@ std::optional<HostRuntimeWrapper> GetHostRuntimeWrapper(const std::string &name,
   }
   if (const auto *hostFunction{
           SearchHostRuntime(name, biggerResultType, biggerArgTypes)}) {
-    return [hostFunction, resultType](
-               FoldingContext &context, std::vector<Expr<SomeType>> &&args) {
+    auto folder{[hostFunction, resultType](FoldingContext &context,
+                    std::vector<Expr<SomeType>> &&args) {
       auto nArgs{args.size()};
       for (size_t i{0}; i < nArgs; ++i) {
         args[i] = Fold(context,
@@ -503,7 +760,8 @@ std::optional<HostRuntimeWrapper> GetHostRuntimeWrapper(const std::string &name,
           ConvertToType(
               resultType, hostFunction->folder(context, std::move(args)))
               .value());
-    };
+    }};
+    return AddArgumentVerifierIfAny(name, std::move(folder));
   }
   return std::nullopt;
 }

@@ -199,20 +199,12 @@ ENUM_CLASS(Optionality, required,
     repeats, // for MAX/MIN and their several variants
 )
 
-ENUM_CLASS(ValueConstraint, none,
-    RealInMinusOneToOneRange, // Real arguments must be between -1. and 1.
-    RealStrictlyPositiveAndComplexNonNull, // Real > 0 and Complex != (0., 0.)
-    ComplexNonNull, // Complex arguments != (0., 0.)
-    RealStrictlyPositive, // Real arguments > 0
-)
-
 struct IntrinsicDummyArgument {
   const char *keyword{nullptr};
   TypePattern typePattern;
   Rank rank{Rank::elemental};
   Optionality optionality{Optionality::required};
   common::Intent intent{common::Intent::In};
-  ValueConstraint valueConstraint{ValueConstraint::none};
   llvm::raw_ostream &Dump(llvm::raw_ostream &) const;
 };
 
@@ -284,14 +276,8 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
     {"abs", {{"a", SameIntOrReal}}, SameIntOrReal},
     {"abs", {{"a", SameComplex}}, SameReal},
     {"achar", {{"i", AnyInt, Rank::elementalOrBOZ}, DefaultingKIND}, KINDChar},
-    {"acos",
-        {{"x", SameFloating, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-        SameFloating},
-    {"acosd",
-        {{"x", SameFloating, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-        SameFloating},
+    {"acos", {{"x", SameFloating}}, SameFloating},
+    {"acosd", {{"x", SameFloating}}, SameFloating},
     {"acosh", {{"x", SameFloating}}, SameFloating},
     {"adjustl", {{"string", SameChar}}, SameChar},
     {"adjustr", {{"string", SameChar}}, SameChar},
@@ -306,14 +292,8 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
     {"anint", {{"a", SameReal}, MatchingDefaultKIND}, KINDReal},
     {"any", {{"mask", SameLogical, Rank::array}, OptionalDIM}, SameLogical,
         Rank::dimReduced, IntrinsicClass::transformationalFunction},
-    {"asin",
-        {{"x", SameFloating, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-        SameFloating},
-    {"asind",
-        {{"x", SameFloating, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-        SameFloating},
+    {"asin", {{"x", SameFloating}}, SameFloating},
+    {"asind", {{"x", SameFloating}}, SameFloating},
     {"asinh", {{"x", SameFloating}}, SameFloating},
     {"associated",
         {{"pointer", AnyPointer, Rank::known},
@@ -539,15 +519,8 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
     {"llt", {{"string_a", SameChar}, {"string_b", SameChar}}, DefaultLogical},
     {"loc", {{"loc_argument", Addressable, Rank::anyOrAssumedRank}},
         SubscriptInt, Rank::scalar},
-    {"log",
-        {{"x", SameFloating, Rank::elemental, Optionality::required,
-            common::Intent::In,
-            ValueConstraint::RealStrictlyPositiveAndComplexNonNull}},
-        SameFloating},
-    {"log10",
-        {{"x", SameReal, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-        SameReal},
+    {"log", {{"x", SameFloating}}, SameFloating},
+    {"log10", {{"x", SameReal}}, SameReal},
     {"logical", {{"l", AnyLogical}, DefaultingKIND}, KINDLogical},
     {"log_gamma", {{"x", SameReal}}, SameReal},
     {"matmul",
@@ -911,22 +884,11 @@ struct SpecificIntrinsicInterface : public IntrinsicInterface {
 
 static const SpecificIntrinsicInterface specificIntrinsicFunction[]{
     {{"abs", {{"a", DefaultReal}}, DefaultReal}},
-    {{"acos",
-        {{"x", DefaultReal, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-        DefaultReal}},
+    {{"acos", {{"x", DefaultReal}}, DefaultReal}},
     {{"aimag", {{"z", DefaultComplex}}, DefaultReal}},
     {{"aint", {{"a", DefaultReal}}, DefaultReal}},
-    {{"alog",
-         {{"x", DefaultReal, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-         DefaultReal},
-        "log"},
-    {{"alog10",
-         {{"x", DefaultReal, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-         DefaultReal},
-        "log10"},
+    {{"alog", {{"x", DefaultReal}}, DefaultReal}, "log"},
+    {{"alog10", {{"x", DefaultReal}}, DefaultReal}, "log10"},
     {{"amax0",
          {{"a1", DefaultInt}, {"a2", DefaultInt},
              {"a3", DefaultInt, Rank::elemental, Optionality::repeats}},
@@ -949,10 +911,7 @@ static const SpecificIntrinsicInterface specificIntrinsicFunction[]{
         "min", true, true},
     {{"amod", {{"a", DefaultReal}, {"p", DefaultReal}}, DefaultReal}, "mod"},
     {{"anint", {{"a", DefaultReal}}, DefaultReal}},
-    {{"asin",
-        {{"x", DefaultReal, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-        DefaultReal}},
+    {{"asin", {{"x", DefaultReal}}, DefaultReal}},
     {{"atan", {{"x", DefaultReal}}, DefaultReal}},
     {{"atan2", {{"y", DefaultReal}, {"x", DefaultReal}}, DefaultReal}},
     {{"cabs", {{"a", DefaultComplex}}, DefaultReal}, "abs"},
@@ -960,20 +919,12 @@ static const SpecificIntrinsicInterface specificIntrinsicFunction[]{
     {{"cdabs", {{"a", DoublePrecisionComplex}}, DoublePrecision}, "abs"},
     {{"cdcos", {{"a", DoublePrecisionComplex}}, DoublePrecisionComplex}, "cos"},
     {{"cdexp", {{"a", DoublePrecisionComplex}}, DoublePrecisionComplex}, "exp"},
-    {{"cdlog",
-         {{"a", DoublePrecisionComplex, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::ComplexNonNull}},
-         DoublePrecisionComplex},
-        "log"},
+    {{"cdlog", {{"a", DoublePrecisionComplex}}, DoublePrecisionComplex}, "log"},
     {{"cdsin", {{"a", DoublePrecisionComplex}}, DoublePrecisionComplex}, "sin"},
     {{"cdsqrt", {{"a", DoublePrecisionComplex}}, DoublePrecisionComplex},
         "sqrt"},
     {{"cexp", {{"a", DefaultComplex}}, DefaultComplex}, "exp"},
-    {{"clog",
-         {{"a", DefaultComplex, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::ComplexNonNull}},
-         DefaultComplex},
-        "log"},
+    {{"clog", {{"a", DefaultComplex}}, DefaultComplex}, "log"},
     {{"conjg", {{"a", DefaultComplex}}, DefaultComplex}},
     {{"cos", {{"x", DefaultReal}}, DefaultReal}},
     {{"cosh", {{"x", DefaultReal}}, DefaultReal}},
@@ -981,16 +932,8 @@ static const SpecificIntrinsicInterface specificIntrinsicFunction[]{
     {{"csqrt", {{"a", DefaultComplex}}, DefaultComplex}, "sqrt"},
     {{"ctan", {{"a", DefaultComplex}}, DefaultComplex}, "tan"},
     {{"dabs", {{"a", DoublePrecision}}, DoublePrecision}, "abs"},
-    {{"dacos",
-         {{"x", DoublePrecision, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-         DoublePrecision},
-        "acos"},
-    {{"dasin",
-         {{"x", DoublePrecision, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::RealInMinusOneToOneRange}},
-         DoublePrecision},
-        "asin"},
+    {{"dacos", {{"x", DoublePrecision}}, DoublePrecision}, "acos"},
+    {{"dasin", {{"x", DoublePrecision}}, DoublePrecision}, "asin"},
     {{"datan", {{"x", DoublePrecision}}, DoublePrecision}, "atan"},
     {{"datan2", {{"y", DoublePrecision}, {"x", DoublePrecision}},
          DoublePrecision},
@@ -1012,16 +955,8 @@ static const SpecificIntrinsicInterface specificIntrinsicFunction[]{
     {{"dim", {{"x", DefaultReal}, {"y", DefaultReal}}, DefaultReal}},
     {{"dimag", {{"a", AnyComplex}}, DoublePrecision}, "aimag"},
     {{"dint", {{"a", DoublePrecision}}, DoublePrecision}, "aint"},
-    {{"dlog",
-         {{"x", DoublePrecision, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-         DoublePrecision},
-        "log"},
-    {{"dlog10",
-         {{"x", DoublePrecision, Rank::elemental, Optionality::required,
-             common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-         DoublePrecision},
-        "log10"},
+    {{"dlog", {{"x", DoublePrecision}}, DoublePrecision}, "log"},
+    {{"dlog10", {{"x", DoublePrecision}}, DoublePrecision}, "log10"},
     {{"dmax1",
          {{"a1", DoublePrecision}, {"a2", DoublePrecision},
              {"a3", DoublePrecision, Rank::elemental, Optionality::repeats}},
@@ -1070,14 +1005,8 @@ static const SpecificIntrinsicInterface specificIntrinsicFunction[]{
     {{"llt", {{"string_a", DefaultChar}, {"string_b", DefaultChar}},
          DefaultLogical},
         "llt", true},
-    {{"log",
-        {{"x", DefaultReal, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-        DefaultReal}},
-    {{"log10",
-        {{"x", DefaultReal, Rank::elemental, Optionality::required,
-            common::Intent::In, ValueConstraint::RealStrictlyPositive}},
-        DefaultReal}},
+    {{"log", {{"x", DefaultReal}}, DefaultReal}},
+    {{"log10", {{"x", DefaultReal}}, DefaultReal}},
     {{"max0",
          {{"a1", DefaultInt}, {"a2", DefaultInt},
              {"a3", DefaultInt, Rank::elemental, Optionality::repeats}},
@@ -2328,144 +2257,6 @@ static bool CheckAssociated(SpecificCall &call, FoldingContext &context) {
   return ok;
 }
 
-ENUM_CLASS(Limit, minusOne, zero, one)
-
-template <typename T> static constexpr Scalar<T> GetLimitValue(Limit limit) {
-  switch (limit) {
-  case Limit::minusOne:
-    return Scalar<T>::FromInteger(value::Integer<8>{-1}).value;
-  case Limit::zero:
-    return Scalar<T>{};
-  case Limit::one:
-    return Scalar<T>::FromInteger(value::Integer<8>{1}).value;
-  }
-}
-
-static const char *GetLimitString(Limit limit) {
-  switch (limit) {
-  case Limit::minusOne:
-    return "-1.";
-  case Limit::zero:
-    return "0.";
-  case Limit::one:
-    return "1.";
-  }
-}
-
-template <typename T>
-static bool checkInRangeIfRealConstant(
-    const Expr<T> &expr, Limit lb, Limit ub) {
-  if (auto scalar{GetScalarConstantValue<T>(expr)}) {
-    return Satisfies(
-               RelationalOperator::LE, GetLimitValue<T>(lb).Compare(*scalar)) &&
-        Satisfies(
-            RelationalOperator::LE, scalar->Compare(GetLimitValue<T>(ub)));
-  }
-  return true;
-}
-
-static bool checkInRangeIfRealConstant(const Expr<SomeType> &expr, Limit lb,
-    Limit ub, const char *keyword, FoldingContext &context) {
-  if (const auto *someReal = std::get_if<Expr<SomeReal>>(&expr.u)) {
-    const bool maybeInRange{std::visit(
-        [&](const auto &x) -> bool {
-          return checkInRangeIfRealConstant(x, lb, ub);
-        },
-        someReal->u)};
-    if (!maybeInRange) {
-      context.messages().Say("argument '%s' is out of range [%s, %s]"_en_US,
-          keyword, GetLimitString(lb), GetLimitString(ub));
-    }
-    return maybeInRange;
-  }
-  return true;
-}
-
-template <typename T>
-static bool checkStriclyPositiveIfConstantReal(const Expr<T> &expr) {
-  if (auto scalar{GetScalarConstantValue<T>(expr)}) {
-    return Satisfies(RelationalOperator::LT, Scalar<T>{}.Compare(*scalar));
-  }
-  return true;
-}
-
-static bool checkStriclyPositiveIfConstantReal(
-    const Expr<SomeType> &expr, const char *keyword, FoldingContext &context) {
-  if (const auto *someReal = std::get_if<Expr<SomeReal>>(&expr.u)) {
-    const bool maybeStriclyPositive{std::visit(
-        [&](const auto &x) -> bool {
-          return checkStriclyPositiveIfConstantReal(x);
-        },
-        someReal->u)};
-    if (!maybeStriclyPositive) {
-      context.messages().Say(
-          "argument '%s' must be strictly positive"_en_US, keyword);
-    }
-    return maybeStriclyPositive;
-  }
-  return true;
-}
-
-template <typename T>
-static bool checkNonNullIfConstantComplex(const Expr<T> &expr) {
-  if (auto scalar{GetScalarConstantValue<T>(expr)}) {
-    return !scalar->IsZero();
-  }
-  return true;
-}
-
-static bool checkNonNullIfConstantComplex(
-    const Expr<SomeType> &expr, const char *keyword, FoldingContext &context) {
-  if (const auto *someReal = std::get_if<Expr<SomeComplex>>(&expr.u)) {
-    const bool maybeDifferentFromZero{std::visit(
-        [&](const auto &x) -> bool { return checkNonNullIfConstantComplex(x); },
-        someReal->u)};
-    if (!maybeDifferentFromZero) {
-      context.messages().Say(
-          "complex argument '%s' must be non-null"_en_US, keyword);
-    }
-    return maybeDifferentFromZero;
-  }
-  return true;
-}
-
-// Apply any argument value constraints if the related arguments are compile
-// time constants.
-static bool ApplyArgumentValueChecks(const IntrinsicInterface &intrinsic,
-    const SpecificCall &call, FoldingContext &context) {
-  bool argumentValuesMayBeCorrect = true;
-  for (const auto &[actual, dummy] :
-      llvm::zip(call.arguments, intrinsic.dummy)) {
-    if (dummy.valueConstraint != ValueConstraint::none && actual.has_value()) {
-      if (const auto *expr{actual->UnwrapExpr()}) {
-        switch (dummy.valueConstraint) {
-        case ValueConstraint::RealInMinusOneToOneRange:
-          argumentValuesMayBeCorrect = checkInRangeIfRealConstant(
-              *expr, Limit::minusOne, Limit::one, dummy.keyword, context);
-          break;
-        case ValueConstraint::RealStrictlyPositiveAndComplexNonNull:
-          argumentValuesMayBeCorrect =
-              checkStriclyPositiveIfConstantReal(*expr, dummy.keyword, context);
-          argumentValuesMayBeCorrect =
-              checkNonNullIfConstantComplex(*expr, dummy.keyword, context);
-          break;
-        case ValueConstraint::RealStrictlyPositive:
-          argumentValuesMayBeCorrect =
-              checkStriclyPositiveIfConstantReal(*expr, dummy.keyword, context);
-          break;
-        case ValueConstraint::ComplexNonNull:
-          argumentValuesMayBeCorrect =
-              checkNonNullIfConstantComplex(*expr, dummy.keyword, context);
-          break;
-        case ValueConstraint::none:
-          break;
-        }
-      }
-    }
-  }
-  return argumentValuesMayBeCorrect;
-}
-
 // Applies any semantic checks peculiar to an intrinsic.
 static bool ApplySpecificChecks(SpecificCall &call, FoldingContext &context) {
   bool ok{true};
@@ -2594,7 +2385,6 @@ std::optional<SpecificCall> IntrinsicProcTable::Implementation::Probe(
     if (auto specificCall{
             matchOrBufferMessages(*iter->second, genericBuffer)}) {
       ApplySpecificChecks(*specificCall, context);
-      ApplyArgumentValueChecks(*iter->second, *specificCall, context);
       return specificCall;
     }
   }
@@ -2613,7 +2403,6 @@ std::optional<SpecificCall> IntrinsicProcTable::Implementation::Probe(
         }
         specificCall->specificIntrinsic.isRestrictedSpecific =
             specIter->second->isRestrictedSpecific;
-        ApplyArgumentValueChecks(*specIter->second, *specificCall, context);
         // TODO test feature AdditionalIntrinsics, warn on nonstandard
         // specifics with DoublePrecisionComplex arguments.
         return specificCall;
@@ -2644,7 +2433,6 @@ std::optional<SpecificCall> IntrinsicProcTable::Implementation::Probe(
             specificCall->specificIntrinsic.characteristics.value()
                 .functionResult.value()
                 .SetType(newType);
-            ApplyArgumentValueChecks(*genIter->second, *specificCall, context);
             return specificCall;
           }
         }
