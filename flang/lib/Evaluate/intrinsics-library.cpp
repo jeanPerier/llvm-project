@@ -488,63 +488,10 @@ struct ArgumentVerifier {
   ArgumentVerifierFunc verifier;
 };
 
-/// Define limits that can be used to describe ranges in which intrinsic
-/// arguments must be.
-ENUM_CLASS(Limit, minusOne, zero, one)
-template <typename T> static constexpr Scalar<T> GetLimitValue(Limit limit) {
-  switch (limit) {
-  case Limit::minusOne:
-    return Scalar<T>::FromInteger(value::Integer<8>{-1}).value;
-  case Limit::zero:
-    return Scalar<T>{};
-  case Limit::one:
-    return Scalar<T>::FromInteger(value::Integer<8>{1}).value;
-  }
-}
-static const char *GetLimitString(Limit limit) {
-  switch (limit) {
-  case Limit::minusOne:
-    return "-1.";
-  case Limit::zero:
-    return "0.";
-  case Limit::one:
-    return "1.";
-  }
-}
-
-template <typename T>
-static bool IsInRange(const Expr<T> &expr, Limit lb, Limit ub) {
-  if (auto scalar{GetScalarConstantValue<T>(expr)}) {
-    return Satisfies(
-               RelationalOperator::LE, GetLimitValue<T>(lb).Compare(*scalar)) &&
-        Satisfies(
-            RelationalOperator::LE, scalar->Compare(GetLimitValue<T>(ub)));
-  }
-  return true;
-}
-
-/// Verify that the argument in an intrinsic call belongs to [lb, ub] if is
-/// real.
-template <Limit lb, Limit ub>
-static bool VerifyInRangeIfReal(
-    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
-  if (const auto *someReal = std::get_if<Expr<SomeReal>>(&args[0].u)) {
-    const bool isInRange{
-        std::visit([&](const auto &x) -> bool { return IsInRange(x, lb, ub); },
-            someReal->u)};
-    if (!isInRange) {
-      context.messages().Say("argument is out of range [%s, %s]"_en_US,
-          GetLimitString(lb), GetLimitString(ub));
-    }
-    return isInRange;
-  }
-  return true;
-}
-
 static constexpr int lastArg{-1};
 static constexpr int firstArg{0};
 
-const Expr<SomeType> &getArg(
+static const Expr<SomeType> &getArg(
     int position, const std::vector<Expr<SomeType>> &args) {
   if (position == lastArg) {
     CHECK(!args.empty());
@@ -554,12 +501,42 @@ const Expr<SomeType> &getArg(
   return args[position];
 }
 
+template <typename T>
+static bool IsInRange(const Expr<T> &expr, int lb, int ub) {
+  if (auto scalar{GetScalarConstantValue<T>(expr)}) {
+    auto lbValue{Scalar<T>::FromInteger(value::Integer<8>{lb}).value};
+    auto ubValue{Scalar<T>::FromInteger(value::Integer<8>{ub}).value};
+    return Satisfies(RelationalOperator::LE, lbValue.Compare(*scalar)) &&
+        Satisfies(RelationalOperator::LE, scalar->Compare(ubValue));
+  }
+  return true;
+}
+
+/// Verify that the argument in an intrinsic call belongs to [lb, ub] if is
+/// real.
+template <int lb, int ub>
+static bool VerifyInRangeIfReal(
+    const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
+  if (const auto *someReal =
+          std::get_if<Expr<SomeReal>>(&getArg(firstArg, args).u)) {
+    const bool isInRange{
+        std::visit([&](const auto &x) -> bool { return IsInRange(x, lb, ub); },
+            someReal->u)};
+    if (!isInRange) {
+      context.messages().Say(
+          "argument is out of range [%d., %d.]"_en_US, lb, ub);
+    }
+    return isInRange;
+  }
+  return true;
+}
+
 template <int argPosition, const char *argName>
-static bool VerifyStriclyPositiveIfReal(
+static bool VerifyStrictlyPositiveIfReal(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someReal =
           std::get_if<Expr<SomeReal>>(&getArg(argPosition, args).u)) {
-    const bool isStriclyPositive{std::visit(
+    const bool isStrictlyPositive{std::visit(
         [&](const auto &x) -> bool {
           using T = typename std::decay_t<decltype(x)>::Result;
           auto scalar{GetScalarConstantValue<T>(x)};
@@ -567,11 +544,11 @@ static bool VerifyStriclyPositiveIfReal(
               RelationalOperator::LT, Scalar<T>{}.Compare(*scalar));
         },
         someReal->u)};
-    if (!isStriclyPositive) {
+    if (!isStrictlyPositive) {
       context.messages().Say(
           "argument '%s' must be strictly positive"_en_US, argName);
     }
-    return isStriclyPositive;
+    return isStrictlyPositive;
   }
   return true;
 }
@@ -684,17 +661,17 @@ static constexpr char pName[]{"p"};
 
 /// Register argument verifiers for all intrinsics folded with runtime.
 static constexpr ArgumentVerifier intrinsicArgumentVerifiers[]{
-    {"acos", VerifyInRangeIfReal<Limit::minusOne, Limit::one>},
-    {"asin", VerifyInRangeIfReal<Limit::minusOne, Limit::one>},
+    {"acos", VerifyInRangeIfReal<-1, 1>},
+    {"asin", VerifyInRangeIfReal<-1, 1>},
     {"atan2", VerifyAtan2LikeArguments},
-    {"bessel_y0", VerifyStriclyPositiveIfReal<firstArg, xName>},
-    {"bessel_y1", VerifyStriclyPositiveIfReal<firstArg, xName>},
-    {"bessel_yn", VerifyStriclyPositiveIfReal<lastArg, xName>},
+    {"bessel_y0", VerifyStrictlyPositiveIfReal<firstArg, xName>},
+    {"bessel_y1", VerifyStrictlyPositiveIfReal<firstArg, xName>},
+    {"bessel_yn", VerifyStrictlyPositiveIfReal<lastArg, xName>},
     {"gamma", VerifyGammaLikeArgument},
     {"log",
-        CombineVerifiers<VerifyStriclyPositiveIfReal<firstArg, xName>,
+        CombineVerifiers<VerifyStrictlyPositiveIfReal<firstArg, xName>,
             VerifyNotZeroIfComplex>},
-    {"log10", VerifyStriclyPositiveIfReal<firstArg, xName>},
+    {"log10", VerifyStrictlyPositiveIfReal<firstArg, xName>},
     {"log_gamma", VerifyGammaLikeArgument},
     {"mod", VerifyNotZeroIfReal<lastArg, pName>},
 };
