@@ -2795,15 +2795,12 @@ static bool CheckFuncRefToArrayElement(semantics::SemanticsContext &context,
   if (!name) {
     name = &std::get<parser::ProcComponentRef>(proc.u).v.thing.component;
   }
-  bool isArray{name->symbol && name->symbol->Rank() > 0};
-  bool hasArgs{
-      !std::get<std::list<parser::ActualArgSpec>>(funcRef.v.t).empty()};
-  if (!isArray) {
+  if (!name->symbol) {
+    return false;
+  } else if (name->symbol->Rank() == 0) {
     if (const Symbol *
-        function{!isArray && name->symbol
-                ? semantics::IsFunctionResultWithSameNameAsFunction(
-                      *name->symbol)
-                : nullptr}) {
+        function{
+            semantics::IsFunctionResultWithSameNameAsFunction(*name->symbol)}) {
       auto &msg{context.Say(funcRef.v.source,
           "Recursive call to '%s' requires a distinct RESULT in its declaration"_err_en_US,
           name->source)};
@@ -2812,7 +2809,7 @@ static bool CheckFuncRefToArrayElement(semantics::SemanticsContext &context,
     }
     return false;
   } else {
-    if (!hasArgs) {
+    if (std::get<std::list<parser::ActualArgSpec>>(funcRef.v.t).empty()) {
       auto &msg{context.Say(funcRef.v.source,
           "Reference to array '%s' with empty subscript list"_err_en_US,
           name->source)};
