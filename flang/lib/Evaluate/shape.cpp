@@ -556,7 +556,7 @@ auto GetShapeHelper::operator()(const Symbol &symbol) const -> Result {
               return (*this)(assoc.expr());
             }
           },
-          [&](const semantics::SubprogramDetails &subp) {
+          [&](const semantics::SubprogramDetails &subp) -> Result {
             if (subp.isFunction()) {
               auto resultShape{(*this)(subp.result())};
               if (resultShape && !useResultSymbolShape_) {
