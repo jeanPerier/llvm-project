@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 95c7dd8810b0bc93c0f76a285f1bcc3bd73f6a50
+with llvm-project commit a81b0c978fd0197fb86ae23fd73db9282107942a
 
 Log of cherry-picked commits in reverse order (latest first):
+4d3ba4e6c8eacd39ba224b6ccb8934856ecb6264 Diana: add tests
+140a6b1e5c6857617a83f66680b4829ff2b08d82 Jennifer: OMP5.1 indirect clause
+c0add1636d3a8ddb35b223b9684ec35ae34bf867 Pete: fix build docs
+7ecce1f6959f8f196cba7f0b9411fa5d50e17b99 Eric: correct and reenable test
+301226562b28088b112651cadf6695eba1e2ef87 Alex: mlir llvm::GEPOp changes
+ea66b46dde31c9c4a52b025b7c6bdf8fa3872641 Andrzej: driver file management
+8eb74626fa454d33edc1eb86f0c9ce3a006c7dfd Peixin: OMP threadprivate semantic checks
+32c92087502697663d781942a462ea478d4209c7 Benjamin: rm unused variables
+21d299172e23a37fc251ce69dc31032a6a4a2bfe Kiran: conversion of recursive record types
 c7a589a2c4e2db496d732821a8dba59508326250 Shilei: OMP thing in clang
 e07736fe3c78bf02c1eb922a04065840a8e13935 Diana: add missing include
 b600215e80d0a490375c00662bd6e7fab9f22c43 Damian: test co_max
@@ -1131,6 +1140,9 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+44e3365775101fec3fd355eda339282258d74415 John E.: factor out config prefix finding
+b3af9fbcc908c3a4b0fae721fa5102459070db83 John E.: set path to shared cmake modules
+5c3347aa8babd1678e73dea182bf78bf6e33822c John B.: use GNUInstallDirs
 1253009eb20da936e551b824431dca282d970ef1 Andrezj: revert...
 93c5e6bb49ca502d266700dd292e3873dfa51bb6 Pete: reverted 2nd patch for circular definitions
 00e6513374eb961065d6830b30205fb0f3001c43 Andrezj: revert...
