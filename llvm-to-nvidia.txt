@@ -40,9 +40,12 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a81b0c978fd0197fb86ae23fd73db9282107942a
+with llvm-project commit 4ff4e7ea3033e8a5f21c5cbc4028255c0b6bae9f
 
 Log of cherry-picked commits in reverse order (latest first):
+56f62fbf73a2c0844d7f26ae10f2757aac981a2d River: finish removing Identifier
+776d0ed632d96383ab4ecefd275d3d23389da37b Diana: fix overallocation by fir-to-llvm-ir pass
+38e745b006238bee87476c3747b3e7229a8bc5c2 Andrzej: churn on flang script
 4d3ba4e6c8eacd39ba224b6ccb8934856ecb6264 Diana: add tests
 140a6b1e5c6857617a83f66680b4829ff2b08d82 Jennifer: OMP5.1 indirect clause
 c0add1636d3a8ddb35b223b9684ec35ae34bf867 Pete: fix build docs
