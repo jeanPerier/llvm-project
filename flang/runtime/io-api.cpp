@@ -208,7 +208,7 @@ Cookie BeginExternalFormattedIO(const char *format, std::size_t formatLength,
                                         : "formatted input",
                false, DIR)
         ? &child->BeginIoStatement<ChildFormattedIoStatementState<DIR>>(
-              *child, sourceFile, sourceLine)
+              *child, format, formatLength, sourceFile, sourceLine)
         : nullptr;
   } else {
     if (!unit.isUnformatted.has_value()) {
