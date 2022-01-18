@@ -46,29 +46,29 @@ cbda0bbfa86a2d53798561a969388ff4db1b129d back: accept INDEX(.., BACK=array)
 0f886c0b8fb471b46d2173bb2f9890111cd0cadb pure-init: better error message for initialization in PURE
 e2be9267bf34aeeb2b065bc7858a3c1af34953db boz-actual: accept BOZ literals for more actual arguments
 99591da3e9dc204ad94a778fa463b3c8a7664055 same-type: correct intrinsic assignment of "same" types
+
+In review:
 e9e46d81fc784664614c2289d9d026e49fffdf40 position: catch attempt to POSITION= w/ ACCESS='DIRECT'
 c45931762adae4a7d36c6183deb3b82dc3c0adbc open-recl: catch attempt to create/modify RECL= on open unit
 963010f2c5b9109daf7aab480772b4b938591397 func-vs-array: better error messages in func vs. array disambiguation
-613214becc9483d8d970fe502d09a174afd513f0 generic-entry: accept ENTRY names in generic interfaces
-1e8143ed170540ba1af34f390033467c47ca445b namelist-substring: accept substring references in NAMELIST input
-fd3d82acfac8aa70a9b07f75cbf3181c652a59ef write-after-endfile: catch WRITE after ENDFILE
-d98b9c0d19a63c38ddfc19352196e846aa3641fd non-char-format: extension: non-character legacy formats
-0739d533bfdd5d99505edff9de579c7704986fb9 fold-substring: debug folding of substring references
-36b271e74aa8c3156e19013987adc7e8a44a3c0f internal-input: don't blank-fill remaining elements in internal input
-
-In review:
-af513cf8da9d02aa2b4ad4635aa85760d3d9c87e fix-shared: fix shared library build after ... +
-36497f4a82deaac51c7a843b30d2af71a022dbdd   logical-integer: initialization of LOGICAL w/ INTEGER & vice versa
-bface50bbd576703739ee447f9cea9e797e1e280 seq-type-ptr: allow pointers to non-sequence types in sequence types
-14b76408db79f42fcf19dbb6fed6c2f7be820b7f more-abs: support extensions BABS, IIABS, JIABS, KIABS, ZABS
-5e95cd093cb91b90e52b3f32ae125324a10cc0b5 poly-structcon: accept polymorphic values in structure constructor
-de4c9c49d51642caa5e9d8f9825084fc92302a92 multiple-save: allow multiple SAVE attributes
-35526f534abf29bba821637d20e5271e3363dc6f blank-init: allow blank COMMON initialization
-95b8e39fa38b61bab2f8793afd8f53fd1ad12c49 dec-structures: implement VMS Fortran STRUCTURE/RECORD
-37e53d56ea5f49206878d221313afd9dd8163928 fold-scale: fold SCALE()
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+1e8143ed170540ba1af34f390033467c47ca445b namelist-substring: accept substring references in NAMELIST input
+37e53d56ea5f49206878d221313afd9dd8163928 fold-scale: fold SCALE()
+0739d533bfdd5d99505edff9de579c7704986fb9 fold-substring: debug folding of substring references
+613214becc9483d8d970fe502d09a174afd513f0 generic-entry: accept ENTRY names in generic interfaces
+36b271e74aa8c3156e19013987adc7e8a44a3c0f internal-output: don't blank-fill remaining elements in internal output
+fd3d82acfac8aa70a9b07f75cbf3181c652a59ef write-after-endfile: catch WRITE after ENDFILE
+d98b9c0d19a63c38ddfc19352196e846aa3641fd non-char-format: extension: non-character legacy formats
+bface50bbd576703739ee447f9cea9e797e1e280 seq-type-ptr: allow pointers to non-sequence types in sequence types
+14b76408db79f42fcf19dbb6fed6c2f7be820b7f more-abs: support extensions BABS, IIABS, JIABS, KIABS, ZABS
+de4c9c49d51642caa5e9d8f9825084fc92302a92 multiple-save: allow multiple SAVE attributes
+35526f534abf29bba821637d20e5271e3363dc6f blank-init: allow blank COMMON initialization
+af513cf8da9d02aa2b4ad4635aa85760d3d9c87e fix-shared: fix shared library build after ... +
+36497f4a82deaac51c7a843b30d2af71a022dbdd   logical-integer: initialization of LOGICAL w/ INTEGER & vice versa
+95b8e39fa38b61bab2f8793afd8f53fd1ad12c49 dec-structures: implement VMS Fortran STRUCTURE/RECORD
+5e95cd093cb91b90e52b3f32ae125324a10cc0b5 poly-structcon: accept polymorphic values in structure constructor
 91431fba6c46b287d933d0b37863f63f5887fb98 reshape-pad: allow RESHAPE(PAD=) arbitrary rank array
 f055569ce0c314086cb3057d0838bf0507e48226 ppfix: cope with ' ' between # and name in pp stringification
 776812f9cd1751962bbaef362b75a5a319729523 avoid code duplication in mixed expressions

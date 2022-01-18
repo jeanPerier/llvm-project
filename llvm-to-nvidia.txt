@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 4ff4e7ea3033e8a5f21c5cbc4028255c0b6bae9f
+with llvm-project commit ad4e26833f1031c77b4ff73c30677caea876cea2
 
 Log of cherry-picked commits in reverse order (latest first):
+aae5125550e9b7fa3a48ec0f4a42e9e8a1a452d5 Mogball X.: StrEnumAttr -> EnumAttr in core MLIR dialects
+5c36ee8d57fa702d8dc4ee9349978bff575a9465 Mogball: MLIR printing change
+79dffbadf69c6604698e193d639d2580eb3814c4 Mehdi A.: fix flang after MLIR API change
+5c5bde1bb6e451e0014067802bc6a9d7b1314636 Peter K.: edits from merging SCALE folding (MSVC workarounds)
+ad643550a529b28e8f50892961f57b0311681603 Andrzej W.: fix flang wrapper script
+c719a8596d01cef9b54f0585bd2d68d657d8659a Andrzej W.: relax bash version check
+ea5ce2fc55b7d06c29cdf43e0f748f829c32b76e Andrzej W.: update README.md
 56f62fbf73a2c0844d7f26ae10f2757aac981a2d River: finish removing Identifier
 776d0ed632d96383ab4ecefd275d3d23389da37b Diana: fix overallocation by fir-to-llvm-ir pass
 38e745b006238bee87476c3747b3e7229a8bc5c2 Andrzej: churn on flang script
