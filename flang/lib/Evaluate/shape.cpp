@@ -558,7 +558,19 @@ auto GetShapeHelper::operator()(const Symbol &symbol) const -> Result {
           },
           [&](const semantics::SubprogramDetails &subp) {
             if (subp.isFunction()) {
-              return (*this)(subp.result());
+              auto resultShape{(*this)(subp.result())};
+              if (resultShape && !useResultSymbolShape_) {
+                // Ensure the shape is constant. Otherwise, it may be referring
+                // to symbols that belong to the subroutine scope and are
+                // meaningless on the caller side without the related call
+                // expression.
+                for (auto extent : *resultShape) {
+                  if (extent && !IsConstantExpr(*extent)) {
+                    return std::nullopt;
+                  }
+                }
+              }
+              return resultShape;
             } else {
               return Result{};
             }
