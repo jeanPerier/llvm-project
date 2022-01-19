@@ -67,8 +67,10 @@ set(FLANG_DEFAULT_DRIVER "flang-new")
 
 # This flang shell script will only work in a POSIX shell.
 if (NOT WIN32)
-  file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/flang
-    DESTINATION ${CMAKE_BINARY_DIR}/bin
-    FILE_PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE)
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/flang DESTINATION bin)
+  add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/bin/flang
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/flang
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/flang ${CMAKE_BINARY_DIR}/bin)
+  add_custom_target(flang ALL DEPENDS ${CMAKE_BINARY_DIR}/bin/flang)
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/bin/flang DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
