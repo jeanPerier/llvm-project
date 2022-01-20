@@ -40,9 +40,23 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit ad4e26833f1031c77b4ff73c30677caea876cea2
+with llvm-project commit feddf1150227eb43500106cfd6cf01456f2b87e4
 
 Log of cherry-picked commits in reverse order (latest first):
+81cbbe3e17a4a9b2e0d227b591553d90eeab1400 Valentin C.: rm unused/duplicated kStridePosInDim
+010a10b738915568d9d04d1f0caa09b5d25dc7b3 Valentin C.: rm extra braces
+ccaaeca9106dc02e0295c33aa9e20d58d16ddf98 Valentin C.: move current inliner files in Dialect directory
+911c1370546f5f2deb72a5660a77a1b2f28d6f7a Valentin C.: clean up dependent dialects
+90efbe697a39b201b37da01fc633c51c24de7837 Valentin C.: fix header guard and comment
+96ca6d312cebc5a83dedb5aecdd0470f92585029 Valentin C.: fix header guard
+e084679f961b2a2779f7ee23d53b4d8c4df2517c River R.: require locations on block arguments
+81c66933292b8f7ea105122f39e0a06038744a88 Jean P.: prevent any non constant result extent to be inlined in caller
+fb3faa8b326da5609723930b60c9949961f17c5b Jean P.: do not lose call in shape inquiry
+6df82597af78cc3548bc3f03b6bc0f92541acfc2 Valentin C.: fix indentation
+64d7d5a59787d10e8b4fa1a98f6683bf4bec17cd Valentin C.: remove number of inlined elements
+367c4ed2f8c31843da4413d78133c75b2918997c Valentin C.: fix includes order
+196c4279c08d1ef72c2e0196ec69f4a0f8a3a87e River R.: convert FunctionPass -> OperationPass<FuncOp>
+a56796157498a2642e5bec84f5247a3460f8222d Peter K.: edits to "Better messages for function vs. array errors"
 aae5125550e9b7fa3a48ec0f4a42e9e8a1a452d5 Mogball X.: StrEnumAttr -> EnumAttr in core MLIR dialects
 5c36ee8d57fa702d8dc4ee9349978bff575a9465 Mogball: MLIR printing change
 79dffbadf69c6604698e193d639d2580eb3814c4 Mehdi A.: fix flang after MLIR API change

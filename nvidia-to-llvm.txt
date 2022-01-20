@@ -41,19 +41,28 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-ecd7db2fa1e7305fb1f5271a11e9c7298176032e a4: accept sparse argument keyword names for MAX/MIN
-cbda0bbfa86a2d53798561a969388ff4db1b129d back: accept INDEX(.., BACK=array)
-0f886c0b8fb471b46d2173bb2f9890111cd0cadb pure-init: better error message for initialization in PURE
-e2be9267bf34aeeb2b065bc7858a3c1af34953db boz-actual: accept BOZ literals for more actual arguments
-99591da3e9dc204ad94a778fa463b3c8a7664055 same-type: correct intrinsic assignment of "same" types
+fa4d2a80e15d81d04e7b387a984c933fa17760e4 namelist-comma: support DECIMAL='COMMA' in NAMELIST I/O -- wait for namelist-skip to be merged
+25a9b0eca79cbcd78d17d4163f3fa60d1fb51632 repeat-dt: fix repeated 'dt' editing
+d00634b9aad4648b34e672efedfdac4a0f7b31ab use-defined: allow use-associated defined I/O subroutines
+28f564e13f3ee0ecb74db5cc9a5b2b3a3a3c2125 child-inquire: allow INQUIRE(child unit) in defined I/O
+4ebcba4b4c6c2343d156a2419ac2280e731a7898 child-format: don't drop format string for external child I/O
+92520e325b3977e0b1018d55c5954e9c3e438b02 namelist-skip: skip over leading NAMELIST groups
 
 In review:
-e9e46d81fc784664614c2289d9d026e49fffdf40 position: catch attempt to POSITION= w/ ACCESS='DIRECT'
-c45931762adae4a7d36c6183deb3b82dc3c0adbc open-recl: catch attempt to create/modify RECL= on open unit
-963010f2c5b9109daf7aab480772b4b938591397 func-vs-array: better error messages in func vs. array disambiguation
+b7f4fa531ba69f162468301a49d79dd182e2f865 unknown-flush: handle FLUSH(unknown unit)
+58c17bced09fc77f5a705927195ee36a63c526bc namelist-plus: allow explicit '+' in NAMELIST input subscripts
+3b82172e79462a611009cc9a77971e37051ff565 suppress: fix open/write(sign='suppress')
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+cbda0bbfa86a2d53798561a969388ff4db1b129d back: accept INDEX(.., BACK=array)
+ecd7db2fa1e7305fb1f5271a11e9c7298176032e a4: accept sparse argument keyword names for MAX/MIN
+e2be9267bf34aeeb2b065bc7858a3c1af34953db boz-actual: accept BOZ literals for more actual arguments
+0f886c0b8fb471b46d2173bb2f9890111cd0cadb pure-init: better error message for initialization in PURE
+99591da3e9dc204ad94a778fa463b3c8a7664055 same-type: correct intrinsic assignment of "same" types
+963010f2c5b9109daf7aab480772b4b938591397 func-vs-array: better error messages in func vs. array disambiguation
+e9e46d81fc784664614c2289d9d026e49fffdf40 position: catch attempt to POSITION= w/ ACCESS='DIRECT'
+c45931762adae4a7d36c6183deb3b82dc3c0adbc open-recl: catch attempt to create/modify RECL= on open unit
 1e8143ed170540ba1af34f390033467c47ca445b namelist-substring: accept substring references in NAMELIST input
 37e53d56ea5f49206878d221313afd9dd8163928 fold-scale: fold SCALE()
 0739d533bfdd5d99505edff9de579c7704986fb9 fold-substring: debug folding of substring references
