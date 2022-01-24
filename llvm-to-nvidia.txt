@@ -40,9 +40,19 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit feddf1150227eb43500106cfd6cf01456f2b87e4
+with llvm-project commit d27f02261442a15b0edb627023a8568735b2d110
 
 Log of cherry-picked commits in reverse order (latest first):
+4d53f88d1a18e288362e1077ae09c98c843593ba Valentin C.: add MemoryAllocation pass to pipeline
+853e79d8d8af7376a81bf692f26a0c3468811d29 Valentin C.: update tco tool pipeline
+022600334dcb914d24230c6659487b2744af702b Andrzej W.: update description of !fir.coordinate_of
+7ccacaf4428d1712029594184baa6f617a51c340 Andrzej W.: add missing cmake dependencies
+3519dcfec22963fbb84e154cecc2df22e6c7724f Nimish M.: add OMP5.0 semantic checks for atomic update
+26cbc430197a3432075c7c5dfec41765f92b97ed Valentin C.: remove target andn require shell, fixing buildbot failure
+5597ec2dc4f888bf9704626c798ec6e50e5d1384 serge-s.: add missing include
+69825f369302184aecb1ee53d9224e49ba15d9ef Valentin C.: add array operations documentation
+d1123e36922d18e2b93b01e85ef706bc8f819fb5 Peter K.: document NAMELIST group skipping
+df31ff1b29bc4c2308ec5df8a7ff0ec2ab0942d4 John E.: cmake thing
 81cbbe3e17a4a9b2e0d227b591553d90eeab1400 Valentin C.: rm unused/duplicated kStridePosInDim
 010a10b738915568d9d04d1f0caa09b5d25dc7b3 Valentin C.: rm extra braces
 ccaaeca9106dc02e0295c33aa9e20d58d16ddf98 Valentin C.: move current inliner files in Dialect directory
