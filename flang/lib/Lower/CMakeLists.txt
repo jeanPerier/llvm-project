@@ -18,12 +18,14 @@ add_flang_library(FortranLower
 
   DEPENDS
   FIRDialect
+  FIRBuilder
   FIRSupport
   FIRTransforms
   ${dialect_libs}
 
   LINK_LIBS
   FIRDialect
+  FIRBuilder
   FIRSupport
   FIRTransforms
   ${dialect_libs}
