@@ -4,6 +4,8 @@ endif ()
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 
 add_flang_library(FortranLower
+  Bridge.cpp
+  CallInterface.cpp
   CharacterExpr.cpp
   CharacterRuntime.cpp
   Coarray.cpp
@@ -13,6 +15,7 @@ add_flang_library(FortranLower
   OpenACC.cpp
   OpenMP.cpp
   PFTBuilder.cpp
+  SymbolMap.cpp
 
   DEPENDS
   FIRDialect
