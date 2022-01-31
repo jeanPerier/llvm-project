@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit d27f02261442a15b0edb627023a8568735b2d110
+with llvm-project commit baee02959c3710737efd29ef35203cf9cb800d84
 
 Log of cherry-picked commits in reverse order (latest first):
+0a494d0623a7ed6042d9f27bb4df81d59af1e935 Valentin C.: rm Character helper
+ddac11aee6494cc91994d5205afd62e2999d3e8c Josh M.: partial COMMAND_ARGUMENT_COUNT
+6d892987bca1cf8aee134e44b1a45c57fba590ac Valentin C.: rm IO helper
+4606f838b2b60ce7d3995adf194eee470bf2395b Andrzej W.: capitalisation
+eb933225f491e2063ba47e18a1153829cb32676c Peter S.: add runtime Crash
+e1a12767ee628e179efc8733449f98018a686b4d Valentin C.: lowering for empty program
+b62e5928e452c7f0fd8c5885d15fd9eededce3d2 Valentin C.: rm IntrinsicCall helper
+944dca758f1c25706b0150ea238f46c8707b95af Valentin C.: rm ComplexExpr helper
+6277b909921d30e018c87b480231a9c2f51a9708 Valentin C.: add FIRBuilder
+47a66f1c5ad5a27f38b667a7d9849eb11c07bbff Valentin C.: rm DoLoopHelper
+8a0d0a3a547197add626c81b12c939fe67bdacd0 Valentin C.: rm FIRBuilder & BoxValue
+e065570c9f1242f6cc3db5e6540890a82271d5ca Damian R.: co_sum test
+416e503adfc16b8ae7718c4cca4cc34a6158eea0 Jean P.: split character procedure dummy arguments in target-rewrite
+9f85c198dbd55fa747de55b746c90acb740bede8 River R.: finish replacing X with Y
+718562a469f98a580975a5662f381cca9f1b3de5 Andrzej W.: remove unneeded dependencies
+8bbfdf8ec320e1d0d89f4babf81f4d003ce51e32 Yury G.: reduce code duplication in wrapper
+a5cc8f6d5e49c957a3d37670beea733941b003f9 Yury G.: add custom target to flang wrapper script
+d3f5ef241ae3841b6f9b70bd138a9252ed3a002e Yury G.: add ieee_is_normal/negative
+74acd744d35eebe4a6716026f5f3e9ee9bf15411 Valentin C.: rename getLoweredName to really long replacement
 4d53f88d1a18e288362e1077ae09c98c843593ba Valentin C.: add MemoryAllocation pass to pipeline
 853e79d8d8af7376a81bf692f26a0c3468811d29 Valentin C.: update tco tool pipeline
 022600334dcb914d24230c6659487b2744af702b Andrzej W.: update description of !fir.coordinate_of

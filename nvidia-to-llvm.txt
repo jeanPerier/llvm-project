@@ -41,8 +41,12 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+fe16f23036611a5e9d3579ec97cd85cb8d1042d6 newunit: make NEWUNIT= work with KIND=1 and recycle
+52e594d86c1e4b12d31c43c18fec59ee8487817c io-perf: larger I/O buffer growth increments
 
 In review:
+89f43728508bb71b0566c81fa168ed1daf7fcda5 intrin-modules: distinguish from non_intrinsic
+4707af08415af70fce34cd2b26150a6200ef7067 recl: correct interpretation of RECL=
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
