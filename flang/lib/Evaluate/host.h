@@ -101,7 +101,6 @@ inline constexpr HostType<FTN_T> CastFortranToHost(const Scalar<FTN_T> &x) {
   }
 }
 
-// Defining the actual mapping
 template <> struct HostTypeHelper<Type<TypeCategory::Integer, 1>> {
   using Type = std::int8_t;
 };
