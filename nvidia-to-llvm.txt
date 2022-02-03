@@ -41,18 +41,18 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-c2ee1645ff28bb0b1b51bb81aa823537e6de5c6e import: silence bogus error on use after IMPORT
-92a8cc51ff206d536b3c140a11aca1f4820bddb9 modes: modify right modes for READ/WRITE vs OPEN
-5ae7ee61a35ba3a333f8780424ec99ef9c8fa91b stream-io: debugging of stream I/O
-bd6b07e3a86d2450101fa2da60737c6d1415f1e3 parent-comp: use right symbol for parent component
-76845f05e6969dd23da905836a747fb9451b1fb1 in-namelist: set right "inNamelist" flag
-8e311b5544a0b54ad087a95eb281f7ea7815abf1 arg-keywords: fix argument keyword names in specific intrinsics
-7cab627661545547a65729218411fc1201c7aad6 regressions: fix edge-case I/O regressions
 
 In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+92a8cc51ff206d536b3c140a11aca1f4820bddb9 modes: modify right modes for READ/WRITE vs OPEN
+5ae7ee61a35ba3a333f8780424ec99ef9c8fa91b stream-io: debugging of stream I/O
+c2ee1645ff28bb0b1b51bb81aa823537e6de5c6e import: silence bogus error on use after IMPORT
+bd6b07e3a86d2450101fa2da60737c6d1415f1e3 parent-comp: use right symbol for parent component
+76845f05e6969dd23da905836a747fb9451b1fb1 in-namelist: set right "inNamelist" flag
+8e311b5544a0b54ad087a95eb281f7ea7815abf1 arg-keywords: fix argument keyword names in specific intrinsics
+7cab627661545547a65729218411fc1201c7aad6 regressions: fix edge-case I/O regressions
 fe16f23036611a5e9d3579ec97cd85cb8d1042d6 newunit: make NEWUNIT= work with KIND=1 and recycle
 52e594d86c1e4b12d31c43c18fec59ee8487817c io-perf: larger I/O buffer growth increments
 89f43728508bb71b0566c81fa168ed1daf7fcda5 intrin-modules: distinguish from non_intrinsic

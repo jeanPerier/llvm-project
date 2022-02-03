@@ -40,9 +40,29 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit c7f4c333af2bd7b21dfb58df6cea59b30f6576d7
+with llvm-project commit 0352ee1a225ae3a54f8cda9ead710498a60ff09a
 
 Log of cherry-picked commits in reverse order (latest first):
+e7361469bbb64d80a70d23bb24d45402b4644e3e Valentin C.: add fir.array_amend operation definition
+1bfbe315a76b40f9c3d4cbc8932b05509c5a7c5e Valentin C.: rm unused variable
+f254a8eff6d75f2f07f950b26caed35c76e90dae Valentin C.: add fir.array_access op
+ca53e049e0130be8d922a6ae80a1dcbddea2b25b Valentin C.: lower integer constant code for STOP
+dc6a344637a6417aedf85e5fd1236e7fcd43c3f1 Valentin C.: add lowering for integer constant
+575a6f819bc60fc2423e492f6c133404740445db Jean P.: add ExtendedValue type helpers
+e76ccf2a0cf91d4d74cef35c19b2d4fee4ad7408 Damian R.: add co_broadcast test
+8e123ca65f5f9286e59f2c79184d01673c87aa42 River R.: rm support for creating a unit ConstantOp
+dec8af701ff25ea967d47d196e5247306754f8e8 River R.: move SelectOp to Arithmetic
+42e5f1d97b3ecf6f967a0e63ca39f05d3262e2b2 River R.: mlir refactoring
+bc699ed0bfaf82700f02fab6a27bdcaad2396f00 Jean P.: prevent rewrite of CMPLX() with dynamically optional Y argument
+415267407db27a6ca9818f1d269314fe92dd8042 Valentin C.: switch return to ExtendedValue
+c099ca4e45dbccd58dfa1964fa1f304c6055958d Jean P.: aggregate types in tuple and record type
+db01b123d012df2f0e6acf7e90bf4ba63382587c Valentin C.: lower PAUSE statement
+aab4263ad66c99da15cb9bda6aec8269d159b113 Valentin C.: lower basic STOP statement
+82cf35bc89fcbe666243cd6f9e29af0023016a2d Peter K.: work around GCC 11 warnings
+ce8022faa365e0a48c2d77085d67bd9800bedb0a Josh M.: partial lowering of EXIT extension intrinsic subroutine
+93ee588232877485535f40e56014eb0e12e3fa32 Peter S.: rename runtime routine
+89275300d861aef73225428c95fdb069de36186d Valentin C.: basic empty subroutine
+990759136a268fa51695d04f845ce7f9b36a842f Valentin C.: add lowering placeholders
 697a5036cd9bdf9d12978e082e38ac75f0eb108e Sanjoy D.: remove OpTrait &c.
 0a494d0623a7ed6042d9f27bb4df81d59af1e935 Valentin C.: rm Character helper
 ddac11aee6494cc91994d5205afd62e2999d3e8c Josh M.: partial COMMAND_ARGUMENT_COUNT
@@ -1194,6 +1214,7 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+4e53e283744b1a314948b1ca139c09811121f70e Andrezj; revert be9946b877add0db906090d22840b213c3f41dd2
 44e3365775101fec3fd355eda339282258d74415 John E.: factor out config prefix finding
 b3af9fbcc908c3a4b0fae721fa5102459070db83 John E.: set path to shared cmake modules
 5c3347aa8babd1678e73dea182bf78bf6e33822c John B.: use GNUInstallDirs
