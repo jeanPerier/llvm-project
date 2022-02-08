@@ -40,9 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 0352ee1a225ae3a54f8cda9ead710498a60ff09a
+with llvm-project commit b9f1e1c36c2e785b5ad6caddad53787de930a009
 
 Log of cherry-picked commits in reverse order (latest first):
+9b5bb511adac5fc624dcaa8e25d0a09ad23577c3 Valentin C.: keep primitive type for extract/insertValue
+5ebbcfa01d78477c9b5f170537a8a2719fe199e6 Josh M.: partial lowering of GET_ENVIRONMENT_VARIABLE
+8d248002a66bcb963a6de53c47d1d9933ca07ee4 Andrzej W.: add assert
+60cac0c0816193f3d910cd8bdaebac8e6694a6bd River R.: rm deprecated utilities
+a8d48fe0fe52468a6bd355824a27db2de1a9595f Valentin C.: handle STOP 'ERROR'
+74751f4b0c312592494c6cc9922bea1ec71372a8 Valentin C.: lower ASCII constant
+b8804557686f28fdcb3b9777552bb01be818035a Valentin C.: rm unused converter
+6518c40931e38f943029d060dcc2f69c77e7f1cb Valentin C.: add test for STOP QUIET=
+2c2e5a5d0f191027ab447899599baeaf744fc2eb Valentin C.: local variable lowering
+ace01605e04d094c243b0cad873e8919b80a0ced River R.: ControlFlow dialect
+991696c2eba5c2aa7bd6c1cb46dd80055c3edd0c Peter K.: fixes for stream I/O
+38073b066973e42c4ba833aaeb04389ba33bf5d7 Josh M.: partial lowering of GET_COMMAND_ARGUMENT
+cc306740ccfcb0b64f789c2062c4de8954026ad4 Valentin C.: handle STOP QUIET=
 e7361469bbb64d80a70d23bb24d45402b4644e3e Valentin C.: add fir.array_amend operation definition
 1bfbe315a76b40f9c3d4cbc8932b05509c5a7c5e Valentin C.: rm unused variable
 f254a8eff6d75f2f07f950b26caed35c76e90dae Valentin C.: add fir.array_access op
