@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit b9f1e1c36c2e785b5ad6caddad53787de930a009
+with llvm-project commit ece0f70664af27f38f3538587903096a5cb1e3d9
 
 Log of cherry-picked commits in reverse order (latest first):
+fd0417a3cf7d4cdee7d6984752453ce3ec93e860 Valentin C.: type conversion for !fir.box<none>
+0b626df1bc4e5b9f9ce326d4766465588315da36 Valentin C.: reorder conversions
+50bccf22970239cf292145c548af71e8eac0020b Diana P.: GET_COMMAND API
+ae37bb9804c7b6ee7e6d1c070889c30f74be1001 Kiran C.: lowering GOTO
+903f6b71704f92d9f55ffee60b6c6a9968feba83 Valentin C.: add missing CFI cases for real/complex
+69c3309d4545cd729c41b102303686e19c92f55c Andrzej W.: -emit-mlir
+47995a0ec92643f8b799c19103ed2c9222e63221 Jean P.: catch implicit interface incompatibility with global in same source file
 9b5bb511adac5fc624dcaa8e25d0a09ad23577c3 Valentin C.: keep primitive type for extract/insertValue
 5ebbcfa01d78477c9b5f170537a8a2719fe199e6 Josh M.: partial lowering of GET_ENVIRONMENT_VARIABLE
 8d248002a66bcb963a6de53c47d1d9933ca07ee4 Andrzej W.: add assert
