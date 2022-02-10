@@ -41,11 +41,23 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+3a02580dbff3ce20e1fc728731b60f6f756f0005 equivalence: Allow extension cases of EQUIVALENCE with optional warnings
+00b933e7f3e5c6054792dc9dc084af11258cc3ef cfp-2: Handle CALL C_F_POINTER(without SHAPE=)
+ef61a587e89ea7a2c0bcd80a23eb9d7255301005 remap-func: Accept pointer assignment w/ remapping to function result
+d42dc013f65635509b294e8b9423acdd5e6fc448 use-generic: Fix edge case in USE-associated generics
+128f2c27a03d3e2c7806a53db12b3805f26f5ea1 poly-comp: Accept structure constructor value for polymorphic component
+c4d5c958c50add1045b1ac9f265922a3f645c399 bogus-spec: Avoid bogus error for specification expression
+32a3e78259558fff8ae8a96b695d60d79f1e8dde pure-entry: Ensure a characterized ENTRY in a PURE subprogram is also marked PURE
 
 In review:
+df88025a89e2a3cda3901381c86bc95c874a3296 null-component: Accept NULL(mold=x) as constant component value in constant structure constructor
+c5d2ae0c8eca995e92e502dc9130263e06e94f76 alloc-data: allow DATA initialization of derived types w/ allocatable components
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+b3419e9a2097d3a3f8287822fe7cfba8f2ca729e associated: Refine pointer/target test for ASSOCIATED intrinsic
+c5c26a3299a56c95c4f024ad8c8abaf927f633db type-func: handle "type(foo) function f" when foo is defined in f
+c2ee1645ff28bb0b1b51bb81aa823537e6de5c6e import: silence bogus error on use after import (already in llvm-project)
 92a8cc51ff206d536b3c140a11aca1f4820bddb9 modes: modify right modes for READ/WRITE vs OPEN
 5ae7ee61a35ba3a333f8780424ec99ef9c8fa91b stream-io: debugging of stream I/O
 c2ee1645ff28bb0b1b51bb81aa823537e6de5c6e import: silence bogus error on use after IMPORT

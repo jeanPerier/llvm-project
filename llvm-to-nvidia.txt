@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit ece0f70664af27f38f3538587903096a5cb1e3d9
+with llvm-project commit ac15cd7af6150cc7de4eb29526070ff48c0ae437
 
 Log of cherry-picked commits in reverse order (latest first):
+4ae83bb2b1e27628f6bd14d746aef964ed776d52 Louis D.: update docs about runtimes
+85b89ed213c41a8d7dafff957c8d20a247e6d9df Valentin C.: lower simple RETURN
+2d4dc1cba0a75b29b1a46244ad3e180a2df31e09 Valentin C.: replace hard-coded attribute name
+c2b9e9674d5259c12a055055f4e06eba5b8d0fa6 Rainer O.: fix test link on Solaris
+6da728ad9945e070c0860cc2841deb148a7d76b4 Valentin C.: add FIRInlinerInterface
+7d7ebf3cf06e6845dc5b83912f0adecbf69e1123 Uday B.: fix flang build breakage
+3915789503344e9d4ba8c3e01b9b1dc717a49f44 Eric S.: change to LEN rewriting
+6cd417bfd886ffe4e0cf4b48055aa7bfc352b789 Peter S.: inquiry intrinsics for runtime
 fd0417a3cf7d4cdee7d6984752453ce3ec93e860 Valentin C.: type conversion for !fir.box<none>
 0b626df1bc4e5b9f9ce326d4766465588315da36 Valentin C.: reorder conversions
 50bccf22970239cf292145c548af71e8eac0020b Diana P.: GET_COMMAND API
