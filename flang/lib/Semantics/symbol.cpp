@@ -13,6 +13,7 @@
 #include "flang/Semantics/semantics.h"
 #include "flang/Semantics/tools.h"
 #include "llvm/Support/raw_ostream.h"
+#include <cstring>
 #include <string>
 #include <type_traits>
 
@@ -684,17 +685,23 @@ std::string GenericKind::ToString() const {
 }
 
 SourceName GenericKind::AsFortran(DefinedIo x) {
+  const char *name{nullptr};
   switch (x) {
     SWITCH_COVERS_ALL_CASES
   case DefinedIo::ReadFormatted:
-    return {"read(formatted)", 15};
+    name = "read(formatted)";
+    break;
   case DefinedIo::ReadUnformatted:
-    return {"read(unformatted)", 17};
+    name = "read(unformatted)";
+    break;
   case DefinedIo::WriteFormatted:
-    return {"write(formatted)", 16};
+    name = "write(formatted)";
+    break;
   case DefinedIo::WriteUnformatted:
-    return {"write(unformatted)", 18};
+    name = "write(unformatted)";
+    break;
   }
+  return {name, std::strlen(name)};
 }
 
 bool GenericKind::Is(GenericKind::OtherKind x) const {
