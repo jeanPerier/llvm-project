@@ -506,7 +506,11 @@ public:
       LocalityShared, // named in SHARED locality-spec
       InDataStmt, // initialized in a DATA statement, =>object, or /init/
       InNamelist, // in a Namelist group
+      // A compiler created symbol
       CompilerCreated,
+      // For compiler created symbol that are constants but  cannot legally have
+      // the PARAMETER.
+      ReadOnly,
       // OpenACC data-sharing attribute
       AccPrivate, AccFirstPrivate, AccShared,
       // OpenACC data-mapping attribute

@@ -8,6 +8,7 @@
 
 #include "flang/Semantics/runtime-type-info.h"
 #include "mod-file.h"
+#include "flang/Common/builtin-modules.h"
 #include "flang/Evaluate/fold-designator.h"
 #include "flang/Evaluate/fold.h"
 #include "flang/Evaluate/tools.h"
@@ -243,6 +244,17 @@ static int GetIntegerKind(const Symbol &symbol) {
   return dyType->kind();
 }
 
+static void SetReadOnlyCompilerCreatedFlags(Symbol &symbol) {
+  symbol.set(Symbol::Flag::CompilerCreated);
+  // Runtime type info symbols may have types that are incompatible with the
+  // PARAMETER attribute (the main issue is that they may be TARGET, and normal
+  // FORTRAN parameters cannot be TARGETs).
+  if (symbol.has<semantics::ObjectEntityDetails>() ||
+      symbol.has<semantics::ProcEntityDetails>()) {
+    symbol.set(Symbol::Flag::ReadOnly);
+  }
+}
+
 // Save a rank-1 array constant of some numeric type as an
 // initialized data object in a scope.
 template <typename T>
@@ -268,7 +280,7 @@ static SomeExpr SaveNumericPointerTarget(
                         .try_emplace(name, Attrs{Attr::TARGET, Attr::SAVE},
                             std::move(object))
                         .first->second};
-    symbol.set(Symbol::Flag::CompilerCreated);
+    SetReadOnlyCompilerCreatedFlags(symbol);
     return evaluate::AsGenericExpr(
         evaluate::Expr<T>{evaluate::Designator<T>{symbol}});
   }
@@ -305,7 +317,7 @@ static SomeExpr SaveDerivedPointerTarget(Scope &scope, SourceName name,
                         .try_emplace(name, Attrs{Attr::TARGET, Attr::SAVE},
                             std::move(object))
                         .first->second};
-    symbol.set(Symbol::Flag::CompilerCreated);
+    SetReadOnlyCompilerCreatedFlags(symbol);
     return evaluate::AsGenericExpr(
         evaluate::Designator<evaluate::SomeDerived>{symbol});
   }
@@ -318,7 +330,7 @@ static SomeExpr SaveObjectInit(
                           ObjectEntityDetails{object})
                       .first->second};
   CHECK(symbol.get<ObjectEntityDetails>().init().has_value());
-  symbol.set(Symbol::Flag::CompilerCreated);
+  SetReadOnlyCompilerCreatedFlags(symbol);
   return evaluate::AsGenericExpr(
       evaluate::Designator<evaluate::SomeDerived>{symbol});
 }
@@ -617,7 +629,7 @@ Symbol &RuntimeTableBuilder::CreateObject(
       Attrs{Attr::TARGET, Attr::SAVE}, std::move(object))};
   CHECK(pair.second);
   Symbol &result{*pair.first->second};
-  result.set(Symbol::Flag::CompilerCreated);
+  SetReadOnlyCompilerCreatedFlags(result);
   return result;
 }
 
@@ -645,7 +657,7 @@ SomeExpr RuntimeTableBuilder::SaveNameAsPointerTarget(
                       .try_emplace(SaveObjectName(".n."s + name),
                           Attrs{Attr::TARGET, Attr::SAVE}, std::move(object))
                       .first->second};
-  symbol.set(Symbol::Flag::CompilerCreated);
+  SetReadOnlyCompilerCreatedFlags(symbol);
   return evaluate::AsGenericExpr(
       AsciiExpr{evaluate::Designator<Ascii>{symbol}});
 }
@@ -830,7 +842,7 @@ bool RuntimeTableBuilder::InitializeDataPointer(
         ".dp."s + distinctName + "."s + symbol.name().ToString())};
     Symbol &ptrDtSym{
         *scope.try_emplace(ptrDtName, Attrs{}, UnknownDetails{}).first->second};
-    ptrDtSym.set(Symbol::Flag::CompilerCreated);
+    SetReadOnlyCompilerCreatedFlags(ptrDtSym);
     Scope &ptrDtScope{scope.MakeScope(Scope::Kind::DerivedType, &ptrDtSym)};
     ignoreScopes_.insert(&ptrDtScope);
     ObjectEntityDetails ptrDtObj;
@@ -1081,7 +1093,7 @@ void RuntimeTableBuilder::IncorporateDefinedIoGenericInterfaces(
 RuntimeDerivedTypeTables BuildRuntimeDerivedTypeTables(
     SemanticsContext &context) {
   RuntimeDerivedTypeTables result;
-  result.schemata = context.GetBuiltinModule("__fortran_type_info");
+  result.schemata = context.GetBuiltinModule(common::typeInfoBuiltinModule);
   if (result.schemata) {
     RuntimeTableBuilder builder{context, result};
     builder.DescribeTypes(context.globalScope(), false);
