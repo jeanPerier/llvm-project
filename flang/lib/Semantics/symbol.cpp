@@ -657,7 +657,7 @@ std::string GenericKind::ToString() const {
   return std::visit(
       common::visitors {
         [](const OtherKind &x) { return EnumToString(x); },
-            [](const DefinedIo &x) { return EnumToString(x); },
+            [](const DefinedIo &x) { return AsFortran(x).ToString(); },
 #if !__clang__ && __GNUC__ == 7 && __GNUC_MINOR__ == 2
             [](const common::NumericOperator &x) {
               return common::EnumToString(x);
@@ -675,13 +675,26 @@ std::string GenericKind::ToString() const {
       u);
 }
 
+SourceName GenericKind::AsFortran(DefinedIo x) {
+  switch (x) {
+    SWITCH_COVERS_ALL_CASES
+  case DefinedIo::ReadFormatted:
+    return {"read(formatted)", 15};
+  case DefinedIo::ReadUnformatted:
+    return {"read(unformatted)", 17};
+  case DefinedIo::WriteFormatted:
+    return {"write(formatted)", 16};
+  case DefinedIo::WriteUnformatted:
+    return {"write(unformatted)", 18};
+  }
+}
+
 bool GenericKind::Is(GenericKind::OtherKind x) const {
   const OtherKind *y{std::get_if<OtherKind>(&u)};
   return y && *y == x;
 }
 
-bool SymbolOffsetCompare::operator()(
-    const SymbolRef &x, const SymbolRef &y) const {
+bool SymbolOffsetCompare::operator()(const SymbolRef &x, const SymbolRef &y) const {
   const Symbol *xCommon{FindCommonBlockContaining(*x)};
   const Symbol *yCommon{FindCommonBlockContaining(*y)};
   if (xCommon) {
@@ -709,6 +722,7 @@ bool SymbolOffsetCompare::operator()(
   return x->GetSemanticsContext().allCookedSources().Precedes(
       x->name(), y->name());
 }
+
 bool SymbolOffsetCompare::operator()(
     const MutableSymbolRef &x, const MutableSymbolRef &y) const {
   return (*this)(SymbolRef{*x}, SymbolRef{*y});
