@@ -40,9 +40,21 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit ac15cd7af6150cc7de4eb29526070ff48c0ae437
+with llvm-project commit fa0443f2e7b8a671eab8567b495486aa29afc022
 
 Log of cherry-picked commits in reverse order (latest first):
+5bde97b17e751c32aae867ca1035fa146aed9221 Jean P.: use getVoidPtr
+149ad3d554c6e901a57c7e34e29fba334dcd283c Shraiysh V.: mlir thing
+c807aa53ee6dec76fd70c8665a409c078a1494d7 Valentin C.: handle lowering of ranked array
+1ceb1d9b402515f2f6a93e069c7b77dba28633a6 Valentin C.: enable complex type
+0a0b3029deb2c92e4109b9e4034e10b09145c878 Valentin C.: enable scalar real type
+cc120e36c31a33ff46fa1a5b33d6df4235dcb740 Shraiysh V.: mlir thing
+ad40cc14a8b728dedc20c9397489bda50185b176 Valentin C.: lower basic scalar int function
+7dd7ccd2247052528ea6bbfbd37c7c7e589ac5cb Jean P.: fail link when no derived type descriptions
+bea53eead1de84a28affc6a7cbf88f87a258fed4 Harshil J.: check for non-negative device expr value
+bdf573652138fee827e18e636d92975171b566af Peter S.: improve RESHAPE runtime errors
+c45bd4b9e58ec6359ec07993eff81bd163a2d6ac Eric S.: fix to allocmem codegen, missing dims for seq of char types
+1341b5a0f5c39f05883e0f458d60ee4c6f059886 Peter S.: allow mixed assoc's of proc ptrs and targets
 4ae83bb2b1e27628f6bd14d746aef964ed776d52 Louis D.: update docs about runtimes
 85b89ed213c41a8d7dafff957c8d20a247e6d9df Valentin C.: lower simple RETURN
 2d4dc1cba0a75b29b1a46244ad3e180a2df31e09 Valentin C.: replace hard-coded attribute name
