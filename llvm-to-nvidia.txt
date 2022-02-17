@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit fa0443f2e7b8a671eab8567b495486aa29afc022
+with llvm-project commit 08361bb3c88a4001349bc6cd1406214a22ca7fa7
 
 Log of cherry-picked commits in reverse order (latest first):
+f29f86b60bf7ce7e6651d90b36eb36592f60c4bf Shao-Ce S.: fix typo in comment
+21ac47439218e6222a48c451a0d4d86d5e8f02b7 Shao-Ce S.: fix typo in comment
+e993b20c049d2f933831c26139f024e022f3d7fe Andrzej W.: -emit-llvm
+d4332a88429f27c2924e2bf8309d6ce65d39dbca Damian R.: add test for SYNC IMAGES
+99dd49cf97a49eba074c5c3e060e2ddf1da3bc2b Damian R.: add test for SYNC ALL
+b389fbd015955b96a88adeef75b6ef6af40461e5 Andrzej W.: add Win32
+da7c77b82c217592cc14f5b5a3c6a9e6741896af Valentin C.: lower arguments
+dda3c14fd7db8fc2f9ef2baee09b44476ce0d56c Andrzej W.: fix validModule
+b077ee9240f8b603d1dc8b43628fee0d4b94e963 Jacques P.: allow type attr/opd for 0 result ops prefixed
 5bde97b17e751c32aae867ca1035fa146aed9221 Jean P.: use getVoidPtr
 149ad3d554c6e901a57c7e34e29fba334dcd283c Shraiysh V.: mlir thing
 c807aa53ee6dec76fd70c8665a409c078a1494d7 Valentin C.: handle lowering of ranked array

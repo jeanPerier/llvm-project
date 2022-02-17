@@ -43,11 +43,11 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-04363472041e90f5ca5924df2a9c538836ea01b0 arg-source: source location info for actual arguments
-00b933e7f3e5c6054792dc9dc084af11258cc3ef cfp-2: Handle CALL C_F_POINTER(without SHAPE=)
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+04363472041e90f5ca5924df2a9c538836ea01b0 arg-source: source location info for actual arguments
+00b933e7f3e5c6054792dc9dc084af11258cc3ef cfp-2: Handle CALL C_F_POINTER(without SHAPE=)
 3a02580dbff3ce20e1fc728731b60f6f756f0005 equivalence: Allow extension cases of EQUIVALENCE with optional warnings
 ef61a587e89ea7a2c0bcd80a23eb9d7255301005 remap-func: Accept pointer assignment w/ remapping to function result
 128f2c27a03d3e2c7806a53db12b3805f26f5ea1 poly-comp: Accept structure constructor value for polymorphic component
