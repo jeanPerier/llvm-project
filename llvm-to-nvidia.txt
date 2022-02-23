@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 38406ca9bdff6c62eb3c2e131f82c8304535690a
+with llvm-project commit 0405920c5faa1665bfcb40e2abdcaede2031a31b
 
 Log of cherry-picked commits in reverse order (latest first):
+c5cf1b903409e491d7599809dc18187363d7be21 Valentin C.: lower allocate & deallocate stmts
+5a7b9194095b37f2274bd021753c3cd15e18eafa River R.: rename StandardToLLVM -> FuncToLLVM
+764f95a8c78c33296aaee4a9ae8f1fba341a595b Valentin C.: lowering of host association
+af4ddd516f2633a4c2281c5e51e5ab5e89d2dce0 Diana P.: update tco
+6b7d211a1b80957619a0ca81f4d2b832bf7e593b River R.: move MlirOptMain to Tools/
+9eaff42360f4430e2baba28dd8d119137caae486 River R.: move Parser.h to Parser/
+38151a08c21e0cdacd52af03e4bdff258f0bac6f Stella L.: prefix gtest(_main) with "llvm_"
+bbcc0f6006a128b9004384b42c9de9430d96dc91 Andrzej W.: fix stand-alone builds
+06be148843618980588a4d63bf37bbd2103d5b77 Andrzej W.: fix GCC 11 build
+dd875dd88bf7f39ad56d8402bdc49ffeb51b4ab8 Andrzej W.: add missing build dependency
+f88a9497a2bd731e0e8a6f913954007c9c7b5479 Jean P.: generate PDT runtime type info in the type's def scope
+392cba8603efc41991613d3b3faaca21fd322500 Jean P.: handle optional ASSOCIATED(,TARGET=) in runtime
+013160f6e26c840140cfcf0b1e8735a2d04e379e Jean P.: PDT type descriptors in codegen
+859d4a18b5937a064ba3b7acfea0bea6cac2f074 Valentin C.: lower more ass'ts to allocatables
+17d71347b2ede797346b0a499665cf51e593b150 Valentin C.: lower modules
+7e32cada0105ec8756ce09a9fc07e2b10803d620 Valentin C.: lower INQUIRE
+46f46a3763c494054227b2b0f551fc34fa9af367 Valentin C.: lower basic file I/O stmts
+db48f7b2f7b3a3a62822bd41de84b9ccb6093b5f Valentin C.: lower OPEN and CLOSE
+dc48849fccce30a7f78b5a0867a622681bf39dd6 Kiran C.: rearrange conversion patterns
 bc274b854d2327c0a3a62202456d2d43258adb12 Valentin C.: add test for allocatable on caller side
 96d9df4157af284d5dd50cec2f8214a16ac3d197 Valentin C.: add test for allocatable on callee side
 d88dfd2b311d5f7f8ab9faa0edfd380c1fd2d2b2 Valentin C.: dynamic array lowering
