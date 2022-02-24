@@ -4,6 +4,7 @@ endif ()
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 
 add_flang_library(FortranLower
+  Allocatable.cpp
   Bridge.cpp
   CallInterface.cpp
   Coarray.cpp
