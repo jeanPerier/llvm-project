@@ -44,7 +44,7 @@ void Fortran::lower::genStopStatement(
   // First operand is stop code (zero if absent)
   if (const auto &code =
           std::get<std::optional<Fortran::parser::StopCode>>(stmt.t)) {
-    auto expr = converter.genExprValue(*Fortran::semantics::GetExpr(*code));
+    auto expr = converter.genExprValue(Fortran::semantics::GetExpr(*code));
     LLVM_DEBUG(llvm::dbgs() << "stop expression: "; expr.dump();
                llvm::dbgs() << '\n');
     expr.match(
@@ -86,9 +86,8 @@ void Fortran::lower::genStopStatement(
   // Third operand indicates QUIET (default to false).
   if (const auto &quiet =
           std::get<std::optional<Fortran::parser::ScalarLogicalExpr>>(stmt.t)) {
-    const SomeExpr *expr = Fortran::semantics::GetExpr(*quiet);
-    assert(expr && "failed getting typed expression");
-    mlir::Value q = fir::getBase(converter.genExprValue(*expr));
+    const SomeExpr &expr = Fortran::semantics::GetExpr(*quiet);
+    mlir::Value q = fir::getBase(converter.genExprValue(expr));
     operands.push_back(
         builder.createConvert(loc, calleeType.getInput(operands.size()), q));
   } else {

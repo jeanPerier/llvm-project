@@ -155,13 +155,13 @@ genOMP(Fortran::lower::AbstractConverter &converter,
         auto &expr =
             std::get<Fortran::parser::ScalarLogicalExpr>(ifClause->v.t);
         ifClauseOperand = fir::getBase(
-            converter.genExprValue(*Fortran::semantics::GetExpr(expr)));
+            converter.genExprValue(Fortran::semantics::GetExpr(expr)));
       } else if (const auto &numThreadsClause =
                      std::get_if<Fortran::parser::OmpClause::NumThreads>(
                          &clause.u)) {
         // OMPIRBuilder expects `NUM_THREAD` clause as a `Value`.
         numThreadsClauseOperand = fir::getBase(converter.genExprValue(
-            *Fortran::semantics::GetExpr(numThreadsClause->v)));
+            Fortran::semantics::GetExpr(numThreadsClause->v)));
       } else if (const auto &privateClause =
                      std::get_if<Fortran::parser::OmpClause::Private>(
                          &clause.u)) {

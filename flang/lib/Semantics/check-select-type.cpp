@@ -268,6 +268,7 @@ void SelectTypeChecker::Enter(const parser::SelectTypeConstruct &construct) {
 
 const SomeExpr *SelectTypeChecker::GetExprFromSelector(
     const parser::Selector &selector) {
-  return std::visit([](const auto &x) { return GetExpr(x); }, selector.u);
+  return std::visit(
+      [this](const auto &x) { return GetExpr(context_, x); }, selector.u);
 }
 } // namespace Fortran::semantics

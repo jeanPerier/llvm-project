@@ -503,7 +503,7 @@ private:
   void analyzeIoBranches(lower::pft::Evaluation &eval, const A &stmt) {
     auto analyzeFormatSpec = [&](const parser::Format &format) {
       if (const auto *expr = std::get_if<parser::Expr>(&format.u)) {
-        if (semantics::ExprHasTypeCategory(*semantics::GetExpr(*expr),
+        if (semantics::ExprHasTypeCategory(semantics::GetExpr(*expr),
                                            common::TypeCategory::Integer))
           eval.isUnstructured = true;
       }
