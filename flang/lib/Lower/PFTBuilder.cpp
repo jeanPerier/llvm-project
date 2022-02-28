@@ -1774,8 +1774,7 @@ struct SymbolVisitor {
   template <typename A>
   bool Pre(const A &x) {
     if constexpr (Fortran::parser::HasTypedExpr<A>::value)
-      if (const auto *expr = Fortran::semantics::GetExpr(x))
-        visitExpr(*expr);
+      visitExpr(Fortran::semantics::GetExpr(x));
     return true;
   }
 
