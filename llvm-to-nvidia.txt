@@ -40,9 +40,34 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 08361bb3c88a4001349bc6cd1406214a22ca7fa7
+with llvm-project commit d5b2055769f40386a818e9df0a173eafa0e7dc5f
 
 Log of cherry-picked commits in reverse order (latest first):
+43c071fa4cb7df8d9f843fec246be653b7ad8e0a Valentin C.: lower power ops
+a7ac120a9ad784998a5527fc0a71b2d0fd55eccb Valentin C.: lower logical comparisons & ops
+98813e365c23c297ef64e4d9cb59cd86eb81ce3c Valentin C.: lower real comparison operations
+f1dcf3ae92d0e12a89fef77f0cfb1e974c98f7c5 Valentin C.: lower integer comparison
+7c0acc1a989ae2765e0b7e20d6bc005280351956 Kiran C.: lower Fortran intrinsic to a runtime call
+37e84d9be06d52abeb387acdfb6dacb274c63da5 Valentin C.: lower simple character return
+2e9439e4891c3d427c0fed477b54f3da2ff8ec28 Andrzej W.: --target / --triple
+f9704f0cfb7a9edb86c0755bafef54cbd365743d Valentin C.: simple array ass't lowering
+f3c9a525198d5d713d44ef2eb5b64043fbe8d0d2 Damian R.: add sync team test
+95fd0dbaf00d8c90cb9fb6841660bfb1fab36fd7 Damian R.: add sync memory test
+2a59ead118065012446bdbd0a31dc52799212f87 Valentin C.: scalar allocatable ass't lowering
+914061bbcf8bb59747221dea3f567f7a1c034020 Valentin C.: allocatable dummy arguments
+19b6e70554996f44f8ba533c39c2596acc8ae0ef Andrzej W.: update top doc page
+d0b70a070aedc3665e352d06c7d996a4050f8fc8 Valentin C.: lower function and subroutine calls
+307ccf4c0defc06a9c511ed9b859c26c7c07b214 Valentin C.: clean up ConvertType
+e9d2f173913da17f4e63b68fcee6d7f30d9e2a56 Valentin C.: lower complex constant
+16a91a1cbe98268d5e0343e313d848650f5f3541 Andrzej W.: generate type info
+b3d1f073de971f7597ba937d8065dbba56cd8fc7 Valentin C.: lower real constant
+026a43f6cf9f9fe3fb3fcf7065393ebc979afdef Valentin C.: update PFTBuilder
+f57627f544665de2b2e246226b0aa3e4a25491e5 Kiran C.: lower an intrinsic
+5ee500acbbe7eadc1b46a289c8f7fc86a4be4af5 Shraiysh V.: remove unused OMP clauses
+be3b40c059355115a8041f5bd866ad8d99950611 Valentin C.: lower basic binary scalar ops
+eafafbae92f4d68b432989ee01ff38aa9e187a5f Valentin C.: lower scalar negation
+e217ebcc961b75f78e7647b9b93b928c572f1338 Kiran C.: add missing colon to CHECK-LABEL:
+e641c29f41971597dbe190f98784f0e4cfc220cc Valentin C.: lower simple scalar ass't
 f29f86b60bf7ce7e6651d90b36eb36592f60c4bf Shao-Ce S.: fix typo in comment
 21ac47439218e6222a48c451a0d4d86d5e8f02b7 Shao-Ce S.: fix typo in comment
 e993b20c049d2f933831c26139f024e022f3d7fe Andrzej W.: -emit-llvm
