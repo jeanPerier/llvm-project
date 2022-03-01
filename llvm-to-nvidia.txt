@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit d5b2055769f40386a818e9df0a173eafa0e7dc5f
+with llvm-project commit 38406ca9bdff6c62eb3c2e131f82c8304535690a
 
 Log of cherry-picked commits in reverse order (latest first):
+bc274b854d2327c0a3a62202456d2d43258adb12 Valentin C.: add test for allocatable on caller side
+96d9df4157af284d5dd50cec2f8214a16ac3d197 Valentin C.: add test for allocatable on callee side
+d88dfd2b311d5f7f8ab9faa0edfd380c1fd2d2b2 Valentin C.: dynamic array lowering
+8c22cb846f31c42ce1d19370025ad05c4db56256 Valentin C.: lower basic I/O stmt
+1f971e23f089c640d5a7df1e78572fe4d8bb1d0b River R.: trim Func dialect dependences
+23aa5a744666b281af807b1f598f517bf0d597cb River R.: rename Standard to Func dialect
+4d5bcff3be68fdded42ede34e1927359296b89d4 Kiran C.: NFC changes for coding guidelines
+19d86426331ea79e33ab8ca7a56b584565bd4640 Peter K.: patch to "catch I/O of bad derived type at compile time"
+89080b84146f70b2dc46405042c5777ce2392292 Valentin C.: add complex ops lowering tests
 43c071fa4cb7df8d9f843fec246be653b7ad8e0a Valentin C.: lower power ops
 a7ac120a9ad784998a5527fc0a71b2d0fd55eccb Valentin C.: lower logical comparisons & ops
 98813e365c23c297ef64e4d9cb59cd86eb81ce3c Valentin C.: lower real comparison operations

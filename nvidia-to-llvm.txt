@@ -41,11 +41,33 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+47d04dc041703a6bbd4fedf4c469eae13ca924ed + ...
+fefb75e10b3fa4c217df03541899dffaa1017309 getexpr: finer control over error recovery with GetExpr()
+a3a517a612bdcdd2e159c676fea0bc1e6bc5f494 + ...
+fe42d10dc1f1d96bcb618675023dd7efef733577 null: make uninitialized allocatable components explicitly NULL()
+1aa52b45f41968bfbd1aab356e20b3ee4ce1e88a use: fix module file lacking USE for shadowed derived type
+6288a6f02e5b7d32e8781a87663582730cb40f64 compatibility: remove bogus messages for actual/dummy procedure argument compatibility
+b88da9ab1ed2ac0b04c6ec1723648413f95aa625 spread-dim: runtime validation of SPREAD(DIM=) argument
+eef84e3e3673f433260af64597467dca74634f86 fast-in: use faster path for default formatted character input
+ff5951c4d760b4b7feb02ced44cbea4fa537f2a4 arg-error: make per-argument intrinsic error messages more localized
+aadd71fc4c74ac9f4e1912086897d7e1482deac9 same-module: accommodate module subprograms defined in the module
+115ad57354c3d25122fd88f566b28e4ecb2a67eb empty-dim: accommodate arrays with zero-extent dimensions in xLOC intrinsic folding
+5bf967f48fbee1ffc0edd512e30371d39a7c6622 provenance2: avoid crash case in provenance mapping
+c5828d6dd4de0cc81036ab223bd9bffc851099f4 provenance: extend ProvenanceRange::Suffix() to handle crash case
+83b66dcec3be059d4cd13c1307a95126dd9657e5 no-rec: catch READ/WRITE on direct-access file w/o REC=
+f2908368ad1a51cbcde12c6ea18235b11c8aaa86 recl: honor RECL= in list-directed/namelist output
 
 In review:
+e5e5d9483369d93ee069a945e1194d3b114f5dad result-type: fix result type of "procedure(abs) :: f"
+
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+90cb26d320b906e0d965d24dad512863b53d63e4 commas: don't require commas between most edit descriptors
+3f770e9b927a96b6169ebc97c7cb07b7e810f3b4 io-catch: allow data transfer stmt control list errors to be caught
+e6a1a9a4fe4cfa7a468c12db35fd60287e8fcb53 c711: check C711 correctly
+9e7bdefae09f9d985db34d9904e775a9e8ced1f4 newunit: allow more concurrently open newunits
+540226b1753c4c77e2c2928b436e4e437c6e3752 io-check: catch I/O of bad derived type at compile time
 04363472041e90f5ca5924df2a9c538836ea01b0 arg-source: source location info for actual arguments
 00b933e7f3e5c6054792dc9dc084af11258cc3ef cfp-2: Handle CALL C_F_POINTER(without SHAPE=)
 3a02580dbff3ce20e1fc728731b60f6f756f0005 equivalence: Allow extension cases of EQUIVALENCE with optional warnings
