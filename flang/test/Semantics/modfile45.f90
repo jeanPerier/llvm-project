@@ -9,15 +9,16 @@ module m
     type(t) :: a = t(NULL(),x2=NULL())
   end type
 end module
-﻿Expect: m.mod
-module m
-type::t
-real(4),allocatable::x1
-real(4),allocatable::x2
-real(4),allocatable::x3
-end type
-type::t2
-type(t)::a=t(x1=NULL(),x2=NULL(),x3=NULL())
-end type
-intrinsic::null
-end
+
+!Expect: m.mod
+!module m
+!type::t
+!real(4),allocatable::x1
+!real(4),allocatable::x2
+!real(4),allocatable::x3
+!end type
+!type::t2
+!type(t)::a=t(x1=NULL(),x2=NULL(),x3=NULL())
+!end type
+!intrinsic::null
+!end
