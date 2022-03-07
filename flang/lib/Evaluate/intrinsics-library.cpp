@@ -523,7 +523,7 @@ static bool VerifyInRangeIfReal(
             someReal->u)};
     if (!isInRange) {
       context.messages().Say(
-          "argument is out of range [%d., %d.]"_en_US, lb, ub);
+          "argument is out of range [%d., %d.]"_warn_en_US, lb, ub);
     }
     return isInRange;
   }
@@ -545,7 +545,7 @@ static bool VerifyStrictlyPositiveIfReal(
         someReal->u)};
     if (!isStrictlyPositive) {
       context.messages().Say(
-          "argument '%s' must be strictly positive"_en_US, argName);
+          "argument '%s' must be strictly positive"_warn_en_US, argName);
     }
     return isStrictlyPositive;
   }
@@ -567,7 +567,7 @@ static bool VerifyNotZeroIfReal(
         someReal->u)};
     if (!isNotZero) {
       context.messages().Say(
-          "argument '%s' must be different from zero"_en_US, argName);
+          "argument '%s' must be different from zero"_warn_en_US, argName);
     }
     return isNotZero;
   }
@@ -588,7 +588,7 @@ static bool VerifyNotZeroIfComplex(
         someComplex->u)};
     if (!isNotZero) {
       context.messages().Say(
-          "complex argument must be different from zero"_en_US);
+          "complex argument must be different from zero"_warn_en_US);
     }
     return isNotZero;
   }
@@ -615,7 +615,7 @@ static bool VerifyGammaLikeArgument(
         someReal->u)};
     if (!isValid) {
       context.messages().Say(
-          "argument must not be a negative integer or zero"_en_US);
+          "argument must not be a negative integer or zero"_warn_en_US);
     }
     return isValid;
   }
@@ -640,7 +640,7 @@ static bool VerifyAtan2LikeArguments(
         someReal->u)};
     if (!isValid) {
       context.messages().Say(
-          "'x' and 'y' arguments must not be both zero"_en_US);
+          "'x' and 'y' arguments must not be both zero"_warn_en_US);
     }
     return isValid;
   }
