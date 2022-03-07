@@ -219,9 +219,8 @@ static fir::MutableBoxValue
 genMutableBoxValue(Fortran::lower::AbstractConverter &converter,
                    mlir::Location loc,
                    const Fortran::parser::AllocateObject &allocObj) {
-  const Fortran::lower::SomeExpr *expr = Fortran::semantics::GetExpr(allocObj);
-  assert(expr && "semantic analysis failure");
-  return converter.genExprMutableBox(loc, *expr);
+  const Fortran::lower::SomeExpr &expr = Fortran::semantics::GetExpr(allocObj);
+  return converter.genExprMutableBox(loc, expr);
 }
 
 /// Implement Allocate statement lowering.
@@ -282,19 +281,19 @@ private:
                 std::visit(
                     Fortran::common::visitors{
                         [&](const Fortran::parser::StatVariable &statVar) {
-                          statExpr = Fortran::semantics::GetExpr(statVar);
+                          statExpr = &Fortran::semantics::GetExpr(statVar);
                         },
                         [&](const Fortran::parser::MsgVariable &errMsgVar) {
-                          errMsgExpr = Fortran::semantics::GetExpr(errMsgVar);
+                          errMsgExpr = &Fortran::semantics::GetExpr(errMsgVar);
                         },
                     },
                     statOrErr.u);
               },
               [&](const Fortran::parser::AllocOpt::Source &source) {
-                sourceExpr = Fortran::semantics::GetExpr(source.v.value());
+                sourceExpr = &Fortran::semantics::GetExpr(source.v.value());
               },
               [&](const Fortran::parser::AllocOpt::Mold &mold) {
-                moldExpr = Fortran::semantics::GetExpr(mold.v.value());
+                moldExpr = &Fortran::semantics::GetExpr(mold.v.value());
               },
           },
           allocOption.u);
@@ -344,7 +343,7 @@ private:
         if (const std::optional<Fortran::parser::BoundExpr> &lbExpr =
                 std::get<0>(shapeSpec.t)) {
           lb = fir::getBase(converter.genExprValue(
-              Fortran::semantics::GetExpr(*lbExpr), stmtCtx, loc));
+              &Fortran::semantics::GetExpr(*lbExpr), stmtCtx, loc));
           lb = builder.createConvert(loc, idxTy, lb);
         } else {
           lb = one;
@@ -352,7 +351,8 @@ private:
         lbounds.emplace_back(lb);
       }
       mlir::Value ub = fir::getBase(converter.genExprValue(
-          Fortran::semantics::GetExpr(std::get<1>(shapeSpec.t)), stmtCtx, loc));
+          &Fortran::semantics::GetExpr(std::get<1>(shapeSpec.t)), stmtCtx,
+          loc));
       ub = builder.createConvert(loc, idxTy, ub);
       if (lb) {
         mlir::Value diff = builder.create<mlir::arith::SubIOp>(loc, ub, lb);
@@ -405,11 +405,11 @@ private:
       if (const std::optional<Fortran::parser::BoundExpr> &lbExpr =
               std::get<0>(bounds))
         lb = fir::getBase(converter.genExprValue(
-            Fortran::semantics::GetExpr(*lbExpr), stmtCtx, loc));
+            &Fortran::semantics::GetExpr(*lbExpr), stmtCtx, loc));
       else
         lb = builder.createIntegerConstant(loc, idxTy, 1);
       mlir::Value ub = fir::getBase(converter.genExprValue(
-          Fortran::semantics::GetExpr(std::get<1>(bounds)), stmtCtx, loc));
+          &Fortran::semantics::GetExpr(std::get<1>(bounds)), stmtCtx, loc));
       mlir::Value dimIndex =
           builder.createIntegerConstant(loc, i32Ty, iter.index());
       // Runtime call
@@ -533,10 +533,10 @@ void Fortran::lower::genDeallocateStmt(
        std::get<std::list<Fortran::parser::StatOrErrmsg>>(stmt.t))
     std::visit(Fortran::common::visitors{
                    [&](const Fortran::parser::StatVariable &statVar) {
-                     statExpr = Fortran::semantics::GetExpr(statVar);
+                     statExpr = &Fortran::semantics::GetExpr(statVar);
                    },
                    [&](const Fortran::parser::MsgVariable &errMsgVar) {
-                     errMsgExpr = Fortran::semantics::GetExpr(errMsgVar);
+                     errMsgExpr = &Fortran::semantics::GetExpr(errMsgVar);
                    },
                },
                statOrErr.u);

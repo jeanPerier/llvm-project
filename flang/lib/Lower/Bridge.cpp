@@ -720,8 +720,8 @@ private:
                                mlir::Block *trueTarget,
                                mlir::Block *falseTarget) {
     Fortran::lower::StatementContext stmtCtx;
-    mlir::Value cond =
-        createFIRExpr(toLocation(), Fortran::semantics::GetExpr(expr), stmtCtx);
+    mlir::Value cond = createFIRExpr(
+        toLocation(), &Fortran::semantics::GetExpr(expr), stmtCtx);
     stmtCtx.finalize();
     genFIRConditionalBranch(cond, trueTarget, falseTarget);
   }
@@ -729,8 +729,8 @@ private:
                                Fortran::lower::pft::Evaluation *trueTarget,
                                Fortran::lower::pft::Evaluation *falseTarget) {
     Fortran::lower::StatementContext stmtCtx;
-    mlir::Value cond =
-        createFIRExpr(toLocation(), Fortran::semantics::GetExpr(expr), stmtCtx);
+    mlir::Value cond = createFIRExpr(
+        toLocation(), &Fortran::semantics::GetExpr(expr), stmtCtx);
     stmtCtx.finalize();
     genFIRConditionalBranch(cond, trueTarget->block, falseTarget->block);
   }
@@ -806,7 +806,7 @@ private:
     Fortran::lower::StatementContext stmtCtx;
     mlir::Value condExpr = createFIRExpr(
         loc,
-        Fortran::semantics::GetExpr(
+        &Fortran::semantics::GetExpr(
             std::get<Fortran::parser::ScalarLogicalExpr>(stmt->t)),
         stmtCtx);
     stmtCtx.finalize();
