@@ -6642,7 +6642,7 @@ Symbol &ModuleVisitor::SetAccess(
     Attr prev = attrs.test(Attr::PUBLIC) ? Attr::PUBLIC : Attr::PRIVATE;
     Say(name,
         WithSeverity(
-            "The accessibility of '%s' has already been specified as %s"_warn_en_US,
+            "The accessibility of '%s' has already been specified as %s"_en_US,
             attr != prev ? parser::Severity::Error : parser::Severity::Warning),
         MakeOpName(name), EnumToString(prev));
   } else {
