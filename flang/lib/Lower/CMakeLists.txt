@@ -12,6 +12,7 @@ add_flang_library(FortranLower
   ConvertType.cpp
   ConvertVariable.cpp
   ComponentPath.cpp
+  CustomIntrinsicCall.cpp
   DumpEvaluateExpr.cpp
   HostAssociations.cpp
   IntrinsicCall.cpp
