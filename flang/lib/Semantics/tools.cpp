@@ -395,31 +395,33 @@ static void CheckMissingAnalysis(
 
 const SomeExpr *GetExprHelper::Get(const parser::Expr &x) {
   CheckMissingAnalysis(crashIfNoExpr_ && !x.typedExpr, context_, x);
-  return common::GetPtrFromOptional(x.typedExpr->v);
+  return x.typedExpr ? common::GetPtrFromOptional(x.typedExpr->v) : nullptr;
 }
 const SomeExpr *GetExprHelper::Get(const parser::Variable &x) {
   CheckMissingAnalysis(crashIfNoExpr_ && !x.typedExpr, context_, x);
-  return common::GetPtrFromOptional(x.typedExpr->v);
+  return x.typedExpr ? common::GetPtrFromOptional(x.typedExpr->v) : nullptr;
 }
 const SomeExpr *GetExprHelper::Get(const parser::DataStmtConstant &x) {
   CheckMissingAnalysis(crashIfNoExpr_ && !x.typedExpr, context_, x);
-  return common::GetPtrFromOptional(x.typedExpr->v);
+  return x.typedExpr ? common::GetPtrFromOptional(x.typedExpr->v) : nullptr;
 }
 const SomeExpr *GetExprHelper::Get(const parser::AllocateObject &x) {
   CheckMissingAnalysis(crashIfNoExpr_ && !x.typedExpr, context_, x);
-  return common::GetPtrFromOptional(x.typedExpr->v);
+  return x.typedExpr ? common::GetPtrFromOptional(x.typedExpr->v) : nullptr;
 }
 const SomeExpr *GetExprHelper::Get(const parser::PointerObject &x) {
   CheckMissingAnalysis(crashIfNoExpr_ && !x.typedExpr, context_, x);
-  return common::GetPtrFromOptional(x.typedExpr->v);
+  return x.typedExpr ? common::GetPtrFromOptional(x.typedExpr->v) : nullptr;
 }
 
 const evaluate::Assignment *GetAssignment(const parser::AssignmentStmt &x) {
-  return common::GetPtrFromOptional(x.typedAssignment->v);
+  return x.typedAssignment ? common::GetPtrFromOptional(x.typedAssignment->v)
+                           : nullptr;
 }
 const evaluate::Assignment *GetAssignment(
     const parser::PointerAssignmentStmt &x) {
-  return common::GetPtrFromOptional(x.typedAssignment->v);
+  return x.typedAssignment ? common::GetPtrFromOptional(x.typedAssignment->v)
+                           : nullptr;
 }
 
 const Symbol *FindInterface(const Symbol &symbol) {
