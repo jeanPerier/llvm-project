@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 0405920c5faa1665bfcb40e2abdcaede2031a31b
+with llvm-project commit 1b3fd28c6ecc14b9ac87f35ae2d2ae4c7324afb8
 
 Log of cherry-picked commits in reverse order (latest first):
+1b3fd28c6ecc14b9ac87f35ae2d2ae4c7324afb8 Valentin C.: rm old RTBuilder.h
+c3a7627cacc6cbe2301a253daeb3e6953e5e0d1d Valentin C.: lower more character array cases
+beeb86bd6543bbca796e4265e1078175263cefb9 Valentin C.: update ArrayValueCopy
+140aabec43d685ad3b957a4c8649112fde74031e Valentin C.: add OpenACC flag to bbc
+b0f7dc2cf04327febb02280006a7c8d10489fdd6 Valentin C.: add OpenMP flag to bbc
+38101b4e95aa4983b7acf1e6351309db9ce5761b Andrzej W.: -S, -c, -emit-obj
+7c385c4b2f653d6853fe4601f02bbc7fcd60cd91 Shraiysh V.: generate enums better
+092601d4baab7c13c06b31eda2d5bed91d9a6b65 Andrzej W.: rm "using namespace mlir;" from headers
+3b7ec85a1e2cd3ba581e88543986fa5031f270b7 Jean P.: use unix logical values
+a53967cd553cd59452a48aa8651014cd8ed0342e Peter K.: edit to "Distinguish usage and portability warning messages"
+a49bf0ac381c456cdc3dcdf36378a361634f1123 Valentin C.: lower ASSOCIATE
+f8d5c73c825c19e0c88ff4b7f1900667f06161aa River R.: update Builtin dialect
+2895771faf4f8e63fabeb6f35fd5b70b925b0234 Peter K.: edit to "Add nonfatal message classes"
+8321579b2830d1475a69306a02b61789f8ca3cf7 Andrzej W.: -debug-dump-pft
+78a127a3ef066451d1a77f452937cecfe25da64b Valentin C.: lower computed & assigned GOTO
+b3eb0e113e5f12f4fc88bda8bf5a653b00425f2b Valentin C.: lower SUM
+b383b17bf7afff4010f790bc73555a4cb8c2754e Andrzej W.: update dependencies for flangFrontend
+4730582d5d6fb58f3d64fef0cf7f0d8c69990007 Valentin C.: rm unused variable to Allocatable.cpp
+96aa48100c0b332b6e6821b664ad2fa5615c976a Peter K.: edit to "Make uninitialized allocatable components explicitly NULL() in structure constructors"
 c5cf1b903409e491d7599809dc18187363d7be21 Valentin C.: lower allocate & deallocate stmts
 5a7b9194095b37f2274bd021753c3cd15e18eafa River R.: rename StandardToLLVM -> FuncToLLVM
 764f95a8c78c33296aaee4a9ae8f1fba341a595b Valentin C.: lowering of host association
