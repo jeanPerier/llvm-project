@@ -984,7 +984,7 @@ private:
     Fortran::lower::pft::Evaluation &eval = getEval();
     mlir::Value selectExpr =
         createFIRExpr(toLocation(),
-                      Fortran::semantics::GetExpr(
+                      &Fortran::semantics::GetExpr(
                           std::get<Fortran::parser::ScalarIntExpr>(stmt.t)),
                       stmtCtx);
     stmtCtx.finalize();
@@ -1006,7 +1006,7 @@ private:
     Fortran::lower::pft::Evaluation &eval = getEval();
     mlir::Value expr = createFIRExpr(
         toLocation(),
-        Fortran::semantics::GetExpr(std::get<Fortran::parser::Expr>(stmt.t)),
+        &Fortran::semantics::GetExpr(std::get<Fortran::parser::Expr>(stmt.t)),
         stmtCtx);
     stmtCtx.finalize();
     mlir::Type exprType = expr.getType();
