@@ -181,12 +181,6 @@ struct IsActuallyConstantHelper {
     }
     return std::visit([this](const auto &y) { return (*this)(y); }, x.u);
   }
-  bool operator()(const Expr<SomeType> &x) {
-    if (IsNullPointer(x)) {
-      return true;
-    }
-    return std::visit([this](const auto &y) { return (*this)(y); }, x.u);
-  }
   template <typename A> bool operator()(const A *x) { return x && (*this)(*x); }
   template <typename A> bool operator()(const std::optional<A> &x) {
     return x && (*this)(*x);
