@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 1b3fd28c6ecc14b9ac87f35ae2d2ae4c7324afb8
+with llvm-project commit 69924ccf7a328f5f9bcc7073f38fa608a0dbfe2c
 
 Log of cherry-picked commits in reverse order (latest first):
+72276bdaff931910f62a84336b3e864ab48bac06 Valentin C.: lower pointer components
+88ae0d61c31674bd75144c246ae25b55ecc5bff9 Valentin C.: lower FORALL stmt
+7a6a1655d83b3ff79d120e399d8b9cc7ad2b143c Valentin C.: lower WHERE stmt
+e0f549a43ae02e65fce6c9c7a567fe3dc27bec9b Shraiysh V.: added basic connect to lower OMP constructs
+589d51ea9f1a469cef2aae306859afaf6d7d5885 Valentin C.: lower basic derived types
 1b3fd28c6ecc14b9ac87f35ae2d2ae4c7324afb8 Valentin C.: rm old RTBuilder.h
 c3a7627cacc6cbe2301a253daeb3e6953e5e0d1d Valentin C.: lower more character array cases
 beeb86bd6543bbca796e4265e1078175263cefb9 Valentin C.: update ArrayValueCopy
