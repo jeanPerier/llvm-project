@@ -1313,19 +1313,19 @@ private:
       };
       for (const Fortran::parser::ConcurrentControl &ctrl :
            std::get<std::list<Fortran::parser::ConcurrentControl>>(header.t)) {
-        const Fortran::lower::SomeExpr *lo =
+        const Fortran::lower::SomeExpr &lo =
             Fortran::semantics::GetExpr(std::get<1>(ctrl.t));
-        const Fortran::lower::SomeExpr *hi =
+        const Fortran::lower::SomeExpr &hi =
             Fortran::semantics::GetExpr(std::get<2>(ctrl.t));
         auto &optStep =
             std::get<std::optional<Fortran::parser::ScalarIntExpr>>(ctrl.t);
-        lows.push_back(builder->createConvert(loc, idxTy, lowerExpr(*lo)));
-        highs.push_back(builder->createConvert(loc, idxTy, lowerExpr(*hi)));
+        lows.push_back(builder->createConvert(loc, idxTy, lowerExpr(lo)));
+        highs.push_back(builder->createConvert(loc, idxTy, lowerExpr(hi)));
         steps.push_back(
             optStep.has_value()
                 ? builder->createConvert(
                       loc, idxTy,
-                      lowerExpr(*Fortran::semantics::GetExpr(*optStep)))
+                      lowerExpr(Fortran::semantics::GetExpr(*optStep)))
                 : builder->createIntegerConstant(loc, idxTy, 1));
       }
     }
@@ -1356,18 +1356,18 @@ private:
           ub = highs[headerIndex];
           by = steps[headerIndex++];
         } else {
-          const Fortran::lower::SomeExpr *lo =
+          const Fortran::lower::SomeExpr &lo =
               Fortran::semantics::GetExpr(std::get<1>(ctrl.t));
-          const Fortran::lower::SomeExpr *hi =
+          const Fortran::lower::SomeExpr &hi =
               Fortran::semantics::GetExpr(std::get<2>(ctrl.t));
           auto &optStep =
               std::get<std::optional<Fortran::parser::ScalarIntExpr>>(ctrl.t);
-          lb = builder->createConvert(loc, idxTy, lowerExpr(*lo));
-          ub = builder->createConvert(loc, idxTy, lowerExpr(*hi));
+          lb = builder->createConvert(loc, idxTy, lowerExpr(lo));
+          ub = builder->createConvert(loc, idxTy, lowerExpr(hi));
           by = optStep.has_value()
                    ? builder->createConvert(
                          loc, idxTy,
-                         lowerExpr(*Fortran::semantics::GetExpr(*optStep)))
+                         lowerExpr(Fortran::semantics::GetExpr(*optStep)))
                    : builder->createIntegerConstant(loc, idxTy, 1);
         }
         auto lp = builder->create<fir::DoLoopOp>(
@@ -1389,7 +1389,7 @@ private:
           mask.has_value()) {
         mlir::Type i1Ty = builder->getI1Type();
         fir::ExtendedValue maskExv =
-            genExprValue(*Fortran::semantics::GetExpr(mask.value()), stmtCtx);
+            genExprValue(Fortran::semantics::GetExpr(mask.value()), stmtCtx);
         mlir::Value cond =
             builder->createConvert(loc, i1Ty, fir::getBase(maskExv));
         auto ifOp = builder->create<fir::IfOp>(
@@ -1727,10 +1727,9 @@ private:
   void genFIR(const Fortran::parser::NullifyStmt &stmt) {
     mlir::Location loc = toLocation();
     for (auto &pointerObject : stmt.v) {
-      const Fortran::lower::SomeExpr *expr =
+      const Fortran::lower::SomeExpr &expr =
           Fortran::semantics::GetExpr(pointerObject);
-      assert(expr);
-      fir::MutableBoxValue box = genExprMutableBox(loc, *expr);
+      fir::MutableBoxValue box = genExprMutableBox(loc, expr);
       fir::factory::disassociateMutableBox(*builder, loc, box);
     }
   }
@@ -1837,7 +1836,7 @@ private:
         body.u);
   }
   void genFIR(const Fortran::parser::WhereConstructStmt &stmt) {
-    implicitIterSpace.append(Fortran::semantics::GetExpr(
+    implicitIterSpace.append(&Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
   }
   void genFIR(const Fortran::parser::WhereConstruct::MaskedElsewhere &ew) {
@@ -1850,7 +1849,7 @@ private:
       genFIR(body);
   }
   void genFIR(const Fortran::parser::MaskedElsewhereStmt &stmt) {
-    implicitIterSpace.append(Fortran::semantics::GetExpr(
+    implicitIterSpace.append(&Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
   }
   void genFIR(const Fortran::parser::WhereConstruct::Elsewhere &ew) {
@@ -1872,7 +1871,7 @@ private:
     Fortran::lower::StatementContext stmtCtx;
     const auto &assign = std::get<Fortran::parser::AssignmentStmt>(stmt.t);
     implicitIterSpace.growStack();
-    implicitIterSpace.append(Fortran::semantics::GetExpr(
+    implicitIterSpace.append(&Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
     genAssignment(*assign.typedAssignment->v);
     implicitIterSpace.shrinkStack();
@@ -2052,7 +2051,7 @@ private:
             std::get<std::optional<Fortran::parser::ScalarLogicalExpr>>(
                 header.t);
         mask.has_value())
-      analyzeExplicitSpace(*Fortran::semantics::GetExpr(*mask));
+      analyzeExplicitSpace(Fortran::semantics::GetExpr(*mask));
   }
   template <bool LHS = false, typename A>
   void analyzeExplicitSpace(const Fortran::evaluate::Expr<A> &e) {
@@ -2110,10 +2109,10 @@ private:
       analyzeExplicitSpace(e.operator->());
   }
   void analyzeExplicitSpace(const Fortran::parser::WhereConstructStmt &ws) {
-    const Fortran::lower::SomeExpr *exp = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr &exp = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(ws.t));
-    addMaskVariable(exp);
-    analyzeExplicitSpace(*exp);
+    addMaskVariable(&exp);
+    analyzeExplicitSpace(exp);
   }
   void analyzeExplicitSpace(
       const Fortran::parser::WhereConstruct::MaskedElsewhere &ew) {
@@ -2136,10 +2135,10 @@ private:
                body.u);
   }
   void analyzeExplicitSpace(const Fortran::parser::MaskedElsewhereStmt &stmt) {
-    const Fortran::lower::SomeExpr *exp = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr &exp = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t));
-    addMaskVariable(exp);
-    analyzeExplicitSpace(*exp);
+    addMaskVariable(&exp);
+    analyzeExplicitSpace(exp);
   }
   void
   analyzeExplicitSpace(const Fortran::parser::WhereConstruct::Elsewhere *ew) {
@@ -2148,10 +2147,10 @@ private:
       analyzeExplicitSpace(e);
   }
   void analyzeExplicitSpace(const Fortran::parser::WhereStmt &stmt) {
-    const Fortran::lower::SomeExpr *exp = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr &exp = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t));
-    addMaskVariable(exp);
-    analyzeExplicitSpace(*exp);
+    addMaskVariable(&exp);
+    analyzeExplicitSpace(exp);
     const std::optional<Fortran::evaluate::Assignment> &assign =
         std::get<Fortran::parser::AssignmentStmt>(stmt.t).typedAssignment->v;
     assert(assign.has_value() && "WHERE has no statement");
