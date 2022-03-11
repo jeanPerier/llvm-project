@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 69924ccf7a328f5f9bcc7073f38fa608a0dbfe2c
+with llvm-project commit 68099b1d5c2c99ff79e56a9e183f1601835ea244
 
 Log of cherry-picked commits in reverse order (latest first):
+f2da8f5e4fd728c771ba25989e4699bb43d2ede1 Jean P.: [NFC] rename IsKindParameterizedDerivedType and fix comment typos
+179ea3559d0551959bf5dcc66fd676b5bbd7ce71 Valentin C.: Add tests for allocatable global
+80f8c6dd16b8d0bca10dadf6ff49f7ed7484f346 Valentin C.: Lower of elemental calls in array expression
+85e2731aa3d440384067001a9a460a889037eb11 Andrzej W.: Fix DYLIB builds
+125a4d915e667aa4304830ffd2078d60cf1a20ea Andrzej W.: Remove deprecated fields from FIROps.td
+a7802a806d5f8dea2038507f4746b661d4e9bf97 Jean P.: Do not return true for pointer sub-object in IsPointerObject
+f2ac513812e197758e29354c190004eb7bc2f8b6 Peixin-Qiao: Fix processing ModuleLikeUnit evaluationList
+b90586484560ef48b9c4b018885fea07561dd2ac Peixin-Qiao: Support for dump OpenMP/OpenACC declarative directives PFT in module
 72276bdaff931910f62a84336b3e864ab48bac06 Valentin C.: lower pointer components
 88ae0d61c31674bd75144c246ae25b55ecc5bff9 Valentin C.: lower FORALL stmt
 7a6a1655d83b3ff79d120e399d8b9cc7ad2b143c Valentin C.: lower WHERE stmt
