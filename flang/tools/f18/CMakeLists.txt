@@ -19,6 +19,7 @@ target_link_libraries(f18
 
 set(MODULES
   "__fortran_builtins"
+  "__fortran_ieee_exceptions"
   "__fortran_type_info"
   "ieee_arithmetic"
   "ieee_exceptions"
@@ -44,6 +45,10 @@ foreach(filename ${MODULES})
     set(depends ${FLANG_INTRINSIC_MODULES_DIR}/__fortran_builtins.mod)
     if(NOT ${filename} MATCHES "__fortran_type_info")
       set(depends ${FLANG_INTRINSIC_MODULES_DIR}/__fortran_type_info.mod)
+    endif()
+    if(${filename} MATCHES "ieee_arithmetic" OR
+       ${filename} MATCHES "ieee_exceptions")
+      set(depends ${FLANG_INTRINSIC_MODULES_DIR}/__fortran_ieee_exceptions.mod)
     endif()
   endif()
   add_custom_command(OUTPUT ${base}.mod
