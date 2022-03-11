@@ -851,6 +851,13 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
 //  LOC, probably others
 // TODO: Optionally warn on operand promotion extension
 
+// Legacy aliases for a few generic intrinsic functions
+static const std::pair<const char *, const char *> genericAlias[]{
+    {"and", "iand"},
+    {"or", "ior"},
+    {"xor", "ieor"},
+};
+
 // The following table contains the intrinsic functions listed in
 // Tables 16.2 and 16.3 in Fortran 2018.  The "unrestricted" functions
 // in Table 16.2 can be used as actual arguments, PROCEDURE() interfaces,
@@ -1897,6 +1904,10 @@ public:
     for (const IntrinsicInterface &f : genericIntrinsicFunction) {
       genericFuncs_.insert(std::make_pair(std::string{f.name}, &f));
     }
+    for (const std::pair<const char *, const char *> &a : genericAlias) {
+      aliases_.insert(
+          std::make_pair(std::string{a.first}, std::string{a.second}));
+    }
     for (const SpecificIntrinsicInterface &f : specificIntrinsicFunction) {
       specificFuncs_.insert(std::make_pair(std::string{f.name}, &f));
     }
@@ -1929,16 +1940,22 @@ private:
   SpecificCall HandleNull(ActualArguments &, FoldingContext &) const;
   std::optional<SpecificCall> HandleC_F_Pointer(
       ActualArguments &, FoldingContext &) const;
+  const std::string &ResolveAlias(const std::string &name) const {
+    auto iter{aliases_.find(name)};
+    return iter == aliases_.end() ? name : iter->second;
+  }
 
   common::IntrinsicTypeDefaultKinds defaults_;
   std::multimap<std::string, const IntrinsicInterface *> genericFuncs_;
   std::multimap<std::string, const SpecificIntrinsicInterface *> specificFuncs_;
   std::multimap<std::string, const IntrinsicInterface *> subroutines_;
   const semantics::Scope *builtinsScope_{nullptr};
+  std::map<std::string, std::string> aliases_;
 };
 
 bool IntrinsicProcTable::Implementation::IsIntrinsicFunction(
-    const std::string &name) const {
+    const std::string &name0) const {
+  const std::string &name{ResolveAlias(name0)};
   auto specificRange{specificFuncs_.equal_range(name)};
   if (specificRange.first != specificRange.second) {
     return true;
@@ -2427,9 +2444,11 @@ std::optional<SpecificCall> IntrinsicProcTable::Implementation::Probe(
         return std::nullopt;
       }};
 
-  // Probe the generic intrinsic function table first.
+  // Probe the generic intrinsic function table first; allow for
+  // the use of a legacy alias.
   parser::Messages genericBuffer;
-  auto genericRange{genericFuncs_.equal_range(call.name)};
+  const std::string &name{ResolveAlias(call.name)};
+  auto genericRange{genericFuncs_.equal_range(name)};
   for (auto iter{genericRange.first}; iter != genericRange.second; ++iter) {
     if (auto specificCall{
             matchOrBufferMessages(*iter->second, genericBuffer)}) {
