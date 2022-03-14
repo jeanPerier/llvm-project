@@ -793,16 +793,11 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
             DefaultingKIND},
         KINDInt},
     {"__builtin_ieee_is_nan", {{"a", AnyFloating}}, DefaultLogical},
-    {"__builtin_ieee_is_normal", {{"a", AnyFloating}}, DefaultLogical},
     {"__builtin_ieee_is_negative", {{"a", AnyFloating}}, DefaultLogical},
+    {"__builtin_ieee_is_normal", {{"a", AnyFloating}}, DefaultLogical},
     {"__builtin_ieee_next_after", {{"x", SameReal}, {"y", AnyReal}}, SameReal},
     {"__builtin_ieee_next_down", {{"x", SameReal}}, SameReal},
     {"__builtin_ieee_next_up", {{"x", SameReal}}, SameReal},
-    {"__builtin_ieee_selected_real_kind", // alias for selected_real_kind
-        {{"p", AnyInt, Rank::scalar},
-            {"r", AnyInt, Rank::scalar, Optionality::optional},
-            {"radix", AnyInt, Rank::scalar, Optionality::optional}},
-        DefaultInt, Rank::scalar, IntrinsicClass::transformationalFunction},
     {"__builtin_ieee_support_datatype",
         {{"x", AnyReal, Rank::elemental, Optionality::optional}},
         DefaultLogical},
@@ -839,7 +834,7 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
 //   LCOBOUND, UCOBOUND, FAILED_IMAGES, IMAGE_INDEX,
 //   STOPPED_IMAGES, COSHAPE
 // TODO: Non-standard intrinsic functions
-//  AND, OR, XOR, LSHIFT, RSHIFT, SHIFT, ZEXT, IZEXT,
+//  LSHIFT, RSHIFT, SHIFT, ZEXT, IZEXT,
 //  COMPL, EQV, NEQV, INT8, JINT, JNINT, KNINT,
 //  QCMPLX, QEXT, QFLOAT, QREAL, DNUM,
 //  INUM, JNUM, KNUM, QNUM, RNUM, RAN, RANF, ILEN,
@@ -851,11 +846,13 @@ static const IntrinsicInterface genericIntrinsicFunction[]{
 //  LOC, probably others
 // TODO: Optionally warn on operand promotion extension
 
-// Legacy aliases for a few generic intrinsic functions
+// Aliases for a few generic intrinsic functions for legacy
+// compatibility and builtins.
 static const std::pair<const char *, const char *> genericAlias[]{
     {"and", "iand"},
     {"or", "ior"},
     {"xor", "ieor"},
+    {"__builtin_ieee_selected_real_kind", "selected_real_kind"},
 };
 
 // The following table contains the intrinsic functions listed in
