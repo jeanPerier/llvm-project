@@ -53,6 +53,8 @@ In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+99fb51bd5077970aa606199338fecb80784a5534 ieee: ieee_arithmetic implies ieee_exceptions (take 2 after reversion)
+5a8c617f049f0f4f20edd3671da73516482031d2 lbound: empty dimension edge case
 992042b639ce15ea3dd368b28f1dbd3646e44b90 finalization: fix finalization of nonallocatable array components
 a95f5abbe74d0a11a3147bcd086edd684e56f2af messages2: distinguish usage and portability warnings
 2f3a37900abe6604b87a1f8f8b0342f0b381fc81 messages1: add non-fatal message classes

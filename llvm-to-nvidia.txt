@@ -40,9 +40,34 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 68099b1d5c2c99ff79e56a9e183f1601835ea244
+with llvm-project commit 583223cd5ec42f369702a146eaac1bf20bdfbd46
 
 Log of cherry-picked commits in reverse order (latest first):
+8b5035333518c0363e4779dc1df855f06d3499ba Valentin C.: [flang] Lower alternate return
+76134f4138fcd1ef4fec989db8c050e793ee187d Valentin C.: [flang] Lower entry statement
+a1425019e7207e8dc53e627aacfd547415a10b35 Valentin C.: [flang] Lower more pointer assignments/disassociation cases
+be6e84e2520be128effbdde2f3d6c53a7e0daf3e Andrzej W.: [flang][lowering] Add support for lowering of the `ibits` intrinsic
+a6ec1e3d798f8eab43fb3a91028c6ab04e115fcb Andrzej W.: [flang][lowering] Add support for lowering the `dim` intrinsic
+6714da0d14f130a799cf044ca6c5dd953a9c59ea Andrzej W.: [flang][lowering] Add support for lowering the `dot_product` intrinsic
+83b0d0f964c0b50d452982e0362c7cbe44a51ad7 Jean P.: [flang] fulfill -Msave/-fno-automatic in main programs too
+a69cb782423b415a651053b6841fbc6aee27fb76 Jean P.: [flang] Hanlde COMPLEX 2/3/10 in runtime TypeCode(cat, kind)
+bbfec2a1b013688c6507aba13b1ddbffcb619665 River R.: [mlir] Remove the deprecated ODS Op verifier/parser/printer code blocks
+23e3cbe24a51604a03a379664f67ed79e5fef897 River R.: [mlir] Refactor how parser/printers are specified for AttrDef/TypeDef
+1d7120c69a9baed2ffc74067fda202a4ee35f720 River R.: [mlir] Split out AttrDef/TypeDef and pattern constructs from OpBase.td
+0d9b0f642b665ab9d0a812b3d51a0ddfc4b5210b Peter K.: edits to: IEEE_ARITHMETIC must imply USE IEEE_EXCEPTIONS
+40e82feef008ab18e3de44f976372164a9b92447 Valentin C.: [flang] Lower any intrinsic
+c2e7e7595439be81b498de842ee49e4409645c0e Eric S.: Write a pass to annotate constant operands on FIR ops. This works
+d8222d91c6f41725aa7669bea24932e072bc2767 Valentin C.: [flang] Lower format statement
+5d25267d80443b988065507d40ac3a1e902c778b Valentin C.: [flang] Lower common block
+617ba8aebd7031a86b9b30b2c5cbe7e9b8a6d837 Valentin C.: [flang] Lower all intrinsic
+7b917fd2841312c11c1dfe8a860d12a8f24feb3f Valentin C.: [flang] Lower elemental calls
+836e34f727e17baa6507a5c6cc19d41dce8e769d Valentin C.: [flang][NFC] Use TODO with location
+f5b29a7a9669fbfd0424e799631419b183bd681e Valentin C.: [flang][NFC] Add todo in CallInterface
+873f081e5aac7fa80a0a8060a0fd52deaf05e88f Diana P.: [flang] Add runtime support for GET_COMMAND
+30a0fbf51f4f826a47766c276bd493f71cfeeacc Jean P.: [flang] Add support for linkonce_odr in FIR
+e825f49b80df3479108171d6aac3208965744d95 Nimish M.: [NFC][flang][OpenMP] Fixes formatting issues with D110714
+e3550f1903d21d0355a37dc481b94e073609a5b3 Pete S.: [flang] Improve runtime crash messages
+0c0f6cfb7b9fab0ee69ef67ed95c194698c9d794 Petr H.: [CMake] Rename TARGET_TRIPLE to LLVM_TARGET_TRIPLE
 f2da8f5e4fd728c771ba25989e4699bb43d2ede1 Jean P.: [NFC] rename IsKindParameterizedDerivedType and fix comment typos
 179ea3559d0551959bf5dcc66fd676b5bbd7ce71 Valentin C.: Add tests for allocatable global
 80f8c6dd16b8d0bca10dadf6ff49f7ed7484f346 Valentin C.: Lower of elemental calls in array expression
