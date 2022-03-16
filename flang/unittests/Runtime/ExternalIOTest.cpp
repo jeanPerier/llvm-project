@@ -837,11 +837,21 @@ TEST(ExternalIOTests, TestUCS) {
   ASSERT_TRUE(IONAME(InputDescriptor)(io, desc));
   ASSERT_EQ(IONAME(EndIoStatement)(io), IostatOk)
       << "EndIoStatement() for first READ";
-  ASSERT_EQ(std::memcmp(wbuffer,
-                U"abc\u0080\uffff"
-                "de ",
-                sizeof wbuffer),
-      0);
+  char dump[80];
+  dump[0] = '\0';
+  for (int j{0}; j < 8; ++j) {
+    std::size_t dumpLen{std::strlen(dump)};
+    std::snprintf(
+        dump + dumpLen, sizeof dump - dumpLen, " %x", (unsigned)wbuffer[j]);
+  }
+  EXPECT_EQ(wbuffer[0], U'a') << dump;
+  EXPECT_EQ(wbuffer[1], U'b') << dump;
+  EXPECT_EQ(wbuffer[2], U'c') << dump;
+  EXPECT_EQ(wbuffer[3], U'\u0080') << dump;
+  EXPECT_EQ(wbuffer[4], U'\uffff') << dump;
+  EXPECT_EQ(wbuffer[5], U'd') << dump;
+  EXPECT_EQ(wbuffer[6], U'e') << dump;
+  EXPECT_EQ(wbuffer[7], U' ') << dump;
   // CLOSE(UNIT=unit,STATUS='KEEP')
   io = IONAME(BeginClose)(unit, __FILE__, __LINE__);
   ASSERT_TRUE(IONAME(SetStatus)(io, "KEEP", 4)) << "SetStatus(KEEP)";
@@ -867,11 +877,18 @@ TEST(ExternalIOTests, TestUCS) {
   ASSERT_TRUE(IONAME(InputDescriptor)(io, desc));
   ASSERT_EQ(IONAME(EndIoStatement)(io), IostatOk)
       << "EndIoStatement() for second READ";
-  ASSERT_EQ(std::memcmp(buffer,
+  dump[0] = '\0';
+  for (int j{0}; j < 12; ++j) {
+    std::size_t dumpLen{std::strlen(dump)};
+    std::snprintf(dump + dumpLen, sizeof dump - dumpLen, " %x",
+        (unsigned)(unsigned char)buffer[j]);
+  }
+  EXPECT_EQ(std::memcmp(buffer,
                 "abc\xc2\x80\xef\xbf\xbf"
                 "de  ",
                 12),
-      0);
+      0)
+      << dump;
   // CLOSE(UNIT=unit,STATUS='DELETE')
   io = IONAME(BeginClose)(unit, __FILE__, __LINE__);
   ASSERT_TRUE(IONAME(SetStatus)(io, "DELETE", 6)) << "SetStatus(DELETE)";

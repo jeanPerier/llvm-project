@@ -533,8 +533,10 @@ static bool EditListDirectedCharacterInput(
     return false;
   }
   // Undelimited list-directed character input: stop at a value separator
-  // or the end of the current record.
-  std::optional<int> remaining{length};
+  // or the end of the current record.  Subtlety: the "remaining" count
+  // here is a dummy that's used to avoid the interpretation of separators
+  // in NextInField.
+  std::optional<int> remaining{maxUTF8Bytes};
   while (std::optional<char32_t> next{io.NextInField(remaining, edit)}) {
     switch (*next) {
     case ' ':
@@ -547,6 +549,7 @@ static bool EditListDirectedCharacterInput(
     default:
       *x++ = *next;
       --length;
+      remaining = maxUTF8Bytes;
     }
   }
   std::fill_n(x, length, ' ');

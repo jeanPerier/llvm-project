@@ -10,6 +10,7 @@
 
 namespace Fortran::runtime {
 
+// clang-format off
 const std::uint8_t UTF8FirstByteTable[256]{
   /* 00 - 7F:  7 bit payload in single byte */
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -36,6 +37,7 @@ const std::uint8_t UTF8FirstByteTable[256]{
   /* FE:      32 bit payload */ 7,
   /* FF:      invalid */ 0
 };
+// clang-format on
 
 // Non-minimal encodings are accepted.
 std::optional<char32_t> DecodeUTF8(const char *p0) {
@@ -44,7 +46,7 @@ std::optional<char32_t> DecodeUTF8(const char *p0) {
   if (bytes == 1) {
     return char32_t{*p};
   } else if (bytes > 1) {
-    std::uint64_t result{char32_t{*p} & (0x3f >> bytes)};
+    std::uint64_t result{char32_t{*p} & (0x7f >> bytes)};
     for (std::size_t j{1}; j < bytes; ++j) {
       std::uint8_t next{p[j]};
       if (next < 0x80 || next > 0xbf) {
