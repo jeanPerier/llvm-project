@@ -379,6 +379,13 @@ void tools::gnutools::StaticLibTool::ConstructJob(
                                          Exec, CmdArgs, Inputs, Output));
 }
 
+static void addFortranLinkerFlags(ArgStringList &CmdArgs) {
+  CmdArgs.push_back("-lFortran_main");
+  CmdArgs.push_back("-lFortranRuntime");
+  CmdArgs.push_back("-lFortranDecimal");
+  CmdArgs.push_back("-lm");
+}
+
 void tools::gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                            const InputInfo &Output,
                                            const InputInfoList &Inputs,
@@ -664,6 +671,10 @@ void tools::gnutools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
         CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtn.o")));
     }
   }
+
+  // Additional linker flags for Fortran
+  if (D.IsFlangMode())
+    addFortranLinkerFlags(CmdArgs);
 
   Args.AddAllArgs(CmdArgs, options::OPT_T);
 

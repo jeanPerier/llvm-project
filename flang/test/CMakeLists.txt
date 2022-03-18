@@ -47,6 +47,7 @@ set(FLANG_TEST_PARAMS
 
 set(FLANG_TEST_DEPENDS
   flang-new llvm-config FileCheck count not module_files fir-opt tco bbc llvm-objdump
+  FortranRuntime Fortran_main FortranDecimal
 )
 
 if (FLANG_INCLUDE_TESTS)
