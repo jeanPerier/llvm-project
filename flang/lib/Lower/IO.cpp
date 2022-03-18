@@ -1607,12 +1607,12 @@ genNewunitSpec(Fortran::lower::AbstractConverter &converter, mlir::Location loc,
       fir::FirOpBuilder &builder = converter.getFirOpBuilder();
       mlir::FuncOp ioFunc = getIORuntimeFunc<mkIOKey(GetNewUnit)>(loc, builder);
       mlir::FunctionType ioFuncTy = ioFunc.getFunctionType();
-      const auto *var = Fortran::semantics::GetExpr(newunit->v);
+      const auto &var = Fortran::semantics::GetExpr(newunit->v);
       mlir::Value addr = builder.createConvert(
           loc, ioFuncTy.getInput(1),
-          fir::getBase(converter.genExprAddr(var, stmtCtx, loc)));
+          fir::getBase(converter.genExprAddr(&var, stmtCtx, loc)));
       auto kind = builder.createIntegerConstant(loc, ioFuncTy.getInput(2),
-                                                var->GetType().value().kind());
+                                                var.GetType().value().kind());
       llvm::SmallVector<mlir::Value> ioArgs = {cookie, addr, kind};
       return builder.create<fir::CallOp>(loc, ioFunc, ioArgs).getResult(0);
     }

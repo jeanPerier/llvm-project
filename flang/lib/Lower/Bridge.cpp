@@ -1650,12 +1650,12 @@ private:
     MLIRContext *context = builder->getContext();
     mlir::Location loc = toLocation();
     Fortran::lower::StatementContext stmtCtx;
-    const Fortran::lower::SomeExpr *expr = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr &expr = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::Scalar<Fortran::parser::Expr>>(stmt.t));
-    bool isCharSelector = isCharacterCategory(expr->GetType()->category());
-    bool isLogicalSelector = isLogicalCategory(expr->GetType()->category());
-    auto charValue = [&](const Fortran::lower::SomeExpr *expr) {
-      fir::ExtendedValue exv = genExprAddr(*expr, stmtCtx, &loc);
+    bool isCharSelector = isCharacterCategory(expr.GetType()->category());
+    bool isLogicalSelector = isLogicalCategory(expr.GetType()->category());
+    auto charValue = [&](const Fortran::lower::SomeExpr expr) {
+      fir::ExtendedValue exv = genExprAddr(expr, stmtCtx, &loc);
       return exv.match(
           [&](const fir::CharBoxValue &cbv) {
             return fir::factory::CharacterExprHelper{*builder, loc}
@@ -1670,7 +1670,7 @@ private:
     if (isCharSelector) {
       selector = charValue(expr);
     } else {
-      selector = createFIRExpr(loc, expr, stmtCtx);
+      selector = createFIRExpr(loc, &expr, stmtCtx);
       if (isLogicalSelector)
         selector = builder->createConvert(loc, builder->getI1Type(), selector);
     }
@@ -1681,16 +1681,16 @@ private:
     mlir::Block *defaultBlock = eval.parentConstruct->constructExit->block;
     using CaseValue = Fortran::parser::Scalar<Fortran::parser::ConstantExpr>;
     auto addValue = [&](const CaseValue &caseValue) {
-      const Fortran::lower::SomeExpr *expr =
+      const Fortran::lower::SomeExpr &expr =
           Fortran::semantics::GetExpr(caseValue.thing);
       if (isCharSelector)
         valueList.push_back(charValue(expr));
       else if (isLogicalSelector)
         valueList.push_back(builder->createConvert(
-            loc, selectType, createFIRExpr(toLocation(), expr, stmtCtx)));
+            loc, selectType, createFIRExpr(toLocation(), &expr, stmtCtx)));
       else
         valueList.push_back(builder->createIntegerConstant(
-            loc, selectType, *Fortran::evaluate::ToInt64(*expr)));
+            loc, selectType, *Fortran::evaluate::ToInt64(expr)));
     };
     for (Fortran::lower::pft::Evaluation *e = eval.controlSuccessor; e;
          e = e->controlSuccessor) {
