@@ -40,9 +40,69 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 583223cd5ec42f369702a146eaac1bf20bdfbd46
+with llvm-project commit 8f108c32bcd52cb03d3fb36d09f5aa78d35ec6c2
 
 Log of cherry-picked commits in reverse order (latest first):
+ae1623b30645fd9a3ded019114678d1c34af1621 Shraiysh V.: [flang][Parser] Add a node for individual sections in sections construct
+308fc3f27797ce2b0dc01970d6fe2c6c9e1f55c7 Valentin C.: [flang] Lower select case statement
+32306b9cf7d7836b583f5999db970dee4c18ca25 Valentin C.: [flang] Lower length on character storage
+99d239341cc32f062be349abb57a23e415c229c5 Valentin C.: [flang][NFC] Add lowering tests
+460f828f09d2c826882e2136654e8bb3057cbc4b Valentin C.: [flang] Lower statement function
+4571f8aa05a1eb88532edfcf7e144633535d5e85 Andrzej W.: [flang][lowering] Add support for lowering of the `ior` intrinsic
+ff3e75f7390e387f8134bacd9c862475a08d3348 Andrzej W.: [flang][lowering] Add support for lowering of the `{l|u}bound` intrinsics
+4d2096482d55da4528e62bfe38e40826d192cf30 Andrzej W.: [flang][lowering] Add support for lowering of the `merge` intrinsics
+022b05941ef4d9ee50d4a7a29b0537b562624b16 Kiran C.: [Flang] Lower the spacing, rrspacing intrinsics
+7db0f6f2f374a095419e79dc680cae99025be9a1 Valentin C.: [flang][NFC] Move random test in Instriscs folder
+d6d9a8b8a141fff6013c166cc3a92f4c8e3da56c Valentin C.: [flang] Lower more array expression
+518a837e93e48325991e525d4c2c72321b428334 Valentin C.: [flang] Add array constructor lowering tests
+00cdbd7845a4b3811cae9e7b8f0db1af1b90d9b7 Andrzej W.: [flang][nfc] Move a test
+67b23feab2ab2aef836394ab71d3dad2ec7bc7aa Valentin C.: [flang] Lower some numeric intrinsics
+b00ba502ddc2c712603a73fb7bef70267c77586f Valentin C.: [flang] Add equivalence lowering tests
+baa42c16476b0e27cf25e349f01114c8174fc031 Valentin C.: [flang] Add more lowering tests for dummy arguments
+d670e1023550b4f18cbb45116de5418d9cef8cdd Valentin C.: [flang] Add IO lowering test
+291913db53722f216222bbb1b685965215ffaf36 Kiran C.: [Flang] Lower the repeat intrinsic
+2b55850df8ab65b1b349e8e9341e02ca59da9155 Valentin C.: [flang] Lower command and environment intrinsics
+e525245fba629632db4d026f2cac29f032f02320 Kiran C.: [Flang] Lower the transpose intrinsic
+2cdf5ef1362d422b4d9d3053dc6e789e188d80af Kiran C.: [Flang] Lower the trim intrinsic
+5be0f0c83d39310d1c6c078ec5b0731c48d34080 Kiran C.: [Flang] Lower Matmul intrinsic
+51cf471dc1550b12711e22e13378ef891660a84e Valentin C.: [flang] Lower misc intrinsics
+96fd54c9641f311dfbef4e8f7601ab4d4c58a4fa Valentin C.: [flang] Lower present intrinsic
+4d323f4837846c63aef1421de0cd4bda3d1a197b Valentin C.: [flang] Lower exit intrinsic
+6321113f783a1d8a6cc2494ae068174245b043c6 Andrzej W.: [flang][lowering] Add support for lowering of the `index` intrinsics
+cd18a6a5e2ba6cdd46d302d181a9251caee153f8 Andrzej W.: [flang][nfc] Update comment in test
+3ed899cc741aea7480a0e764b7e9f5358538d810 Jean P.: [flang] handle allocatable components when creating array temps
+eea7c935d296f692e0f097a394f5b5e119dca9af Valentin C.: [flang] Lower array related intrinsics
+cc38a4a66569532be941866b29f4be43625af345 Valentin C.: [flang] Lower character related intrinsics
+4a3460a7917f1cf514575759e29590b388131fc6 River R.: [mlir:FunctionOpInterface] Rename the "type" attribute to "function_type"
+36550692340e4235550f3b9808b5e406821cc979 River R.: [mlir] Move the Builtin FuncOp to the Func dialect
+fb99266401960afd99845890720b4d9b3ecd63d2 Eric S.: [flang] Remove unused code and redundant assertion.
+b85922cde6e34b99fab20e4677d3f370d3f6a72a Emil K.: [flang] Include missing internal interfaces in .mod files
+65cb2e1ed18691c14cc12ab3776beb7fe81bd053 Valentin C.: [flang] Lower pack|unpack intrinsics
+69b3303e6ba0af7a805a8be798196de2ccad47ef Valentin C.: [flang] Lower numeric related instrinsics
+8d161c1f805e116cc024c51da0a05e6f5b12ab12 Valentin C.: [flang] Exclude IO test for windows
+24f3d55a5aee57f4c53da70fdf266c147512b831 Valentin C.: [flang] Keep ifdef macro for INT128
+11a12544b5fd4663879ec70c7c0883860be9b69f Andrzej W.: [flang][lowering] Add support for lowering of the `i{a}char` intrinsics
+365fcecda7bedf0b6d21cf8343b728d32fd6a062 Andrzej W.: [flang][lowering] Add support for lowering of the `ibclr` intrinsic
+3887ebbba0eb33ade9f181e4ce9b0a3a9f764ee5 Andrzej W.: [flang][lowering] Add support for lowering of the `ieor` intrinsic
+6f0041ea44f5e0eded2b05026242f2ccef7aa90a Andrzej W.: [flang][lowering] Add lowering for the `size` intrinsic
+4840e7505d1a4caa7fe80f7adf530d2c9e8e91eb Valentin C.: [flang] Lower shift intrinsics
+9aeb7f035bdde83501e5eddd9e6ad175b8ed697f Valentin C.: [flang] Lower IO input with vector subscripts
+3833b4b4d79eadb8fda4941ca33a040eb73d45cc Andrzej W.: [flang][lowering] Add lowering for the `set_exponent` intrinsic
+7d52beb27572b74213eb4470e3cdb0bacbdd306d Jean P.: [flang] Relax fir.rebox verifier with characters
+6ed9d3a255a02244af890dffd0cdf26ddb8587c4 Valentin C.: [flang] Lower count intrinsic
+a7c08bcf777ee0712c140052d0814f55a02dd27b Andrzej W.: [flang][driver] Add support for `-mllvm`
+10766b75ceb39d35d9d278bff0aa5be0ab3a680f Valentin C.: [flang] Lower adjustl and adjustr intrinsics
+a16eddb2b40d7d81b4c3f86127db35dace58024a Valentin C.: [flang] Lower transfer instrinsic
+63bbac1065594a6151ed2772e707b278c36e47ba Andrzej W.: [flang][lowering] Add support for lowering of the `ibset` intrinsic
+75acad41bcd6cbe688e0609cbd7649ea8a533195 Sam M.:  Use lit_config.substitute instead of foo % lit_config.params everywhere
+264d96623219e4829bf2a2637410ca0762c2f0b9 Valentin C.: [flang] Lower system_clock intrinsic
+9daf5765838336dfef94ee8439b0d755d963c6c3 Valentin C.: [flang] Lower date_and_time and cpu_time intrinsics
+7783de7fe32ad852b1921a2d2d0ae49b160865b1 Valentin C.: [flang] Move null entry at the correct place
+c3ba885dd70b4371acd11ec5ddb0f1fcf25bd1d1 Valentin C.: [flang] Fix intrinsic entry
+a1918fdf080900333be9eae264eba7cc6608eecc Valentin C.: [flang] Lower random_[init|number|seed] intrinsics
+94a11063573b4e1a3405d4a73d9928083115a6c1 Valentin C.: [flang] Lower min|max intrinsics
+269690116283f5dc192513e8ff18d24aad6918be Valentin C.: [flang] Lower character related intrinsic
+3240a34dbc0991856ad46166056c8dd0b1b73341 Valentin C.: [flang] Lower allocated intrinsic
 8b5035333518c0363e4779dc1df855f06d3499ba Valentin C.: [flang] Lower alternate return
 76134f4138fcd1ef4fec989db8c050e793ee187d Valentin C.: [flang] Lower entry statement
 a1425019e7207e8dc53e627aacfd547415a10b35 Valentin C.: [flang] Lower more pointer assignments/disassociation cases
