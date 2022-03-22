@@ -641,7 +641,7 @@ private:
     Fortran::lower::StatementContext stmtCtx;
     mlir::Value condExpr = createFIRExpr(
         loc,
-        Fortran::semantics::GetExpr(
+        &Fortran::semantics::GetExpr(
             std::get<Fortran::parser::ScalarLogicalExpr>(stmt->t)),
         stmtCtx);
     stmtCtx.finalize();
@@ -1863,7 +1863,7 @@ private:
     Fortran::lower::StatementContext stmtCtx;
     const auto &assign = std::get<Fortran::parser::AssignmentStmt>(stmt.t);
     implicitIterSpace.growStack();
-    implicitIterSpace.append(Fortran::semantics::GetExpr(
+    implicitIterSpace.append(&Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
     genAssignment(*assign.typedAssignment->v);
     implicitIterSpace.shrinkStack();
@@ -1944,11 +1944,10 @@ private:
       const Fortran::semantics::Symbol &symbol = funit->getSubprogramSymbol();
       if (Fortran::semantics::HasAlternateReturns(symbol)) {
         Fortran::lower::StatementContext stmtCtx;
-        const Fortran::lower::SomeExpr *expr =
+        const Fortran::lower::SomeExpr &expr =
             Fortran::semantics::GetExpr(*stmt.v);
-        assert(expr && "missing alternate return expression");
         mlir::Value altReturnIndex = builder->createConvert(
-            loc, builder->getIndexType(), createFIRExpr(loc, expr, stmtCtx));
+            loc, builder->getIndexType(), createFIRExpr(loc, &expr, stmtCtx));
         builder->create<fir::StoreOp>(loc, altReturnIndex,
                                       getAltReturnResult(symbol));
       }

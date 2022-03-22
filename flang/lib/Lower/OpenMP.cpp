@@ -221,8 +221,8 @@ genOMP(Fortran::lower::AbstractConverter &converter,
   for (const Fortran::parser::OmpClause &clause : clauseList.v)
     if (auto hintClause =
             std::get_if<Fortran::parser::OmpClause::Hint>(&clause.u)) {
-      const auto *expr = Fortran::semantics::GetExpr(hintClause->v);
-      hint = *Fortran::evaluate::ToInt64(*expr);
+      const auto &expr = Fortran::semantics::GetExpr(hintClause->v);
+      hint = *Fortran::evaluate::ToInt64(expr);
       break;
     }
 
