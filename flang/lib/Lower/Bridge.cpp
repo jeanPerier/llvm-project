@@ -2626,8 +2626,6 @@ private:
 
   /// Tuple of host assoicated variables.
   mlir::Value hostAssocTuple;
-
-  std::size_t constructDepth = 0;
 };
 
 } // namespace
