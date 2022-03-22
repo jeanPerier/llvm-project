@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 8f108c32bcd52cb03d3fb36d09f5aa78d35ec6c2
+with llvm-project commit a6beb18b845ca8548319d08df9eea46c87e1e533
 
 Log of cherry-picked commits in reverse order (latest first):
+bafbae238aa1948aa511c734a613a95d89a72546 Peter K.: edits to: [flang] Initial UTF-8 support in runtime I/O
+74f992929ecf660bb299e5767a1fba15e9181613 Valentin C.: [flang][NFC] Remove unused variable
+fea20cb99087208d589d81bb7bbbc84198c7ffa4 Kiran C.: [Flang] Lower the sqrt intrinsics
+fe252f8ed6369acdb13d4e290d3b9dfe2ec4eb8e Valentin C.: [flang] Lower boxed procedure
+db925d08dedbfcf4b329358c84e6bbc35c0cb85c Kiran C.: [Flang] Lower the exp, log, log10 intrinsics
+ebec5e5c8f120ab97f4f05a68e4753508349ad3c Shraiysh V.: [flang][OpenMP] Lowering critical construct
+e13d23bc6ccd3ae4fad5824282a09b48822c177f Markus B.: [mlir] Rename `OpAsmParser::OperandType` to `OpAsmParser::UnresolvedOperand`
+5754bae42984caafb6a3bb9616ab86ae4f631a26 Valentin C.: [flang] Lower procedure designator
+c6ac937091249582fce14f02920a4bc94049e713 Kiran C.: [Flang] Add OpenMP Conversion patterns
 ae1623b30645fd9a3ded019114678d1c34af1621 Shraiysh V.: [flang][Parser] Add a node for individual sections in sections construct
 308fc3f27797ce2b0dc01970d6fe2c6c9e1f55c7 Valentin C.: [flang] Lower select case statement
 32306b9cf7d7836b583f5999db970dee4c18ca25 Valentin C.: [flang] Lower length on character storage

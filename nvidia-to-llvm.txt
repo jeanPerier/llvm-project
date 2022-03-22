@@ -41,6 +41,8 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+045335c54a14533dafe6c070b14bfbe70fad82d6 + ...
+4b4379665529be31746f0dcceddabe4958ed7d67 + ...
 cee0c5e693d6b5a9d767f904d9eabb5a6e110345 + ...
 4bf33b0ccfd6036b8c9fb8631af69da43d2e532f + ...
 b38dfe7eb12d9c0562847b830a847c9e4df5f6a8 + ...
@@ -53,6 +55,14 @@ In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+80fdfabc25aeb32e968669450c6f47ab3eaf8766 utf8: initial UTF-8 support in runtime
+2d7e9856bb219f19f8d4db10d1b4a5b10de1ca3e entry: fix crash on ENTRY in module interface
+5a13e5813054f3e3eeee431104b968484b05b493 io-errors2: expose error recovery cases in external I/O
+89bd6a0a02660623de348d78b009140018d01841 io-errors: better error recovery in runtime
+bf7a2c4bb514a58fbca045fadebe7cf8d9d33f6a + ...
+3dd756dd3b52a2aaf990d2d9c17182dff300b9d8 and: legacy aliases for and/or/xor intrinsics
+7372da5edfddeeb6bc52256cb81a416965bee442 transformational: convert RUNTIME_CHECKS into Crash
+4c9869e76c55c69103d865c441bea747d0ca89de extensions: add messages to grammar for extensions
 99fb51bd5077970aa606199338fecb80784a5534 ieee: ieee_arithmetic implies ieee_exceptions (take 2 after reversion)
 5a8c617f049f0f4f20edd3671da73516482031d2 lbound: empty dimension edge case
 992042b639ce15ea3dd368b28f1dbd3646e44b90 finalization: fix finalization of nonallocatable array components
