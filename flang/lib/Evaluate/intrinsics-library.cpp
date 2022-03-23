@@ -518,9 +518,9 @@ static bool VerifyInRangeIfReal(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someReal =
           std::get_if<Expr<SomeReal>>(&getArg(firstArg, args).u)) {
-    const bool isInRange{
-        std::visit([&](const auto &x) -> bool { return IsInRange(x, lb, ub); },
-            someReal->u)};
+    const bool isInRange{common::visit(
+        [&](const auto &x) -> bool { return IsInRange(x, lb, ub); },
+        someReal->u)};
     if (!isInRange) {
       context.messages().Say(
           "argument is out of range [%d., %d.]"_warn_en_US, lb, ub);
@@ -535,7 +535,7 @@ static bool VerifyStrictlyPositiveIfReal(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someReal =
           std::get_if<Expr<SomeReal>>(&getArg(argPosition, args).u)) {
-    const bool isStrictlyPositive{std::visit(
+    const bool isStrictlyPositive{common::visit(
         [&](const auto &x) -> bool {
           using T = typename std::decay_t<decltype(x)>::Result;
           auto scalar{GetScalarConstantValue<T>(x)};
@@ -558,7 +558,7 @@ static bool VerifyNotZeroIfReal(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someReal =
           std::get_if<Expr<SomeReal>>(&getArg(argPosition, args).u)) {
-    const bool isNotZero{std::visit(
+    const bool isNotZero{common::visit(
         [&](const auto &x) -> bool {
           using T = typename std::decay_t<decltype(x)>::Result;
           auto scalar{GetScalarConstantValue<T>(x)};
@@ -579,7 +579,7 @@ static bool VerifyNotZeroIfComplex(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someComplex =
           std::get_if<Expr<SomeComplex>>(&getArg(firstArg, args).u)) {
-    const bool isNotZero{std::visit(
+    const bool isNotZero{common::visit(
         [&](const auto &z) -> bool {
           using T = typename std::decay_t<decltype(z)>::Result;
           auto scalar{GetScalarConstantValue<T>(z)};
@@ -601,7 +601,7 @@ static bool VerifyGammaLikeArgument(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someReal =
           std::get_if<Expr<SomeReal>>(&getArg(firstArg, args).u)) {
-    const bool isValid{std::visit(
+    const bool isValid{common::visit(
         [&](const auto &x) -> bool {
           using T = typename std::decay_t<decltype(x)>::Result;
           auto scalar{GetScalarConstantValue<T>(x)};
@@ -627,7 +627,7 @@ static bool VerifyAtan2LikeArguments(
     const std::vector<Expr<SomeType>> &args, FoldingContext &context) {
   if (const auto *someReal =
           std::get_if<Expr<SomeReal>>(&getArg(firstArg, args).u)) {
-    const bool isValid{std::visit(
+    const bool isValid{common::visit(
         [&](const auto &typedExpr) -> bool {
           using T = typename std::decay_t<decltype(typedExpr)>::Result;
           auto x{GetScalarConstantValue<T>(typedExpr)};

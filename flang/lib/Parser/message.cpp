@@ -85,7 +85,7 @@ const char *MessageFormattedText::Convert(CharBlock x) {
 }
 
 std::string MessageExpectedText::ToString() const {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [](CharBlock cb) {
             return MessageFormattedText("expected '%s'"_err_en_US, cb)
@@ -124,13 +124,13 @@ std::string MessageExpectedText::ToString() const {
 }
 
 bool MessageExpectedText::Merge(const MessageExpectedText &that) {
-  return std::visit(common::visitors{
-                        [](SetOfChars &s1, const SetOfChars &s2) {
-                          s1 = s1.Union(s2);
-                          return true;
-                        },
-                        [](const auto &, const auto &) { return false; },
-                    },
+  return common::visit(common::visitors{
+                           [](SetOfChars &s1, const SetOfChars &s2) {
+                             s1 = s1.Union(s2);
+                             return true;
+                           },
+                           [](const auto &, const auto &) { return false; },
+                       },
       u_, that.u_);
 }
 
@@ -158,7 +158,7 @@ bool Message::SortBefore(const Message &that) const {
 bool Message::IsFatal() const { return severity() == Severity::Error; }
 
 Severity Message::severity() const {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [](const MessageExpectedText &) { return Severity::Error; },
           [](const MessageFixedText &x) { return x.severity(); },
@@ -168,7 +168,7 @@ Severity Message::severity() const {
 }
 
 std::string Message::ToString() const {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [](const MessageFixedText &t) {
             return t.text().NULTerminatedToString();
@@ -193,7 +193,7 @@ void Message::ResolveProvenances(const AllCookedSources &allCooked) {
 
 std::optional<ProvenanceRange> Message::GetProvenanceRange(
     const AllCookedSources &allCooked) const {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [&](CharBlock cb) { return allCooked.GetProvenanceRange(cb); },
           [](const ProvenanceRange &pr) { return std::make_optional(pr); },

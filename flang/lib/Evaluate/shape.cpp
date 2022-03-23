@@ -461,7 +461,7 @@ MaybeExtentExpr GetExtent(
 
 MaybeExtentExpr GetExtent(
     const Subscript &subscript, const NamedEntity &base, int dimension) {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [&](const Triplet &triplet) -> MaybeExtentExpr {
             MaybeExtentExpr upper{triplet.upper()};
@@ -577,7 +577,7 @@ Shape GetUpperBounds(FoldingContext &context, const NamedEntity &base) {
 }
 
 auto GetShapeHelper::operator()(const Symbol &symbol) const -> Result {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [&](const semantics::ObjectEntityDetails &object) {
             if (IsImpliedShape(symbol) && object.init()) {
