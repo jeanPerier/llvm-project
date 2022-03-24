@@ -141,7 +141,7 @@ bool Message::SortBefore(const Message &that) const {
   // free and needs to be deferred, and many messages created during parsing
   // are speculative.  Messages with ProvenanceRange locations are ordered
   // before others for sorting.
-  return std::visit(
+  return common::visit(
       common::visitors{
           [](CharBlock cb1, CharBlock cb2) {
             return cb1.begin() < cb2.begin();
@@ -259,7 +259,7 @@ bool Message::Merge(const Message &that) {
   return AtSameLocation(that) &&
       (!that.attachment_.get() ||
           attachment_.get() == that.attachment_.get()) &&
-      std::visit(
+      common::visit(
           common::visitors{
               [](MessageExpectedText &e1, const MessageExpectedText &e2) {
                 return e1.Merge(e2);
@@ -287,7 +287,7 @@ Message &Message::Attach(std::unique_ptr<Message> &&m) {
 }
 
 bool Message::AtSameLocation(const Message &that) const {
-  return std::visit(
+  return common::visit(
       common::visitors{
           [](CharBlock cb1, CharBlock cb2) {
             return cb1.begin() == cb2.begin();
