@@ -41,6 +41,7 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+6adeadaf9b54f92271b20104c085dbed61950d09 + ...
 045335c54a14533dafe6c070b14bfbe70fad82d6 + ...
 4b4379665529be31746f0dcceddabe4958ed7d67 + ...
 cee0c5e693d6b5a9d767f904d9eabb5a6e110345 + ...
@@ -52,6 +53,10 @@ b38dfe7eb12d9c0562847b830a847c9e4df5f6a8 + ...
 fefb75e10b3fa4c217df03541899dffaa1017309 getexpr: finer control over error recovery with GetExpr()
 
 In review:
+dcd260991db7a72a17dd15c063a5981647c8ca83 visit: add & use a better visit()
+6ba689ef85a361d4a7916687156be3a9fb92d732 poly-asst: fix bogus error from ass't to CLASS(*)
+cf6e171cfeaa00c2d615b0e6f4248e00a066ca47 cycle: fix cycle-catcher in procedure characteristics
+1a90b9c639aa8f2134b0fef0117cf244e1ff1c87 c_assoc: Mark C_ASSOCIATED specific procedures as PURE
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):

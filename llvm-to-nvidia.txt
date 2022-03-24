@@ -40,9 +40,44 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit a6beb18b845ca8548319d08df9eea46c87e1e533
+with llvm-project commit cad9de71d7119e2b8ece14c8243a77bb0ef59a16
 
 Log of cherry-picked commits in reverse order (latest first):
+a80bf1856546204ecb5e4c849f38a9055b0f4db2 Valentin C.: [flang][NFC] Remove unused variable
+44b0ea44f26d405f663d20b067dafd514cb5b26a Valentin C.: [flang[OpenACC] Lower wait directive
+5ee88e0ba50474a963f6ccf6c6133c0cf632e5b9 Valentin C.: [flang[OpenACC] Lower data directive
+c6a9ce2b6b746161ea5ed8aaf9e0c4b23ffb87b3 Valentin C.: [flang][OpenACC] Lower update directive
+39157b98fd04ea540e85f5df8be1cee7f97ac653 Valentin C.: [flang][OpenACC] Lower init/shutdown directive
+67defe50679078c2ffa5543348e378e1cd996fd9 Valentin C.: [flang][OpenACC] Lower exit data directive
+12d22cea73534ecf5d2d8c09181807e883523ac3 Valentin C.: [flang][OpenACC] Lower enter data directive
+30b4421a745291fed3f22431264b42c1c1f3afcc Valentin C.: [flang][NFC] Add lowering test for array expression
+6ce82eae1f7dce4eb8ce63e33b27c0f35c5bd235 Peixin-Qiao.: [NFC][flang] Remove unused code in lowerExplicitLowerBounds
+ca46521a4d567ca808907d33a31b57d3097d34fa Jean P.: [flang] UBOUND() edge case: empty dimension
+88d5289fc69d24e8490a064c87228d68c53e5d9c Nimish M.: [flang][OpenMP] Added lowering support for sections construct
+cd28353e3f5a206d118b5fdd0a09733d5596e0ef Shraiysh V.: [flang] Single construct translation from PFT to FIR
+cf198e927d9dc30127622e1099d0093710c4d391 Kiran C.: [Flang][NFC] Rearrange intrinsic generator functions
+d3ebefb1541b1489d998f6316f136371d92f7c74 Valentin C.: [flang][NFC] Add forall lowering test
+b914efc52958e01d5b492705b140969e96e23683 Valentin C.: [flang][NFC] Add more lowering tests
+00cc73044d8a8416b0c954d72bfe83bb27ec34e7 Valentin C.: [flang][NFC] Add lowering tests for interfaces
+e847374e191dd14ad590f043a2692be90d05a7c3 Valentin C.: [flang][NFC] Add derived type lowering tests
+d2663fcc391dcf2e6e79138b2ef21db2f75e16e5 Roger F.: [flang][Evaluate] Fold DBLE
+b38e78cc445c0b6e119e8b3b7e42371caab14a05 Valentin C.: [flang][NFC] Add module lowering tests
+850de56b06ce011422fdff31e6531b77d4d0d2b8 Valentin C.: [flang][NFC] Add nested where lowering test
+e539faced80dc1f508825c2baf0d1f97afecb169 Valentin C.: [flang][NFC] Add global lowering tests
+3ea6727e33d24c54ea6afb8887846a1f9a1011c3 Valentin C.: [flang][NFC] Add IO related lowering tests
+dd3e54213cb6f4227654488951b3f9d6b9269e36 Valentin C.: [flang][NFC] Add namelist lowering test
+7a9891c598beea4d2398ca9e10fbb2cb6fcac777 Kiran C.: [Flang] Lower sin, cos intrinsics
+3d9485173556c4e52426bc18239c2fb423d43ac3 Kiran C.: [Flang] Lower atan, sinh, cosh intrinsics
+c1e7296354de04ffc4c0d1e1765ecd72c7cb6c45 Valentin C.: [flang][NFC] Add character lowering tests
+e28e1b4b6d541f15f31d056e3da5de03b8eb0827 Valentin C.: [flang][NFC] Add call lowering tests
+ac4c0d6431423628898b212667268405a4cd1869 Valentin C.: [flang][NFC] Add misc lowering tests
+dfb31a28ff8b3931196cf1f3e91511ccae0573c6 Valentin C.: [flang] Add lowering C interoperability test
+a749e3295df4aee18a0ad723875a6501f30ac744 Danny M.:  Replace links to archived mailing lists by links to Discourse forums
+2985d1c267de69384f7be419d9cb01955537d6f2 Valentin C.: [flang][NFC] Fix lowering tests indent
+51433662e2cc8329892a70838095de414cfaaacc Shraiysh V.: [flang] Flush and master constructs
+b244bba582495470087c8a4d132ca956f74473b4 Shraiysh V.: [mlir][OpenMP] Added assembly format for omp.wsloop and remove parseClauses
+d8beb2c33db8b2c4594a3714e0d034c2e830b9e4 Valentin C.: [flang][NFC] Add forall lowering tests
+3de6b1ce0dd1d7358c75f1bbafc6ee6e70a51875 Valentin C.: [flang][NFC] Add pointer dummy arguments tests
 bafbae238aa1948aa511c734a613a95d89a72546 Peter K.: edits to: [flang] Initial UTF-8 support in runtime I/O
 74f992929ecf660bb299e5767a1fba15e9181613 Valentin C.: [flang][NFC] Remove unused variable
 fea20cb99087208d589d81bb7bbbc84198c7ffa4 Kiran C.: [Flang] Lower the sqrt intrinsics
