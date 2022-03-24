@@ -116,7 +116,7 @@ genAllocateClause(Fortran::lower::AbstractConverter &converter,
   // list of allocators.
   if (allocatorValue) {
     allocatorOperand = fir::getBase(converter.genExprValue(
-        *Fortran::semantics::GetExpr(allocatorValue->v), stmtCtx));
+        Fortran::semantics::GetExpr(allocatorValue->v), stmtCtx));
     allocatorOperands.insert(allocatorOperands.end(), ompObjectList.v.size(),
                              allocatorOperand);
   } else {

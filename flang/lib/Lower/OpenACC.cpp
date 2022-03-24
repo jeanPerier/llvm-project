@@ -130,7 +130,7 @@ static void genAsyncClause(Fortran::lower::AbstractConverter &converter,
   const auto &asyncClauseValue = asyncClause->v;
   if (asyncClauseValue) { // async has a value.
     async = fir::getBase(converter.genExprValue(
-        *Fortran::semantics::GetExpr(*asyncClauseValue), stmtCtx));
+        Fortran::semantics::GetExpr(*asyncClauseValue), stmtCtx));
   } else {
     addAsyncAttr = true;
   }
@@ -145,7 +145,7 @@ static void genDeviceTypeClause(
   if (deviceTypeValue) {
     for (const auto &scalarIntExpr : *deviceTypeValue) {
       mlir::Value expr = fir::getBase(converter.genExprValue(
-          *Fortran::semantics::GetExpr(scalarIntExpr), stmtCtx));
+          Fortran::semantics::GetExpr(scalarIntExpr), stmtCtx));
       operands.push_back(expr);
     }
   } else {
@@ -163,7 +163,7 @@ static void genIfClause(Fortran::lower::AbstractConverter &converter,
                         Fortran::lower::StatementContext &stmtCtx) {
   fir::FirOpBuilder &firOpBuilder = converter.getFirOpBuilder();
   Value cond = fir::getBase(converter.genExprValue(
-      *Fortran::semantics::GetExpr(ifClause->v), stmtCtx));
+      Fortran::semantics::GetExpr(ifClause->v), stmtCtx));
   ifCond = firOpBuilder.createConvert(converter.getCurrentLocation(),
                                       firOpBuilder.getI1Type(), cond);
 }
@@ -180,7 +180,7 @@ static void genWaitClause(Fortran::lower::AbstractConverter &converter,
         std::get<std::list<Fortran::parser::ScalarIntExpr>>(waitArg.t);
     for (const Fortran::parser::ScalarIntExpr &value : waitList) {
       mlir::Value v = fir::getBase(
-          converter.genExprValue(*Fortran::semantics::GetExpr(value), stmtCtx));
+          converter.genExprValue(Fortran::semantics::GetExpr(value), stmtCtx));
       operands.push_back(v);
     }
 
@@ -188,7 +188,7 @@ static void genWaitClause(Fortran::lower::AbstractConverter &converter,
         std::get<std::optional<Fortran::parser::ScalarIntExpr>>(waitArg.t);
     if (waitDevnumValue)
       waitDevnum = fir::getBase(converter.genExprValue(
-          *Fortran::semantics::GetExpr(*waitDevnumValue), stmtCtx));
+          Fortran::semantics::GetExpr(*waitDevnumValue), stmtCtx));
   } else {
     addWaitAttr = true;
   }
