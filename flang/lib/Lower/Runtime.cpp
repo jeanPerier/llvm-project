@@ -348,18 +348,31 @@ void Fortran::lower::genSystemClock(fir::FirOpBuilder &builder,
                                     mlir::Location loc, mlir::Value count,
                                     mlir::Value rate, mlir::Value max) {
   auto makeCall = [&](mlir::FuncOp func, mlir::Value arg) {
+    mlir::Type type = arg.getType();
+    fir::IfOp ifOp{};
+    if (type.dyn_cast<fir::PointerType>() || type.dyn_cast<fir::HeapType>()) {
+      // Check for a disassociated pointer or an unallocated allocatable.
+      mlir::IntegerType i64Ty = builder.getIntegerType(64);
+      auto addr = builder.createConvert(loc, i64Ty, arg);
+      auto zero = builder.createIntegerConstant(loc, i64Ty, 0);
+      auto cond = builder.create<mlir::arith::CmpIOp>(
+          loc, mlir::arith::CmpIPredicate::ne, addr, zero);
+      ifOp = builder.create<fir::IfOp>(loc, cond, /*withElseRegion=*/false);
+      builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+    }
     mlir::Type kindTy = func.getType().getInput(0);
     int integerKind = 8;
-    if (auto intType =
-            fir::unwrapRefType(arg.getType()).dyn_cast<mlir::IntegerType>())
+    if (auto intType = fir::unwrapRefType(type).dyn_cast<mlir::IntegerType>())
       integerKind = intType.getWidth() / 8;
     mlir::Value kind = builder.createIntegerConstant(loc, kindTy, integerKind);
     mlir::Value res =
         builder.create<fir::CallOp>(loc, func, mlir::ValueRange{kind})
             .getResult(0);
     mlir::Value castRes =
-        builder.createConvert(loc, fir::dyn_cast_ptrEleTy(arg.getType()), res);
+        builder.createConvert(loc, fir::dyn_cast_ptrEleTy(type), res);
     builder.create<fir::StoreOp>(loc, castRes, arg);
+    if (ifOp)
+      builder.setInsertionPointAfter(ifOp);
   };
   using fir::runtime::getRuntimeFunc;
   if (count)
