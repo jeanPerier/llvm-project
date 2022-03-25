@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit cad9de71d7119e2b8ece14c8243a77bb0ef59a16
+with llvm-project commit 5c116d50e42f93ef4fa9a9719121378ec6b99b69
 
 Log of cherry-picked commits in reverse order (latest first):
+2ab9990c9eb79682a4d4b183dfbc7612d3e55328 Peter K.: edits to: [flang] Add & use a better visit()
+5bc9ee1b780656c6d7f27c4ca657c5a7815311c1 Jean P.: [flang][lowering] Handle zero extent case in LBOUND
+7babc8e6cdd87443b1afc723a08644e997576aa4 Kiran C.: [Flang] Lower achar intrinsic
+6daa206b5d605e90b7e219d4efa0809f2ca2d29d Jean P.: [flang][NFC] fix comment typo in SetLowerBound description
+d3bc3a0400414a5c71cc029fa42272d647e3b81b Jean P.: [flang][codegen] ensure descriptor lower bounds are LBOUND compliant
+7f1adbaba99512d5fbf45ec54585b41218535836 Jean P.: [flang] Fix LBOUND rewrite on descriptor components
+50354558a7068abbdecc8b54a50056c78c99a9c2 Valentin C.: [flang] Lower mvbits intrinsic
+df209b8038f3803621e96799f5c43e9145448e10 Pete S.: [flang] Make not yet implemented messages more consistent
 a80bf1856546204ecb5e4c849f38a9055b0f4db2 Valentin C.: [flang][NFC] Remove unused variable
 44b0ea44f26d405f663d20b067dafd514cb5b26a Valentin C.: [flang[OpenACC] Lower wait directive
 5ee88e0ba50474a963f6ccf6c6133c0cf632e5b9 Valentin C.: [flang[OpenACC] Lower data directive
