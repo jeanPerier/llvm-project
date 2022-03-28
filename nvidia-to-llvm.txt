@@ -41,6 +41,7 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+dcd260991db7a72a17dd15c063a5981647c8ca83 visit: add & use a better visit() -- WAS REVERTED
 3d27bd36a7fb51da522459ab6f4b1690972fad5b + ...
 6adeadaf9b54f92271b20104c085dbed61950d09 + ...
 045335c54a14533dafe6c070b14bfbe70fad82d6 + ...
@@ -54,13 +55,12 @@ b38dfe7eb12d9c0562847b830a847c9e4df5f6a8 + ...
 fefb75e10b3fa4c217df03541899dffaa1017309 getexpr: finer control over error recovery with GetExpr()
 
 In review:
-80fe129bac3f7087eeb1797c32b640fdc7c8076f nearest: fold NEAREST() & al.
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+80fe129bac3f7087eeb1797c32b640fdc7c8076f nearest: fold NEAREST() & al.
 72657d43726804c9af0683555be14229488fe8d5 status: catch bad OPEN(STATUS=) cases
 1a90b9c639aa8f2134b0fef0117cf244e1ff1c87 c_assoc: Mark C_ASSOCIATED specific procedures as PURE
-dcd260991db7a72a17dd15c063a5981647c8ca83 visit: add & use a better visit()
 6ba689ef85a361d4a7916687156be3a9fb92d732 poly-asst: fix bogus error from ass't to CLASS(*)
 cf6e171cfeaa00c2d615b0e6f4248e00a066ca47 cycle: fix cycle-catcher in procedure characteristics
 80fdfabc25aeb32e968669450c6f47ab3eaf8766 utf8: initial UTF-8 support in runtime

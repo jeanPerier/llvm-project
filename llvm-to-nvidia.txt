@@ -40,9 +40,14 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 5c116d50e42f93ef4fa9a9719121378ec6b99b69
+with llvm-project commit e68257fceee7e811d0c554f164705da2959c7519
 
 Log of cherry-picked commits in reverse order (latest first):
+e51652f9bf2e63497ed1e007c4a8c31c7ec08930 Mogball: [mlir] Simplify LoopLikeOpInterface
+c49af35a3deac7a3e2b0e449bb39d5f7bbb555dc Kiran C.: [Flang] Options to lower math intrinsics to relaxed, precise variants
+534b228313409a781060856d6cb6c2e9523cba5b Valentin C.: [flang] Lower some coarray statements to their runtime functions
+fcbf00f098b234c205b1ee22b982e7e575d75f14 Shraiysh V.: [mlir][OpenMP] Added ReductionClauseInterface
+479eed18503d1cf17fe9c0348cdb5f2968bc9969 Jean P.: [flang][runtime] Ensure PointerDeallocate actually deallocate pointers
 2ab9990c9eb79682a4d4b183dfbc7612d3e55328 Peter K.: edits to: [flang] Add & use a better visit()
 5bc9ee1b780656c6d7f27c4ca657c5a7815311c1 Jean P.: [flang][lowering] Handle zero extent case in LBOUND
 7babc8e6cdd87443b1afc723a08644e997576aa4 Kiran C.: [Flang] Lower achar intrinsic
@@ -1485,6 +1490,7 @@ f432154d1bcfd61c9a8fcef9559917696fa09233 LLVM_LINK_COMPONENTS
 1165a35a7312ccd723bbe3e5fe95cd3a3109ec66 IndexedAccessorRange
 
 Not cherry-picked (omitting no-ops):
+4ca111d4cb4c0b425268c86b54fb19c4be2e88dd Andrzej: revert commit 2ab9990c9eb79682a4d4b183dfbc7612d3e55328
 4e53e283744b1a314948b1ca139c09811121f70e Andrezj; revert be9946b877add0db906090d22840b213c3f41dd2
 44e3365775101fec3fd355eda339282258d74415 John E.: factor out config prefix finding
 b3af9fbcc908c3a4b0fae721fa5102459070db83 John E.: set path to shared cmake modules
