@@ -37,14 +37,9 @@ subroutine test_char_scalar_deferred_call()
   end subroutine
   end interface
   character(:), allocatable :: x
-  character(10), allocatable :: x2
-  ! CHECK-DAG: %[[box:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,?>>> {{{.*}}uniq_name = "_QFtest_char_scalar_deferred_callEx"}
-  ! CHECK-DAG: %[[box2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,10>>> {{{.*}}uniq_name = "_QFtest_char_scalar_deferred_callEx2"}
+  ! CHECK: %[[box:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,?>>> {{{.*}}uniq_name = "_QFtest_char_scalar_deferred_callEx"}
   call test_char_scalar_deferred(x)
   ! CHECK: fir.call @_QPtest_char_scalar_deferred(%[[box]]) : (!fir.ref<!fir.box<!fir.heap<!fir.char<1,?>>>>) -> ()
-  call test_char_scalar_deferred(x2)
-  ! CHECK: %[[box2cast:.*]] = fir.convert %[[box2]] : (!fir.ref<!fir.box<!fir.heap<!fir.char<1,10>>>>) -> !fir.ref<!fir.box<!fir.heap<!fir.char<1,?>>>>
-  ! CHECK: fir.call @_QPtest_char_scalar_deferred(%[[box2cast]]) : (!fir.ref<!fir.box<!fir.heap<!fir.char<1,?>>>>) -> ()
 end subroutine
 
 ! CHECK-LABEL: func @_QPtest_char_scalar_explicit_call(
@@ -54,12 +49,8 @@ subroutine test_char_scalar_explicit_call()
     character(10), allocatable :: x
   end subroutine
   end interface
-  character(10), allocatable :: x
   character(:), allocatable :: x2
-  ! CHECK-DAG: %[[box:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,10>>> {{{.*}}uniq_name = "_QFtest_char_scalar_explicit_callEx"}
-  ! CHECK-DAG: %[[box2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,?>>> {{{.*}}uniq_name = "_QFtest_char_scalar_explicit_callEx2"}
-  call test_char_scalar_explicit(x)
-  ! CHECK: fir.call @_QPtest_char_scalar_explicit(%[[box]]) : (!fir.ref<!fir.box<!fir.heap<!fir.char<1,10>>>>) -> ()
+  ! CHECK: %[[box2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,?>>> {{{.*}}uniq_name = "_QFtest_char_scalar_explicit_callEx2"}
   call test_char_scalar_explicit(x2)
   ! CHECK: %[[box2cast:.*]] = fir.convert %[[box2]] : (!fir.ref<!fir.box<!fir.heap<!fir.char<1,?>>>>) -> !fir.ref<!fir.box<!fir.heap<!fir.char<1,10>>>>
   ! CHECK: fir.call @_QPtest_char_scalar_explicit(%[[box2cast]]) : (!fir.ref<!fir.box<!fir.heap<!fir.char<1,10>>>>) -> ()
@@ -74,14 +65,9 @@ subroutine test_char_array_deferred_call()
   end subroutine
   end interface
   character(:), allocatable :: x(:)
-  character(10), allocatable :: x2(:)
-  ! CHECK-DAG: %[[box:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>> {{{.*}}uniq_name = "_QFtest_char_array_deferred_callEx"}
-  ! CHECK-DAG: %[[box2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?x!fir.char<1,10>>>> {{{.*}}uniq_name = "_QFtest_char_array_deferred_callEx2"}
+  ! CHECK: %[[box:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>> {{{.*}}uniq_name = "_QFtest_char_array_deferred_callEx"}
   call test_char_array_deferred(x)
   ! CHECK: fir.call @_QPtest_char_array_deferred(%[[box]]) : (!fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>>>) -> ()
-  call test_char_array_deferred(x2)
-  ! CHECK: %[[box2cast:.*]] = fir.convert %[[box2]] : (!fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,10>>>>>) -> !fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>>>
-  ! CHECK: fir.call @_QPtest_char_array_deferred(%[[box2cast]]) : (!fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>>>) -> ()
 end subroutine
 
 ! CHECK-LABEL: func @_QPtest_char_array_explicit_call(
@@ -91,12 +77,8 @@ subroutine test_char_array_explicit_call()
     character(10), allocatable :: x(:)
   end subroutine
   end interface
-  character(10), allocatable :: x(:)
   character(:), allocatable :: x2(:)
-  ! CHECK-DAG: %[[box:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?x!fir.char<1,10>>>> {{{.*}}uniq_name = "_QFtest_char_array_explicit_callEx"}
-  ! CHECK-DAG: %[[box2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>> {{{.*}}uniq_name = "_QFtest_char_array_explicit_callEx2"}
-  call test_char_array_explicit(x)
-  ! CHECK: fir.call @_QPtest_char_array_explicit(%[[box]]) : (!fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,10>>>>>) -> ()
+  ! CHECK: %[[box2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>> {{{.*}}uniq_name = "_QFtest_char_array_explicit_callEx2"}
   call test_char_array_explicit(x2)
   ! CHECK: %[[box2cast:.*]] = fir.convert %[[box2]] : (!fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,?>>>>>) -> !fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,10>>>>>
   ! CHECK: fir.call @_QPtest_char_array_explicit(%[[box2cast]]) : (!fir.ref<!fir.box<!fir.heap<!fir.array<?x!fir.char<1,10>>>>>) -> ()

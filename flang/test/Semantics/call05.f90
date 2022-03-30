@@ -118,3 +118,65 @@ module m
   end subroutine
 
 end module
+
+module m2
+
+  character(len=10), allocatable :: t1, t2, t3, t4
+  character(len=:), allocatable :: t5, t6, t7, t8(:)
+  integer, allocatable :: x(:)
+
+ contains
+
+  subroutine sma(a)
+    character(len=:), allocatable, intent(in) :: a
+  end
+
+  subroutine smb(b)
+    integer, allocatable, intent(in) :: b(:)
+  end
+
+  subroutine test()
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument with the deferred length type parameter
+    call sma(t1)
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument with the deferred length type parameter
+    call sma(t2(:))
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument with the deferred length type parameter
+    call sma(t3(1))
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument with the deferred length type parameter
+    call sma(t4(1:2))
+
+    call sma(t5) ! ok
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call sma(t5(:))
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call sma(t6(1))
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call sma(t7(1:2))
+
+    !ERROR: ALLOCATABLE dummy argument 'a=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call sma(t8(1))
+
+    !ERROR: ALLOCATABLE dummy argument 'b=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call smb(x(:))
+
+    !ERROR: ALLOCATABLE dummy argument 'b=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call smb(x(2))
+
+    !ERROR: ALLOCATABLE dummy argument 'b=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call smb(x(1:2))
+
+  end subroutine
+
+end module

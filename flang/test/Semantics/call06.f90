@@ -36,8 +36,10 @@ module m
     !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument
     call s01(scalar)
     !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument
+    !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
     call s01(1.)
     !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument
+    !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
     call s01(allofunc()) ! subtle: ALLOCATABLE function result isn't
     call s02(cov) ! ok
     call s03(com) ! ok
@@ -45,8 +47,10 @@ module m
     call s02(com)
     !ERROR: ALLOCATABLE dummy argument 'x=' has corank 2 but actual argument has corank 1
     call s03(cov)
-    call s04(cov[1]) ! ok
+    !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
+    call s04(cov[1])
     !ERROR: ALLOCATABLE dummy argument 'x=' must have INTENT(IN) to be associated with a coindexed actual argument
+    !ERROR: ALLOCATABLE dummy argument 'x=' must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring
     call s01(cov[1])
     !ERROR: Actual argument associated with INTENT(OUT) dummy argument 'x=' must be definable
     call s05(x)

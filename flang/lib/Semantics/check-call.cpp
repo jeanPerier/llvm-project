@@ -421,6 +421,17 @@ static void CheckExplicitDataArg(const characteristics::DummyDataObject &dummy,
           "ALLOCATABLE %s has corank %d but actual argument has corank %d"_err_en_US,
           dummyName, dummy.type.corank(), actualLastSymbol->Corank());
     }
+    if (!evaluate::UnwrapWholeSymbolOrComponentDataRef(actual)) {
+      messages.Say(
+          "ALLOCATABLE %s must be associated with an ALLOCATABLE actual argument and ALLOCATABLE actual argument cannot be array section or substring"_err_en_US,
+          dummyName);
+    }
+    if (actualType.type().category() == TypeCategory::Character &&
+        !actualType.type().IsNonConstantLengthCharacter()) {
+      messages.Say(
+          "ALLOCATABLE %s must be associated with an ALLOCATABLE actual argument with the deferred length type parameter"_err_en_US,
+          dummyName);
+    }
   }
 
   // 15.5.2.7 -- dummy is POINTER
