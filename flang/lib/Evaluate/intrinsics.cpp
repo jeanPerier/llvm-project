@@ -2323,7 +2323,7 @@ static bool ApplySpecificChecks(SpecificCall &call, FoldingContext &context) {
     const auto &arg{call.arguments[0]};
     if (arg) {
       if (const auto *expr{arg->UnwrapExpr()}) {
-        ok = evaluate::IsAllocatable(*expr);
+        ok = evaluate::IsAllocatableDesignator(*expr);
       }
     }
     if (!ok) {

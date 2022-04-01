@@ -914,7 +914,7 @@ template <typename A> bool IsAllocatableOrPointer(const A &x) {
 // pointers.
 bool IsAllocatableOrPointerObject(const Expr<SomeType> &, FoldingContext &);
 
-bool IsAllocatable(const Expr<SomeType> &expr);
+bool IsAllocatableDesignator(const Expr<SomeType> &);
 
 // Procedure and pointer detection predicates
 bool IsProcedure(const Expr<SomeType> &);
