@@ -399,7 +399,7 @@ void InstantiateHelper::InstantiateComponent(const Symbol &oldSymbol) {
   } else if (auto *procDetails{newSymbol.detailsIf<ProcEntityDetails>()}) {
     // We have a procedure pointer.  Instantiate its return type
     if (const DeclTypeSpec * returnType{InstantiateType(newSymbol)}) {
-      ProcInterface &interface{procDetails->interface()};
+      ProcInterface &interface { procDetails->interface() };
       if (!interface.symbol()) {
         // Don't change the type for interfaces based on symbols
         interface.set_type(*returnType);
@@ -425,11 +425,28 @@ const DeclTypeSpec *InstantiateHelper::InstantiateType(const Symbol &symbol) {
   }
 }
 
+/// Fold explicit length parameters of character components when the explicit
+/// expression is a constant expression (if it only depends on KIND parameters).
+/// Do not fold `character(len=pdt_length)`, even if the length parameter is
+/// constant in the pdt instantiation, in order to avoid losing the information
+/// that a character component is automatic (and must be a descriptor).
+static ParamValue FoldCharaterLength(evaluate::FoldingContext &foldingContext,
+    const CharacterTypeSpec &characterSpec) {
+  if (auto len{characterSpec.length().GetExplicit()}) {
+    if (evaluate::IsConstantExpr(*len)) {
+      return ParamValue{evaluate::Fold(foldingContext, common::Clone(*len)),
+          common::TypeParamAttr::Len};
+    }
+  }
+  return characterSpec.length();
+}
+
 // Apply type parameter values to an intrinsic type spec.
 const DeclTypeSpec &InstantiateHelper::InstantiateIntrinsicType(
     SourceName symbolName, const DeclTypeSpec &spec) {
   const IntrinsicTypeSpec &intrinsic{DEREF(spec.AsIntrinsic())};
-  if (evaluate::ToInt64(intrinsic.kind())) {
+  if (spec.category() != DeclTypeSpec::Character &&
+      evaluate::ToInt64(intrinsic.kind())) {
     return spec; // KIND is already a known constant
   }
   // The expression was not originally constant, but now it must be so
@@ -454,7 +471,8 @@ const DeclTypeSpec &InstantiateHelper::InstantiateIntrinsicType(
     return scope_.MakeLogicalType(KindExpr{kind});
   case DeclTypeSpec::Character:
     return scope_.MakeCharacterType(
-        ParamValue{spec.characterTypeSpec().length()}, KindExpr{kind});
+        FoldCharaterLength(foldingContext(), spec.characterTypeSpec()),
+        KindExpr{kind});
   default:
     CRASH_NO_CASE;
   }
