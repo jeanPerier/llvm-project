@@ -1094,6 +1094,14 @@ bool IsAllocatableOrPointerObject(
       evaluate::IsObjectPointer(expr, context);
 }
 
+bool IsAllocatable(const Expr<SomeType> &expr) {
+  if (const semantics::Symbol *
+      sym{UnwrapWholeSymbolOrComponentOrCoarrayRef(expr)}) {
+    return semantics::IsAllocatable(*sym);
+  }
+  return false;
+}
+
 bool MayBePassedAsAbsentOptional(
     const Expr<SomeType> &expr, FoldingContext &context) {
   const semantics::Symbol *sym{UnwrapWholeSymbolOrComponentDataRef(expr)};
