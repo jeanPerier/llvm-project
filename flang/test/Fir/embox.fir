@@ -81,3 +81,24 @@ func @emboxSubstring(%arg0: !fir.ref<!fir.array<2x3x!fir.char<1,4>>>) {
   fir.call @takesRank2CharBox(%2) : (!fir.box<!fir.array<?x?x!fir.char<1,?>>>) -> ()
   return
 }
+
+func private @do_something(!fir.box<!fir.array<?xf32>>) -> ()
+// CHECK: define void @fir_dev_issue_1416
+// CHECK-SAME: [40 x float]* %[[base_addr:.*]], i64 %[[low:.*]], i64 %[[up:.*]], i64 %[[at:.*]])
+func @fir_dev_issue_1416(%arg0: !fir.ref<!fir.array<40x?xf32>>, %low: index, %up: index, %at : index) {
+    // Test fir.embox with a constant interior array shape.
+    %c1 = arith.constant 1 : index
+    %c40 = arith.constant 40 : index
+    %0 = fir.undefined index
+    %1 = fir.shape_shift %c1, %c40, %low, %up : (index, index, index, index) -> !fir.shapeshift<2>
+    %2 = fir.slice %c1, %c40, %c1, %at, %0, %0 : (index, index, index, index, index, index) -> !fir.slice<2>
+// CHECK: %[[diff:.*]] = sub i64 %[[at]], %[[low]]
+// CHECK: %[[mul:.*]] = mul i64 %[[diff]], 1
+// CHECK: %[[offset:.*]] = add i64 %[[mul]], 0
+// CHECK: %[[addr:.*]] = getelementptr [40 x float], [40 x float]* %0, i64 %[[offset]], i64 0
+// CHECK: %[[box:.*]] = insertvalue { float*, i64, i32, i8, i8, i8, i8, [1 x [3 x i64]] }
+// CHECK-SAME: { float* undef, i64 4, i32 20180515, i8 1, i8 27, i8 0, i8 0, [1 x [3 x i64]] [{{.*}} [i64 1, i64 40, i64 4]] }, float* %[[addr]], 0
+    %3 = fir.embox %arg0(%1) [%2] : (!fir.ref<!fir.array<40x?xf32>>, !fir.shapeshift<2>, !fir.slice<2>) -> !fir.box<!fir.array<?xf32>>
+    fir.call @do_something(%3) : (!fir.box<!fir.array<?xf32>>) -> ()
+    return
+}
