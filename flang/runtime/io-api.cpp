@@ -1275,4 +1275,51 @@ enum Iostat IONAME(EndIoStatement)(Cookie cookie) {
   IoStatementState &io{*cookie};
   return static_cast<enum Iostat>(io.EndIoStatement());
 }
+
+template <typename INT>
+static enum Iostat CheckUnitNumberInRangeImpl(INT unit, bool handleError,
+    char *ioMsg, std::size_t ioMsgLength, const char *sourceFile,
+    int sourceLine) {
+  if (unit != static_cast<ExternalUnit>(unit)) {
+    Terminator oom{sourceFile, sourceLine};
+    IoErrorHandler errorHandler{oom};
+    if (handleError) {
+      errorHandler.HasIoStat();
+      if (ioMsg) {
+        errorHandler.HasIoMsg();
+      }
+    }
+    if (static_cast<std::intmax_t>(unit) == unit) {
+      errorHandler.SignalError(IostatUnitOverflow,
+          "UNIT number %jd is out of range", static_cast<std::intmax_t>(unit));
+    } else {
+      // Avoid printing misleading info if SignalError cannot print the unit
+      // number accurately (when unit does not fit in a std::intmax_t).
+      errorHandler.SignalError(
+          IostatUnitOverflow, "UNIT number is out of range");
+    }
+    if (ioMsg) {
+      errorHandler.GetIoMsg(ioMsg, ioMsgLength);
+    }
+    return static_cast<enum Iostat>(errorHandler.GetIoStat());
+  }
+  return IostatOk;
+}
+
+enum Iostat IONAME(CheckUnitNumberInRange64)(std::int64_t unit,
+    bool handleError, char *ioMsg, std::size_t ioMsgLength,
+    const char *sourceFile, int sourceLine) {
+  return CheckUnitNumberInRangeImpl(
+      unit, handleError, ioMsg, ioMsgLength, sourceFile, sourceLine);
+}
+
+#ifdef __SIZEOF_INT128__
+enum Iostat IONAME(CheckUnitNumberInRange128)(common::int128_t unit,
+    bool handleError, char *ioMsg, std::size_t ioMsgLength,
+    const char *sourceFile, int sourceLine) {
+  return CheckUnitNumberInRangeImpl(
+      unit, handleError, ioMsg, ioMsgLength, sourceFile, sourceLine);
+}
+#endif
+
 } // namespace Fortran::runtime::io
