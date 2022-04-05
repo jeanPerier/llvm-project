@@ -1598,9 +1598,9 @@ struct XEmboxOpConversion : public EmboxCommonConversion<fir::cg::XEmboxOp> {
         // denormalized descriptors.
         if (isaPointerOrAllocatable || !normalizedLowerBound(xbox))
           lb = one;
-        // If there is a shifted origin, and this does not describe an array
-        // section, and this is not a normalized descriptor then use the value
-        // from the shift op as the lower bound.
+        // If there is a shifted origin, and no fir.slice, and this is not
+        // a normalized descriptor then use the value from the shift op as
+        // the lower bound.
         if (hasShift && !(hasSlice || hasSubcomp || hasSubstr) &&
             (isaPointerOrAllocatable || !normalizedLowerBound(xbox))) {
           lb = operands[shiftOffset];
