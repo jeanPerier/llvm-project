@@ -40,9 +40,43 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit e68257fceee7e811d0c554f164705da2959c7519
+with llvm-project commit 8d7595be1dd41d7f7470ec90867936ca5e4e0d82
 
 Log of cherry-picked commits in reverse order (latest first):
+ab8e1e6e5ace6ba9b7c44caa2409bf8e33cdee96 Valentin C.: [flang] Do not fold fir.box_addr when it has a slice
+eb4d5b852e1d922bce2f538bbafb688786ae2738 PeixinQiao: [flang] Fix semantic analysis for "forall" targeted by "label"
+fa4b1e1e95d0dda8476aead84b9f4bb4bb416e49 Shraiysh V.: [flang][OpenMP] Added allocate clause translation for OpenMP block constructs
+4535bb9b80ce61aab89603b7fde6fe56e8f87121 Jean P.: [flang] Handle dynamically optional argument in EXIT
+f1cfa461f28ed5bf77ca2e8f26cbf66fa09481a0 Jean P.: [flang][NFC] rename isAbsent to isStaticallyAbsent in IntrinsicCall.cpp
+0c789db541c236abf47265331a2f2b0945aa7b93 Markus B.: [mlir] Add support for operation-produced successor arguments in BranchOpInterface
+af371f9f98dab48b6374c182f3bc6a18e4faa5fb River R.:  Reland [GreedPatternRewriter] Preprocess constants while building worklist when not processing top down
+02da9643506dee4a82353e0f911513279634d846 Valentin C.: [mlir][CSE] Remove duplicated operations with MemRead side-effect
+c58c64d05c51b75df3d803d293d386d8e7ae02b4 Jean P.: [flang] Add runtime API to catch unit number out of range
+0601a0dc0135fea422e2c794fb392efef8857b3a Jean P.: [flang] Fix fir.embox codegen with constant interior shape
+bb3afae99b5ba5e865b237913104ca7ab2ed2baa Jean P.: [flang] Set lower bounds of array section fir.embox to one
+dda366ed37cec7b2f7c96a47b1b32391b514d969 Andrzej W.: [flang][cmake] Make CMake copy "omp_lib.h" into the build directory
+5e50dd048e3a20cde5da5d7a754dfee775ef35d6 River R.: [mlir] Rework the implementation of TypeID
+fbdcb3ce6b7b0bac45e06aeac0ca02607f54a0a7 PeixinQiao: [flang] Add one semantic check for allocatable/pointer argument association
+03efa5a362a718b633a74cd9f1932dfa98f76a49 Andrzej W.: [flang] Update the conversion code for fir.coordinate_of
+d333b382701e9ba7c72dc893f3bf5f9a702879b5 Valentin C.: [flang][NFC] Add tests for array-value-copy pass with array with pointers
+b8e8f62d5e72c7f4fc61985406fb27714e2c2f7c Jean P.: [flang] Fold instantiated PDT character component length when needed
+7dc492ed3443751a1de079a0f7eeeeeb862483c4 Valentin C.: [flang][NFC] Add tests for fir.address_of
+0000030b18c1e60e5e4f7444e30694bac9ffc14e Kiran C.:  Revert "[Flang][OpenMP] Add semantic check for OpenMP Private, Firstprivate and Lastprivate clauses."
+3bcc928b1ba8253064ad1083c82e0e002969f19f Valentin C.: [flang][NFC] Add tests for fir.array_modify in array-value-copy pass
+0371f3e2329f683aadd85ec91132cd0d12f97396 Valentin C.: [flang][NFC] Add more test cases for the array-value-copy pass
+602dd6bd32ab6f4ae8acebff0eacef8e2261fe49 Valentin C.: [flang][NFC] Add tests for fir.is_present
+e0c782bdc0e9b9bb6ff69e224121adaba8aab843 Valentin C.: [flang] Add global and global box initialization tests
+2fb57d628c6fb71fcd53364c451a018cb65fd2ba Valentin C.: [flang][NFC] Add tests for select constructs
+7c158e3e554ad7e961480f080571cafab9c5760f Jean P.: [flang] add evaluate::IsAllocatableDesignator helper
+ba43d6f85c339d8d4e8e5759103cd7dfb4a3361f Mehdi A.:  Revert "[GreedPatternRewriter] Preprocess constants while building worklist when not processing top down"
+868c212f42f80582fc6fb4adbd088e55b2d64111 Valentin C.: [flang] Keep fully qualified !fir.heap type for fir.freemem op
+59bbc7a0851b6e0054bb3ed47df0958822f08880 River R.: [GreedPatternRewriter] Preprocess constants while building worklist when not processing top down
+88d4b85f596450746a1f65a076732434df6df6f6 Jean P.: [flang] Allow user to recover from bad edit descriptor with INTEGER
+14c7754a35da9bf6b346e2a6ce4b3d8c3b00b434 Jean P.: [flang] Skip `D` when including D debug line
+c531171d995728f55e5775d354a21dceed03edce serge-sans-paille:  Fix invalid overflow check in flang
+ec13942e71daad88267d73ff57b854b816c2a722 Jean P.: [flang] prevent undefined behavior in character MAXLOC folding
+1fe4b968c5fad5959ab9d371cc3324d9c7062eb3 Shraiysh V.: [flang][OpenMP] Added parallel sections translation
+577827cbbf1033612d6ce15169f33ee5709abbfc Emil K.: [flang][driver] Make --version and -version consistent with clang
 e51652f9bf2e63497ed1e007c4a8c31c7ec08930 Mogball: [mlir] Simplify LoopLikeOpInterface
 c49af35a3deac7a3e2b0e449bb39d5f7bbb555dc Kiran C.: [Flang] Options to lower math intrinsics to relaxed, precise variants
 534b228313409a781060856d6cb6c2e9523cba5b Valentin C.: [flang] Lower some coarray statements to their runtime functions
