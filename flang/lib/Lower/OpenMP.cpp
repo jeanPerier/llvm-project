@@ -190,13 +190,13 @@ genOMP(Fortran::lower::AbstractConverter &converter,
             std::get_if<Fortran::parser::OmpClause::If>(&clause.u)) {
       auto &expr = std::get<Fortran::parser::ScalarLogicalExpr>(ifClause->v.t);
       ifClauseOperand = fir::getBase(
-          converter.genExprValue(*Fortran::semantics::GetExpr(expr), stmtCtx));
+          converter.genExprValue(Fortran::semantics::GetExpr(expr), stmtCtx));
     } else if (const auto &numThreadsClause =
                    std::get_if<Fortran::parser::OmpClause::NumThreads>(
                        &clause.u)) {
       // OMPIRBuilder expects `NUM_THREAD` clause as a `Value`.
       numThreadsClauseOperand = fir::getBase(converter.genExprValue(
-          *Fortran::semantics::GetExpr(numThreadsClause->v), stmtCtx));
+          Fortran::semantics::GetExpr(numThreadsClause->v), stmtCtx));
     } else if (const auto &procBindClause =
                    std::get_if<Fortran::parser::OmpClause::ProcBind>(
                        &clause.u)) {
@@ -222,7 +222,7 @@ genOMP(Fortran::lower::AbstractConverter &converter,
                        &clause.u)) {
       genAllocateClause(converter, allocateClause->v, allocatorOperands,
                         allocateOperands);
-    } else if (const auto &privateClause =
+    } else if (// unused const auto &privateClause =
                    std::get_if<Fortran::parser::OmpClause::Private>(
                        &clause.u)) {
       // TODO: Handle private. This cannot be a hard TODO because testing for
