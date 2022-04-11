@@ -40,9 +40,18 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 8d7595be1dd41d7f7470ec90867936ca5e4e0d82
+with llvm-project commit 75196b99fbd3397ccb7960b6e7ad7c40efef2315
 
 Log of cherry-picked commits in reverse order (latest first):
+ce6ca8e71e29281d2ec03386e16f2c6463f143ed Jean P.: [flang] D123388 fix - remove unused variable from test
+3d0e0e1027203fe5e89104ad81ee7bb53e525f95 Mats P.: [flang][runtime] Prefer process time over thread time in CPU_TIME
+07e16a2aae68a02629cbcb34a0c0b12cb84754f8 Kiran C.: [Flang][OpenMP] Add implementation of privatisation
+189cb7df911b0d1aafbe60bec1a9e921827e9875 jeanPerier <.: [flang] Lower optionals in GET_COMMAND_ARGUMENT and  GET_ENVIRONMENT_VARIABLE
+9cfa899b87c583e0dcd20e4d35c8e9d337ee14f9 Jean P.: [flang] add a static assert in CheckUnitNumberInRangeImpl
+30b1c1f23d4d58c3220eac6aee35fd23f109b35c Fangrui S.: [Driver] Simplify -f[no-]diagnostics-color handling. NFC
+38c502b6c7e35429ff58ccea869ff2d7793bb0e1 PeixinQiao <.: [flang] Fix -Wunused-variable in -DLLVM_ENABLE_ASSERTIONS=off build
+2cbd4fc4424a88573ee03e2f1dce345f7826e662 Peixin-Q.: [flang] Support export/import OpenMP Threadprivate Flag
+187ccc66fa5d0b04189cdbd8266fc386e60f48aa Jennifer Y.: [clang][OpenMP5.1] Initial parsing/sema for has_device_addr
 ab8e1e6e5ace6ba9b7c44caa2409bf8e33cdee96 Valentin C.: [flang] Do not fold fir.box_addr when it has a slice
 eb4d5b852e1d922bce2f538bbafb688786ae2738 PeixinQiao: [flang] Fix semantic analysis for "forall" targeted by "label"
 fa4b1e1e95d0dda8476aead84b9f4bb4bb416e49 Shraiysh V.: [flang][OpenMP] Added allocate clause translation for OpenMP block constructs
