@@ -3745,8 +3745,7 @@ void DeclarationVisitor::Post(const parser::PointerDecl &x) {
     symbol.ReplaceName(name.source);
     EndArraySpec();
   } else {
-    Symbol &symbol{DeclareUnknownEntity(name, Attrs{Attr::POINTER})};
-    symbol.ReplaceName(name.source);
+    HandleAttributeStmt(Attr::POINTER, std::get<parser::Name>(x.t));
   }
 }
 
