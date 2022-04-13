@@ -52,13 +52,11 @@ void Unparse(llvm::raw_ostream &out, const A &root,
     AnalyzedObjectsAsFortran * = nullptr);
 
 extern template void Unparse(llvm::raw_ostream &out, const Program &program,
-    Encoding encoding = Encoding::UTF_8, bool capitalizeKeywords = true,
-    bool backslashEscapes = true, preStatementType *preStatement = nullptr,
-    AnalyzedObjectsAsFortran * = nullptr);
+    Encoding encoding, bool capitalizeKeywords, bool backslashEscapes,
+    preStatementType *preStatement, AnalyzedObjectsAsFortran *);
 extern template void Unparse(llvm::raw_ostream &out, const Expr &expr,
-    Encoding encoding = Encoding::UTF_8, bool capitalizeKeywords = true,
-    bool backslashEscapes = true, preStatementType *preStatement = nullptr,
-    AnalyzedObjectsAsFortran * = nullptr);
+    Encoding encoding, bool capitalizeKeywords, bool backslashEscapes,
+    preStatementType *preStatement, AnalyzedObjectsAsFortran *);
 } // namespace Fortran::parser
 
 #endif
