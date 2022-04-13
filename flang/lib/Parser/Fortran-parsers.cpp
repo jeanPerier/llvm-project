@@ -174,7 +174,7 @@ TYPE_CONTEXT_PARSER("declaration type spec"_en_US,
     construct<DeclarationTypeSpec>(intrinsicTypeSpec) ||
         "TYPE" >>
             (parenthesized(construct<DeclarationTypeSpec>(
-                 !"DOUBLECOMPLEX"_tok >> !"BYTE" >> intrinsicTypeSpec)) ||
+                 !"DOUBLECOMPLEX"_tok >> !"BYTE"_tok >> intrinsicTypeSpec)) ||
                 parenthesized(construct<DeclarationTypeSpec>(
                     construct<DeclarationTypeSpec::Type>(derivedTypeSpec))) ||
                 construct<DeclarationTypeSpec>(
