@@ -562,7 +562,7 @@ private:
   void analyzeIoBranches(lower::pft::Evaluation &eval, const A &stmt) {
     auto analyzeFormatSpec = [&](const parser::Format &format) {
       if (const auto *expr = std::get_if<parser::Expr>(&format.u)) {
-        if (semantics::ExprHasTypeCategory(semantics::GetExpr(*expr),
+        if (semantics::ExprHasTypeCategory(*semantics::GetExpr(*expr),
                                            common::TypeCategory::Integer))
           eval.isUnstructured = true;
       }
@@ -1772,7 +1772,8 @@ struct SymbolVisitor {
   template <typename A>
   bool Pre(const A &x) {
     if constexpr (Fortran::parser::HasTypedExpr<A>::value)
-      visitExpr(Fortran::semantics::GetExpr(x));
+      if (const auto *expr = Fortran::semantics::GetExpr(x))
+        visitExpr(*expr);
     return true;
   }
 

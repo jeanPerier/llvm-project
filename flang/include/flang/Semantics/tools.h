@@ -295,8 +295,7 @@ private:
 // pointer to be returned in the event of an expression that had fatal errors.
 // Use these first two forms in semantics checks for best error recovery.
 // If a SemanticsContext is not passed, a missing expression will
-// cause a crash; otherwise, a reference is returned.
-// Use this last form in lowering.
+// cause a crash.
 template <typename T>
 const SomeExpr *GetExpr(SemanticsContext *context, const T &x) {
   return GetExprHelper{context}.Get(x);
@@ -305,8 +304,8 @@ template <typename T>
 const SomeExpr *GetExpr(SemanticsContext &context, const T &x) {
   return GetExprHelper{&context}.Get(x);
 }
-template <typename T> const SomeExpr &GetExpr(const T &x) {
-  return DEREF(GetExprHelper{}.Get(x));
+template <typename T> const SomeExpr *GetExpr(const T &x) {
+  return GetExprHelper{}.Get(x);
 }
 
 const evaluate::Assignment *GetAssignment(const parser::AssignmentStmt &);

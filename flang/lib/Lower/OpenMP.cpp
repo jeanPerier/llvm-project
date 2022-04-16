@@ -180,7 +180,7 @@ genAllocateClause(Fortran::lower::AbstractConverter &converter,
   // list of allocators.
   if (allocatorValue) {
     allocatorOperand = fir::getBase(converter.genExprValue(
-        Fortran::semantics::GetExpr(allocatorValue->v), stmtCtx));
+        *Fortran::semantics::GetExpr(allocatorValue->v), stmtCtx));
     allocatorOperands.insert(allocatorOperands.end(), ompObjectList.v.size(),
                              allocatorOperand);
   } else {
@@ -255,13 +255,13 @@ genOMP(Fortran::lower::AbstractConverter &converter,
             std::get_if<Fortran::parser::OmpClause::If>(&clause.u)) {
       auto &expr = std::get<Fortran::parser::ScalarLogicalExpr>(ifClause->v.t);
       ifClauseOperand = fir::getBase(
-          converter.genExprValue(Fortran::semantics::GetExpr(expr), stmtCtx));
+          converter.genExprValue(*Fortran::semantics::GetExpr(expr), stmtCtx));
     } else if (const auto &numThreadsClause =
                    std::get_if<Fortran::parser::OmpClause::NumThreads>(
                        &clause.u)) {
       // OMPIRBuilder expects `NUM_THREAD` clause as a `Value`.
       numThreadsClauseOperand = fir::getBase(converter.genExprValue(
-          Fortran::semantics::GetExpr(numThreadsClause->v), stmtCtx));
+          *Fortran::semantics::GetExpr(numThreadsClause->v), stmtCtx));
     } else if (const auto &procBindClause =
                    std::get_if<Fortran::parser::OmpClause::ProcBind>(
                        &clause.u)) {
@@ -350,8 +350,8 @@ genOMP(Fortran::lower::AbstractConverter &converter,
   for (const Fortran::parser::OmpClause &clause : clauseList.v)
     if (auto hintClause =
             std::get_if<Fortran::parser::OmpClause::Hint>(&clause.u)) {
-      const auto &expr = Fortran::semantics::GetExpr(hintClause->v);
-      hint = *Fortran::evaluate::ToInt64(expr);
+      const auto *expr = Fortran::semantics::GetExpr(hintClause->v);
+      hint = *Fortran::evaluate::ToInt64(*expr);
       break;
     }
 

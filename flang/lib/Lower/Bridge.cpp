@@ -631,8 +631,8 @@ private:
                                mlir::Block *trueTarget,
                                mlir::Block *falseTarget) {
     Fortran::lower::StatementContext stmtCtx;
-    mlir::Value cond = createFIRExpr(
-        toLocation(), &Fortran::semantics::GetExpr(expr), stmtCtx);
+    mlir::Value cond =
+        createFIRExpr(toLocation(), Fortran::semantics::GetExpr(expr), stmtCtx);
     stmtCtx.finalize();
     genFIRConditionalBranch(cond, trueTarget, falseTarget);
   }
@@ -640,8 +640,8 @@ private:
                                Fortran::lower::pft::Evaluation *trueTarget,
                                Fortran::lower::pft::Evaluation *falseTarget) {
     Fortran::lower::StatementContext stmtCtx;
-    mlir::Value cond = createFIRExpr(
-        toLocation(), &Fortran::semantics::GetExpr(expr), stmtCtx);
+    mlir::Value cond =
+        createFIRExpr(toLocation(), Fortran::semantics::GetExpr(expr), stmtCtx);
     stmtCtx.finalize();
     genFIRConditionalBranch(cond, trueTarget->block, falseTarget->block);
   }
@@ -730,7 +730,7 @@ private:
     Fortran::lower::StatementContext stmtCtx;
     mlir::Value condExpr = createFIRExpr(
         loc,
-        &Fortran::semantics::GetExpr(
+        Fortran::semantics::GetExpr(
             std::get<Fortran::parser::ScalarLogicalExpr>(stmt->t)),
         stmtCtx);
     stmtCtx.finalize();
@@ -786,7 +786,7 @@ private:
     Fortran::lower::pft::Evaluation &eval = getEval();
     mlir::Value selectExpr =
         createFIRExpr(toLocation(),
-                      &Fortran::semantics::GetExpr(
+                      Fortran::semantics::GetExpr(
                           std::get<Fortran::parser::ScalarIntExpr>(stmt.t)),
                       stmtCtx);
     stmtCtx.finalize();
@@ -808,7 +808,7 @@ private:
     Fortran::lower::pft::Evaluation &eval = getEval();
     mlir::Value expr = createFIRExpr(
         toLocation(),
-        &Fortran::semantics::GetExpr(std::get<Fortran::parser::Expr>(stmt.t)),
+        Fortran::semantics::GetExpr(std::get<Fortran::parser::Expr>(stmt.t)),
         stmtCtx);
     stmtCtx.finalize();
     mlir::Type exprType = expr.getType();
@@ -1017,19 +1017,19 @@ private:
       };
       for (const Fortran::parser::ConcurrentControl &ctrl :
            std::get<std::list<Fortran::parser::ConcurrentControl>>(header.t)) {
-        const Fortran::lower::SomeExpr &lo =
+        const Fortran::lower::SomeExpr *lo =
             Fortran::semantics::GetExpr(std::get<1>(ctrl.t));
-        const Fortran::lower::SomeExpr &hi =
+        const Fortran::lower::SomeExpr *hi =
             Fortran::semantics::GetExpr(std::get<2>(ctrl.t));
         auto &optStep =
             std::get<std::optional<Fortran::parser::ScalarIntExpr>>(ctrl.t);
-        lows.push_back(builder->createConvert(loc, idxTy, lowerExpr(lo)));
-        highs.push_back(builder->createConvert(loc, idxTy, lowerExpr(hi)));
+        lows.push_back(builder->createConvert(loc, idxTy, lowerExpr(*lo)));
+        highs.push_back(builder->createConvert(loc, idxTy, lowerExpr(*hi)));
         steps.push_back(
             optStep.has_value()
                 ? builder->createConvert(
                       loc, idxTy,
-                      lowerExpr(Fortran::semantics::GetExpr(*optStep)))
+                      lowerExpr(*Fortran::semantics::GetExpr(*optStep)))
                 : builder->createIntegerConstant(loc, idxTy, 1));
       }
     }
@@ -1060,18 +1060,18 @@ private:
           ub = highs[headerIndex];
           by = steps[headerIndex++];
         } else {
-          const Fortran::lower::SomeExpr &lo =
+          const Fortran::lower::SomeExpr *lo =
               Fortran::semantics::GetExpr(std::get<1>(ctrl.t));
-          const Fortran::lower::SomeExpr &hi =
+          const Fortran::lower::SomeExpr *hi =
               Fortran::semantics::GetExpr(std::get<2>(ctrl.t));
           auto &optStep =
               std::get<std::optional<Fortran::parser::ScalarIntExpr>>(ctrl.t);
-          lb = builder->createConvert(loc, idxTy, lowerExpr(lo));
-          ub = builder->createConvert(loc, idxTy, lowerExpr(hi));
+          lb = builder->createConvert(loc, idxTy, lowerExpr(*lo));
+          ub = builder->createConvert(loc, idxTy, lowerExpr(*hi));
           by = optStep.has_value()
                    ? builder->createConvert(
                          loc, idxTy,
-                         lowerExpr(Fortran::semantics::GetExpr(*optStep)))
+                         lowerExpr(*Fortran::semantics::GetExpr(*optStep)))
                    : builder->createIntegerConstant(loc, idxTy, 1);
         }
         auto lp = builder->create<fir::DoLoopOp>(
@@ -1093,7 +1093,7 @@ private:
           mask.has_value()) {
         mlir::Type i1Ty = builder->getI1Type();
         fir::ExtendedValue maskExv =
-            genExprValue(Fortran::semantics::GetExpr(mask.value()), stmtCtx);
+            genExprValue(*Fortran::semantics::GetExpr(mask.value()), stmtCtx);
         mlir::Value cond =
             builder->createConvert(loc, i1Ty, fir::getBase(maskExv));
         auto ifOp = builder->create<fir::IfOp>(
@@ -1212,12 +1212,12 @@ private:
     mlir::MLIRContext *context = builder->getContext();
     mlir::Location loc = toLocation();
     Fortran::lower::StatementContext stmtCtx;
-    const Fortran::lower::SomeExpr &expr = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr *expr = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::Scalar<Fortran::parser::Expr>>(stmt.t));
-    bool isCharSelector = isCharacterCategory(expr.GetType()->category());
-    bool isLogicalSelector = isLogicalCategory(expr.GetType()->category());
-    auto charValue = [&](const Fortran::lower::SomeExpr expr) {
-      fir::ExtendedValue exv = genExprAddr(expr, stmtCtx, &loc);
+    bool isCharSelector = isCharacterCategory(expr->GetType()->category());
+    bool isLogicalSelector = isLogicalCategory(expr->GetType()->category());
+    auto charValue = [&](const Fortran::lower::SomeExpr *expr) {
+      fir::ExtendedValue exv = genExprAddr(*expr, stmtCtx, &loc);
       return exv.match(
           [&](const fir::CharBoxValue &cbv) {
             return fir::factory::CharacterExprHelper{*builder, loc}
@@ -1232,7 +1232,7 @@ private:
     if (isCharSelector) {
       selector = charValue(expr);
     } else {
-      selector = createFIRExpr(loc, &expr, stmtCtx);
+      selector = createFIRExpr(loc, expr, stmtCtx);
       if (isLogicalSelector)
         selector = builder->createConvert(loc, builder->getI1Type(), selector);
     }
@@ -1243,16 +1243,16 @@ private:
     mlir::Block *defaultBlock = eval.parentConstruct->constructExit->block;
     using CaseValue = Fortran::parser::Scalar<Fortran::parser::ConstantExpr>;
     auto addValue = [&](const CaseValue &caseValue) {
-      const Fortran::lower::SomeExpr &expr =
+      const Fortran::lower::SomeExpr *expr =
           Fortran::semantics::GetExpr(caseValue.thing);
       if (isCharSelector)
         valueList.push_back(charValue(expr));
       else if (isLogicalSelector)
         valueList.push_back(builder->createConvert(
-            loc, selectType, createFIRExpr(toLocation(), &expr, stmtCtx)));
+            loc, selectType, createFIRExpr(toLocation(), expr, stmtCtx)));
       else
         valueList.push_back(builder->createIntegerConstant(
-            loc, selectType, *Fortran::evaluate::ToInt64(expr)));
+            loc, selectType, *Fortran::evaluate::ToInt64(*expr)));
     };
     for (Fortran::lower::pft::Evaluation *e = eval.controlSuccessor; e;
          e = e->controlSuccessor) {
@@ -1581,9 +1581,10 @@ private:
   void genFIR(const Fortran::parser::NullifyStmt &stmt) {
     mlir::Location loc = toLocation();
     for (auto &pointerObject : stmt.v) {
-      const Fortran::lower::SomeExpr &expr =
+      const Fortran::lower::SomeExpr *expr =
           Fortran::semantics::GetExpr(pointerObject);
-      fir::MutableBoxValue box = genExprMutableBox(loc, expr);
+      assert(expr);
+      fir::MutableBoxValue box = genExprMutableBox(loc, *expr);
       fir::factory::disassociateMutableBox(*builder, loc, box);
     }
   }
@@ -1921,7 +1922,7 @@ private:
         body.u);
   }
   void genFIR(const Fortran::parser::WhereConstructStmt &stmt) {
-    implicitIterSpace.append(&Fortran::semantics::GetExpr(
+    implicitIterSpace.append(Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
   }
   void genFIR(const Fortran::parser::WhereConstruct::MaskedElsewhere &ew) {
@@ -1934,7 +1935,7 @@ private:
       genFIR(body);
   }
   void genFIR(const Fortran::parser::MaskedElsewhereStmt &stmt) {
-    implicitIterSpace.append(&Fortran::semantics::GetExpr(
+    implicitIterSpace.append(Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
   }
   void genFIR(const Fortran::parser::WhereConstruct::Elsewhere &ew) {
@@ -1956,7 +1957,7 @@ private:
     Fortran::lower::StatementContext stmtCtx;
     const auto &assign = std::get<Fortran::parser::AssignmentStmt>(stmt.t);
     implicitIterSpace.growStack();
-    implicitIterSpace.append(&Fortran::semantics::GetExpr(
+    implicitIterSpace.append(Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t)));
     genAssignment(*assign.typedAssignment->v);
     implicitIterSpace.shrinkStack();
@@ -2037,10 +2038,11 @@ private:
       const Fortran::semantics::Symbol &symbol = funit->getSubprogramSymbol();
       if (Fortran::semantics::HasAlternateReturns(symbol)) {
         Fortran::lower::StatementContext stmtCtx;
-        const Fortran::lower::SomeExpr &expr =
+        const Fortran::lower::SomeExpr *expr =
             Fortran::semantics::GetExpr(*stmt.v);
+        assert(expr && "missing alternate return expression");
         mlir::Value altReturnIndex = builder->createConvert(
-            loc, builder->getIndexType(), createFIRExpr(loc, &expr, stmtCtx));
+            loc, builder->getIndexType(), createFIRExpr(loc, expr, stmtCtx));
         builder->create<fir::StoreOp>(loc, altReturnIndex,
                                       getAltReturnResult(symbol));
       }
@@ -2512,7 +2514,7 @@ private:
             std::get<std::optional<Fortran::parser::ScalarLogicalExpr>>(
                 header.t);
         mask.has_value())
-      analyzeExplicitSpace(Fortran::semantics::GetExpr(*mask));
+      analyzeExplicitSpace(*Fortran::semantics::GetExpr(*mask));
   }
   template <bool LHS = false, typename A>
   void analyzeExplicitSpace(const Fortran::evaluate::Expr<A> &e) {
@@ -2570,10 +2572,10 @@ private:
       analyzeExplicitSpace(e.operator->());
   }
   void analyzeExplicitSpace(const Fortran::parser::WhereConstructStmt &ws) {
-    const Fortran::lower::SomeExpr &exp = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr *exp = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(ws.t));
-    addMaskVariable(&exp);
-    analyzeExplicitSpace(exp);
+    addMaskVariable(exp);
+    analyzeExplicitSpace(*exp);
   }
   void analyzeExplicitSpace(
       const Fortran::parser::WhereConstruct::MaskedElsewhere &ew) {
@@ -2596,10 +2598,10 @@ private:
                body.u);
   }
   void analyzeExplicitSpace(const Fortran::parser::MaskedElsewhereStmt &stmt) {
-    const Fortran::lower::SomeExpr &exp = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr *exp = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t));
-    addMaskVariable(&exp);
-    analyzeExplicitSpace(exp);
+    addMaskVariable(exp);
+    analyzeExplicitSpace(*exp);
   }
   void
   analyzeExplicitSpace(const Fortran::parser::WhereConstruct::Elsewhere *ew) {
@@ -2608,10 +2610,10 @@ private:
       analyzeExplicitSpace(e);
   }
   void analyzeExplicitSpace(const Fortran::parser::WhereStmt &stmt) {
-    const Fortran::lower::SomeExpr &exp = Fortran::semantics::GetExpr(
+    const Fortran::lower::SomeExpr *exp = Fortran::semantics::GetExpr(
         std::get<Fortran::parser::LogicalExpr>(stmt.t));
-    addMaskVariable(&exp);
-    analyzeExplicitSpace(exp);
+    addMaskVariable(exp);
+    analyzeExplicitSpace(*exp);
     const std::optional<Fortran::evaluate::Assignment> &assign =
         std::get<Fortran::parser::AssignmentStmt>(stmt.t).typedAssignment->v;
     assert(assign.has_value() && "WHERE has no statement");
