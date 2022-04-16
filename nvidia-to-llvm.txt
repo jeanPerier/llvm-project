@@ -42,22 +42,40 @@ For each change to merge:
 
 To do (oldest last):
 dcd260991db7a72a17dd15c063a5981647c8ca83 visit: add & use a better visit() -- WAS REVERTED
-3d27bd36a7fb51da522459ab6f4b1690972fad5b + ...
-6adeadaf9b54f92271b20104c085dbed61950d09 + ...
-045335c54a14533dafe6c070b14bfbe70fad82d6 + ...
-4b4379665529be31746f0dcceddabe4958ed7d67 + ...
-cee0c5e693d6b5a9d767f904d9eabb5a6e110345 + ...
-4bf33b0ccfd6036b8c9fb8631af69da43d2e532f + ...
-b38dfe7eb12d9c0562847b830a847c9e4df5f6a8 + ...
-205cdffe3aaae4e02e568678bf52b9f4ee4381aa + ...
-93666cb26f2d7a299b55cad15e96566dd7865199 + ...
-47d04dc041703a6bbd4fedf4c469eae13ca924ed + ...
-fefb75e10b3fa4c217df03541899dffaa1017309 getexpr: finer control over error recovery with GetExpr()
 
 In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+961f06803447574e1756cbb83fdfa3fabf346c1f #495 D123734: Don't emit empty lines for bad writes
+4ec03171c35d40ec0ef2d36c3a3694464c248647 #485 D123733: Accept %KIND type parameter inquiries on %RE,%IM, &c.
+3538f026c8f613629a4aa08fa00675202baa5cea #484 D123732: Allow POINTER attribute statement on procedure interfaces
+a331fba7423d945906f782ba6e3e1d65f037fd1b #482 D123731: Upgrade short actual character arguments to errors
+d29160e10de4b981b219321831dbc7f9eb5371b3 #475 D123730: Fix ENDFILE for formatted stream output
+8f65c4ee21d354b7bcb41a538680e7bccdf06a8a #473 D123728: Handle parameter-dependent types in PDT initializers
+fefb75e10b3fa4c217df03541899dffaa1017309 getexpr2: finer control over error recovery with GetExpr() (modified to avoid changing lowering)
+364be0825166883124a76b0a779ee08af3a8d746 #470 D123727: Fix Symbol::Rank for ProcEntityDetails
+4044db27667782024ce8e842c4fde68cde91edc4 #466 D123725: Don't skip input spaces when they are significant
+fafa42008127e73900e0b39e8eb4a129eaf65c3c + ... Fix typo in recently-merged patch fda70736
+fda707363ba7810810e2736bf73522127687acb5 #465 D123724: Accept TYPE(intrinsic type) in declarations only for non-extension type
+a7f2212bdd1f00d1fe9d9aa6ac50fdd4068e6a75 #449 D123723: Defer NAMELIST group item name resolution
+a2519b74f12061341a4b7a9c2b816cde1ab659a1 #464 D123722: Allow modification of construct entities
+7ce8cce971270f0528c596244c1dea8dd739be62 #463 D123721: Fix TYPE/CLASS IS (T(...)) in SELECT TYPE
+04b841926bc93e1899310bb4c6f5af07687abb32 #462a D123719: Local generics must not shadow host-associated generics
+eda272d1cf12b741072f8bd56b4ea74562e47bbd #462 D123718: Inner INTRINSIC must not shadow host generic
+b767fb3fa8241e6d55f61551f10e075be056d755 #461 D123716: Preserve effect of positioning in record in non-advancing output
+b54f96ea81cdafa286eab78bbfab0622388778e6 #460 D123715: Make F0.1 output editing of zero edge case consistent
+6495a1a40595563daac5718dab28274906283406 #459 D123714: Raise FP exceptions from runtime conversion to binary
+95dc7ef5a0c023f6ec390a26698b15ed9d38b921 #457 D123713: Correct interaction between generics and intrinsics
+0d8b2d32115d4720dc77eca6771bafd3fbb38006 #454 D123712: Fix shape analysis of RESHAPE result
+a4e0c39e35b0778f282f514741dab52688006395 #426 D123711: Always encode multi-byte output in UTF-8
+be3f38a9bb0cfdd6561afc205751dcc3295494aa #442 D123705: Defer all function result type processing
+55d52ead7d063a0628a38742ac4dcaf06deec7ea #441 D123704: Fix combining cases of USE association & generic interfaces
+fc9d820afcd2082e999c34525bbab5f77535c4b7 #453 D123710: Improve appearance of message attachments
+e835c8ef79334ae2562609043ab0c47770b66fb6 #451 D123709: Respect left tab limit with Tn editing after ADVANCE='NO'
+6ed215fc150435ad813accb038f223142e204be2 #450 D123708: Error handling for out-of-range CASE values
+977147e6530e9a73582b8bc335ab48654308c2de #447 D123707: Fold IBITS() intrinsic function
+de7340ff0c7eae3b6976a11485d1f5e6b021f92f #445 D123706: Emit a portability warning for padding in COMMON
 80fe129bac3f7087eeb1797c32b640fdc7c8076f nearest: fold NEAREST() & al.
 72657d43726804c9af0683555be14229488fe8d5 status: catch bad OPEN(STATUS=) cases
 1a90b9c639aa8f2134b0fef0117cf244e1ff1c87 c_assoc: Mark C_ASSOCIATED specific procedures as PURE

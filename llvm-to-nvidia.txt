@@ -40,16 +40,31 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 75196b99fbd3397ccb7960b6e7ad7c40efef2315
+with llvm-project commit 9e7eef9989d365214b2b62be630d0bc9d9e94968
 
 Log of cherry-picked commits in reverse order (latest first):
+9e7eef9989d365214b2b62be630d0bc9d9e94968 Peter K.: edits for msvc to: [flang] Handle parameter-dependent types in PDT initializers
+8065e482189104af30acf46c16ac6c5f6e270d0a Peter K.: reformatted [flang] Inner INTRINSIC must not shadow host generic
+96e45a8958cbfb5906f5b8b3c2423ad5dd884963 V D.: [flang] Use full result range for clock_gettime implementation of SYSTEM_CLOCK
+0b55a8dc6fe81a9b3f8c67ec0b5192baa4bc80b8 PeixinQiao: [flang] Fix intrinsic interface for DIMAG/DCONJG
+0ff322246bcd5c20fdda5e6d1215ee961db2abdc PeixinQiao: [flang] Fix float-number representation bug
+68efe6356551237e967c23c1bf5fd01dc4a2fc90 Mike K.: [flang] Fix ICE for sqrt(0.0) evaluation
+ba038a308021203d9d565b96c2eea5bd2f231ce2 Mike K.: [flang] Do not ICE on out-of-range data statement designator
+d2bcb0a129f1e60d291fe967426e3686d9ea0587 Mike K.: [flang] Allow IMPLICIT NONE(EXTERNAL) with GenericDetails
+6c93e1d329e6c6ef828ec63c66f4cb39ee9cb9ce Andrzej W.: [flang][driver] Add support for `-mmlir`
+8de6cb129736bdb47c8d6305a8bf5033fbac9f2f Andrzej W.: [flang] Fix DYLIB builds
+f253a577b296cdf9a2319661079bf87fe31ccbe6 Damian R.: [flang] expand the num_images test coverage
+8964a17dad6a24d8126a7a4be469ba6487cdad43 PeixinQiao: [OpenMP] Lowering to MLIR of ordered threads directive
+154135c11c2b53cdaa2f49001830659e47f815fc PeixinQiao: [flang][OpenMP] Add semantic checks of nesting of region about ordered construct
+6d3224d93f010fdad74b3244620042629dc7eeec Andrzej W.: [flang][nfc] Simplify TargetMachine initialisation
+dd56939a4b04072a449a05701373e95d00cc494f Andrzej W.: [flang][driver] Add support for generating LLVM bytecode files
 ce6ca8e71e29281d2ec03386e16f2c6463f143ed Jean P.: [flang] D123388 fix - remove unused variable from test
 3d0e0e1027203fe5e89104ad81ee7bb53e525f95 Mats P.: [flang][runtime] Prefer process time over thread time in CPU_TIME
 07e16a2aae68a02629cbcb34a0c0b12cb84754f8 Kiran C.: [Flang][OpenMP] Add implementation of privatisation
 189cb7df911b0d1aafbe60bec1a9e921827e9875 jeanPerier <.: [flang] Lower optionals in GET_COMMAND_ARGUMENT and  GET_ENVIRONMENT_VARIABLE
 9cfa899b87c583e0dcd20e4d35c8e9d337ee14f9 Jean P.: [flang] add a static assert in CheckUnitNumberInRangeImpl
 30b1c1f23d4d58c3220eac6aee35fd23f109b35c Fangrui S.: [Driver] Simplify -f[no-]diagnostics-color handling. NFC
-38c502b6c7e35429ff58ccea869ff2d7793bb0e1 PeixinQiao <.: [flang] Fix -Wunused-variable in -DLLVM_ENABLE_ASSERTIONS=off build
+38c502b6c7e35429ff58ccea869ff2d7793bb0e1 PeixinQiao: [flang] Fix -Wunused-variable in -DLLVM_ENABLE_ASSERTIONS=off build
 2cbd4fc4424a88573ee03e2f1dce345f7826e662 Peixin-Q.: [flang] Support export/import OpenMP Threadprivate Flag
 187ccc66fa5d0b04189cdbd8266fc386e60f48aa Jennifer Y.: [clang][OpenMP5.1] Initial parsing/sema for has_device_addr
 ab8e1e6e5ace6ba9b7c44caa2409bf8e33cdee96 Valentin C.: [flang] Do not fold fir.box_addr when it has a slice
