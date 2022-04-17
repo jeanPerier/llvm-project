@@ -2409,7 +2409,12 @@ std::optional<SpecificCall> IntrinsicProcTable::Implementation::Probe(
         return specificCall;
       }
     }
-    return std::nullopt; // TODO
+    if (IsIntrinsicFunction(call.name)) {
+      context.messages().Say(
+          "Cannot use intrinsic function '%s' as a subroutine"_err_en_US,
+          call.name);
+    }
+    return std::nullopt;
   }
 
   // Helper to avoid emitting errors before it is sure there is no match
@@ -2497,6 +2502,13 @@ std::optional<SpecificCall> IntrinsicProcTable::Implementation::Probe(
         }
       }
     }
+  }
+
+  if (specificBuffer.empty() && genericBuffer.empty() &&
+      IsIntrinsicSubroutine(call.name)) {
+    context.messages().Say(
+        "Cannot use intrinsic subroutine '%s' as a function"_err_en_US,
+        call.name);
   }
 
   // No match; report the right errors, if any

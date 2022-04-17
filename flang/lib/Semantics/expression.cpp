@@ -2199,7 +2199,7 @@ auto ExpressionAnalyzer::GetCalleeAndArguments(const parser::Name &name,
           ProcedureDesignator{std::move(specificCall->specificIntrinsic)},
           std::move(specificCall->arguments)};
     } else {
-      if (!isIntrinsic) {
+      if (isGenericInterface) {
         EmitGenericResolutionError(*symbol, dueToNullActual);
       }
       return std::nullopt;
