@@ -15,8 +15,6 @@
 #include "mlir/Interfaces/LoopLikeInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
-using namespace mlir;
-
 namespace fir {
 
 class FirEndOp;
@@ -47,6 +45,10 @@ static constexpr llvm::StringRef getNormalizedLowerBoundAttrName() {
 }
 
 } // namespace fir
+
+// FIXME: Some of the tablegen generated code requires this. However, a using
+// namespace in a header file is bad practice.
+using namespace mlir;
 
 #define GET_OP_CLASSES
 #include "flang/Optimizer/Dialect/FIROps.h.inc"
