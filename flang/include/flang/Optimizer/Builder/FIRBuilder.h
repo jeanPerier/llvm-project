@@ -434,8 +434,8 @@ llvm::SmallVector<mlir::Value> readExtents(fir::FirOpBuilder &builder,
 fir::ExtendedValue readBoxValue(fir::FirOpBuilder &builder, mlir::Location loc,
                                 const fir::BoxValue &box);
 
-/// Get non default (not all ones) lower bounds of \p exv. Returns empty
-/// vector if the lower bounds are all ones.
+/// Get the lower bounds of \p exv. NB: returns an empty vector if the lower
+/// bounds are all ones, which is the default in Fortran.
 llvm::SmallVector<mlir::Value>
 getNonDefaultLowerBounds(fir::FirOpBuilder &builder, mlir::Location loc,
                          const fir::ExtendedValue &exv);
