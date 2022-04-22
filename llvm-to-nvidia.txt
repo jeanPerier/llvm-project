@@ -40,9 +40,19 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 9e7eef9989d365214b2b62be630d0bc9d9e94968
+with llvm-project commit d6dab38ae48a298b671107c9ebdd86de8f7cd482
 
 Log of cherry-picked commits in reverse order (latest first):
+2186a4aea0e3e50e51b121d304889349c4e033ef Andrzej W.: [flang] Make the plugin API independent of the driver internals
+6c81b4a01e4956d70dac1a5733c063014e4fbe38 Jean P.: [flang] Fold transformational bessels when host runtime has bessels
+488b9fd1030b1e75a6c3580d0a632009315e31f5 Daniil D.: [flang] Do not ICE on recursive function definition in function result
+00c511b35195616430112e5d537588dfdae42cba Nimish M.:  Added lowering support for atomic read and write constructs
+88bb2521b0063f4b1569fd483cb0bf223f839d33 Shraiysh V.: [mlir][OpenMP] Add checks and tests for hint clause and fix empty hint
+39ee23ed5ab3f411b6945a3acbbdf22cd8a0a6cb Mike K.: [flang] Set LBOUND() folding for (x) expression as ones
+bd5371e4fc607aae1a77f29273fd130b59e72409 Mike K.: [flang] Fix LBOUND() folding for constant arrays
+3d63d2111c3e8ee2c897caa6d71429e3bf183e2d Jean P.: [flang] Do not pass derived type by descriptor when not needed
+58ceae9561fbae75fa175244db4e0e4bfe7416fd River R.: [mlir:NFC] Remove the forward declaration of FuncOp in the mlir namespace
+cd03e96f00a8ab2489ae5af79375de2207f4e0ab Peter K.: edits for: Add & use a better visit() (take 2)
 9e7eef9989d365214b2b62be630d0bc9d9e94968 Peter K.: edits for msvc to: [flang] Handle parameter-dependent types in PDT initializers
 8065e482189104af30acf46c16ac6c5f6e270d0a Peter K.: reformatted [flang] Inner INTRINSIC must not shadow host generic
 96e45a8958cbfb5906f5b8b3c2423ad5dd884963 V D.: [flang] Use full result range for clock_gettime implementation of SYSTEM_CLOCK

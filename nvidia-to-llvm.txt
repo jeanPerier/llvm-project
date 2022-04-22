@@ -41,12 +41,18 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-dcd260991db7a72a17dd15c063a5981647c8ca83 visit: add & use a better visit() -- WAS REVERTED
 
 In review:
+92b6c9ece056c86b4e6fb6611502b0262c77a586 dot: accept "." as REAL input
+fa640e4262d45ed586d81385746092ea237ce8c4 spaces: ignore leading spaces even in BZ mode
+a286ac9b3c52e6ea34766ab81ddbe6490a305d49 generic: fix shadowing regression from generic fixes
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+674dafa0da02f69b3eb22dd635f7a81c708f3dc8 + ...
+634592215514898194c847c4f9e814cabb9786bf + ...
+51903e1888fecc0475222a475530c775102cb381 fix: clean up regressions with intrinsic/generic interaction
+dcd260991db7a72a17dd15c063a5981647c8ca83 visit2: add & use a better visit() -- TAKE 2
 961f06803447574e1756cbb83fdfa3fabf346c1f #495 D123734: Don't emit empty lines for bad writes
 4ec03171c35d40ec0ef2d36c3a3694464c248647 #485 D123733: Accept %KIND type parameter inquiries on %RE,%IM, &c.
 3538f026c8f613629a4aa08fa00675202baa5cea #484 D123732: Allow POINTER attribute statement on procedure interfaces
