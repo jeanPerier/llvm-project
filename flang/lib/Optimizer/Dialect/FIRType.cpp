@@ -294,6 +294,17 @@ mlir::Type unwrapAllRefAndSeqType(mlir::Type ty) {
   }
 }
 
+mlir::Type unwrapSeqOrBoxedSeqType(mlir::Type ty) {
+  if (auto seqTy = ty.dyn_cast<fir::SequenceType>())
+    return seqTy.getEleTy();
+  if (auto boxTy = ty.dyn_cast<fir::BoxType>()) {
+    auto eleTy = unwrapRefType(boxTy.getEleTy());
+    if (auto seqTy = eleTy.dyn_cast<fir::SequenceType>())
+      return seqTy.getEleTy();
+  }
+  return ty;
+}
+
 } // namespace fir
 
 namespace {
