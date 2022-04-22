@@ -1313,8 +1313,14 @@ void Fortran::lower::mapSymbolAttributes(
 
   auto genUnusedEntryPointBox = [&]() {
     if (isUnusedEntryDummy) {
-      symMap.addSymbol(sym, fir::factory::createTempMutableBox(
-                                builder, loc, converter.genType(var)));
+      assert(!Fortran::semantics::IsAllocatableOrPointer(sym) &&
+             "handled above");
+      // The box is read right away because lowering code does not expect
+      // a non pointer/allocatable symbol to be mapped to a MutableBox.
+      symMap.addSymbol(sym, fir::factory::genMutableBoxRead(
+                                builder, loc,
+                                fir::factory::createTempMutableBox(
+                                    builder, loc, converter.genType(var))));
       return true;
     }
     return false;
