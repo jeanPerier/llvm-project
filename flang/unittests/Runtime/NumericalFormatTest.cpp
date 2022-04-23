@@ -22,7 +22,6 @@ static bool CompareFormattedStrings(
     const std::string &expect, const std::string &&got) {
   std::string want{expect};
   want.resize(got.size(), ' ');
-  EXPECT_EQ(want, got) << "pmk: ";
   return want == got;
 }
 
