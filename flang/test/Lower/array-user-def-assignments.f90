@@ -260,8 +260,8 @@ end subroutine
 ! CHECK:           %[[VAL_18:.*]] = fir.convert %[[VAL_17]] : (i32) -> i64
 ! CHECK:           %[[VAL_19:.*]] = fir.convert %[[VAL_18]] : (i64) -> index
 ! CHECK:           %[[VAL_20:.*]] = arith.subi %[[VAL_19]], %[[VAL_16]] : index
-! CHECK:           %[[VAL_21:.*]] = arith.constant 0.000000e+00 : f32
-! CHECK:           %[[VAL_22:.*]] = fir.array_fetch %[[VAL_11]], %[[VAL_20]] : (!fir.array<10xf32>, index) -> f32
+! CHECK-DAG:       %[[VAL_21:.*]] = arith.constant 0.000000e+00 : f32
+! CHECK-DAG:       %[[VAL_22:.*]] = fir.array_fetch %[[VAL_11]], %[[VAL_20]] : (!fir.array<10xf32>, index) -> f32
 ! CHECK:           %[[VAL_23:.*]] = arith.cmpf olt, %[[VAL_22]], %[[VAL_21]] : f32
 ! CHECK:           %[[VAL_24:.*]] = arith.constant 1 : index
 ! CHECK:           %[[VAL_25:.*]] = fir.load %[[VAL_3]] : !fir.ref<i32>
