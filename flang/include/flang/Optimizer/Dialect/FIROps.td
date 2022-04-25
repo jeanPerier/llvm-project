@@ -2690,16 +2690,13 @@ def fir_ConvertOp : fir_OneResultOp<"convert", [NoSideEffect]> {
 }
 
 def FortranTypeAttr : Attr<And<[CPred<"$_self.isa<TypeAttr>()">,
-    Or<[CPred<"$_self.cast<TypeAttr>().getValue().isa<fir::CharacterType>()">,
-        CPred<"$_self.cast<TypeAttr>().getValue().isa<fir::ComplexType>()">,
-        CPred<"$_self.cast<TypeAttr>().getValue().isa<fir::IntegerType>()">,
-        CPred<"$_self.cast<TypeAttr>().getValue().isa<fir::LogicalType>()">,
-        CPred<"$_self.cast<TypeAttr>().getValue().isa<fir::RealType>()">,
-        CPred<"$_self.cast<TypeAttr>().getValue().isa<fir::RecordType>()">]>]>,
+    Or<[CPred<"$_self.cast<mlir::TypeAttr>().getValue().isa<fir::CharacterType,"
+              "fir::ComplexType, fir::IntegerType, fir::LogicalType, "
+              "fir::RealType, fir::RecordType>()">]>]>,
     "Fortran surface type"> {
   let storageType = [{ TypeAttr }];
-  let returnType = "Type";
-  let convertFromStorage = "$_self.getValue().cast<Type>()";
+  let returnType = "mlir::Type";
+  let convertFromStorage = "$_self.getValue().cast<mlir::Type>()";
 }
 
 def fir_GenTypeDescOp : fir_OneResultOp<"gentypedesc", [NoSideEffect]> {
