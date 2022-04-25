@@ -40,9 +40,16 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit d6dab38ae48a298b671107c9ebdd86de8f7cd482
+with llvm-project commit 72904a990c4d215a617ca77977babbeb45fc36dc
 
 Log of cherry-picked commits in reverse order (latest first):
+97a32d3e43fec35ea424e77c2940ee7ffffe801a Andrzej W.: [flang][driver] Add support for generating executables
+fca52e82185a9eb49da47372ac92b7a4107b0fc9 Jean P.: [flang] fix LBOUND lowering with KIND and no DIM arguments
+6243b90ead7a4d9e4097849498bea6749836de98 Valentin C.: [flang] Do not create arith.extui with same from/to type
+de8a65f787cc21252a989ca89d966b807b7d977c Eric S.: [NFC] Sync code for upstreaming.
+eda6f907d2581a956aec511ae1d13adc3f97d3ad River R.: [mlir][NFC] Shift a bunch of dialect includes from the .h to the .cpp
+f1dbf8e4ada7761ba296400acbf0190e6e203dc6 Peter K.: Edits to: [flang][runtime] Fix edge-case FP input bugs
+67609cdf09b04d2d43aeea638b71744a14c81a72 Eric S.: [NFC] Cosmetic changes to OpenACC.cpp.
 2186a4aea0e3e50e51b121d304889349c4e033ef Andrzej W.: [flang] Make the plugin API independent of the driver internals
 6c81b4a01e4956d70dac1a5733c063014e4fbe38 Jean P.: [flang] Fold transformational bessels when host runtime has bessels
 488b9fd1030b1e75a6c3580d0a632009315e31f5 Daniil D.: [flang] Do not ICE on recursive function definition in function result

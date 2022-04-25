@@ -43,12 +43,21 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-92b6c9ece056c86b4e6fb6611502b0262c77a586 dot: accept "." as REAL input
-fa640e4262d45ed586d81385746092ea237ce8c4 spaces: ignore leading spaces even in BZ mode
-a286ac9b3c52e6ea34766ab81ddbe6490a305d49 generic: fix shadowing regression from generic fixes
+abc65fe1a8910762998ca8e11d045a55920e0a0c infinity D124401: Accept "INFINITY" as real input
+1903c9f0c7ded9326606e696c5423ed30b1c707c #473a D124400: Fix KIND=16 real/complex component I/O
+0e06a132fd03344215fd5adf80e065406192849d #527 D124303: Fix total MAXLOC/MINLOC for non-integer data
+2bdbbb06102958da7cc873dc6c26845bbb6d6efd #518 D124296: Add semantic checks for intrinsic function REDUCE()
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+239a780779987d3c358b12be0c68a4650362cbfe #513 D124295: Avoid global name conflict when BIND(C,NAME=) is used
+d9a690f4fe23f0acd3896a042f13199b09bce5be #516 D124299: Disambiguate F(X)=Y case where F is a function returning a pointer
+f7a5bbf49cd0df8fbf6c0e939f7ca853121f1f19 #522 D124301: Signal record read overrun when PAD='NO'
+87088551dbafc1dd683247e47927b9f39a3605c7 #521 D124300: Enforce some limits on kP scale factors
+d548ccbd45952c74dd688b742280204a46c57c13 #500 D124294: Fix edge-case FP input bugs
+92b6c9ece056c86b4e6fb6611502b0262c77a586 dot: accept "." as REAL input
+fa640e4262d45ed586d81385746092ea237ce8c4 spaces: ignore leading spaces even in BZ mode
+a286ac9b3c52e6ea34766ab81ddbe6490a305d49 generic: fix shadowing regression from generic fixes
 674dafa0da02f69b3eb22dd635f7a81c708f3dc8 + ...
 634592215514898194c847c4f9e814cabb9786bf + ...
 51903e1888fecc0475222a475530c775102cb381 fix: clean up regressions with intrinsic/generic interaction
