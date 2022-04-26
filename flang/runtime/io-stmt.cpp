@@ -672,10 +672,11 @@ bool IoStatementState::CheckForEndOfRecord() {
       if (connection.positionInRecord >= *length) {
         IoErrorHandler &handler{GetIoErrorHandler()};
         if (mutableModes().nonAdvancing) {
-          if (connection.unterminatedRecord) {
+          if (connection.access == Access::Stream &&
+              connection.unterminatedRecord) {
             // Reading final unterminated record left by a
-            // non-advancing WRITE prior to positioning or
-            // ENDFILE.  This is an EOF case, not EOR.
+            // non-advancing WRITE on a stream file prior to
+            // positioning or ENDFILE.
             handler.SignalEnd();
           } else {
             handler.SignalEor();
