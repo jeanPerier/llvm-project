@@ -178,6 +178,77 @@ static bool PerformStatementSemantics(
   return !context.AnyFatalError();
 }
 
+static bool CommonBlockIsInitialized(const Symbol& common) {
+  const auto &commonDetails =
+      common.get<Fortran::semantics::CommonBlockDetails>();
+   
+  for (const auto& member : commonDetails.objects()) {
+    if (const auto *details =
+              member->detailsIf<Fortran::semantics::ObjectEntityDetails>()) {
+        if (details->init()) {
+          return true;
+        }
+    }
+  }
+
+  // The number and size of equivalence and common is expected to be small, so
+  // no effort is given to optimize this loop of complexity equivalenced
+  // common members * common members
+  for (const Fortran::semantics::EquivalenceSet &set :
+       common.owner().equivalenceSets()) {
+    for (const Fortran::semantics::EquivalenceObject &obj : set) {
+      if (!obj.symbol.test(Fortran::semantics::Symbol::Flag::CompilerCreated)) {
+        if (const auto &details =
+                obj.symbol
+                    .detailsIf<Fortran::semantics::ObjectEntityDetails>()) {
+          const Fortran::semantics::Symbol *com =
+              FindCommonBlockContaining(obj.symbol);
+          if (details->init() && com == &common) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+class CommonBlockMap {
+public:
+void MapCommonBlockAndCheckConflicts(SemanticsContext& context, const Symbol& common) {
+  const bool isInitialized{CommonBlockIsInitialized(common)};
+  auto [it, firstAppearance] = commonBlocks_.insert({common.name(), isInitialized ? CommonBlockInfo{common, common}: CommonBlockInfo{common, std::nullopt}});
+  if (!firstAppearance) {
+    CommonBlockInfo& info{it->second};
+    if (isInitialized) {
+      if (info.initialization.has_value()) {
+        // TODO: emit fatal error
+      } else {
+        info.initialization = common;
+      }
+    }
+    if (common.size() > info.biggestSize->size()) {
+      info.biggestSize = common;
+    }
+  }
+}
+
+std::vector<std::pair<SymbolRef, std::size_t>> GetCommonBlocks() const {
+  std::vector<std::pair<SymbolRef, std::size_t>> result;
+  for (const auto& [_, blockInfo] : commonBlocks_) {
+    result.emplace_back(std::make_pair(blockInfo.initialization ? *blockInfo.initialization : blockInfo.biggestSize, blockInfo.biggestSize->size()));
+  }
+  return result;
+}
+
+private:
+  struct CommonBlockInfo {
+    SymbolRef biggestSize;
+    std::optional<SymbolRef> initialization;
+  };
+  std::map<SourceName, CommonBlockInfo> commonBlocks_;
+};
+
 SemanticsContext::SemanticsContext(
     const common::IntrinsicTypeDefaultKinds &defaultKinds,
     const common::LanguageFeatureControl &languageFeatures,
@@ -465,4 +536,19 @@ static void PutIndent(llvm::raw_ostream &os, int indent) {
     os << "  ";
   }
 }
+
+void SemanticsContext::MapCommonBlockAndCheckConflicts(const Symbol& common) {
+  if (!commonBlockMap_) {
+    commonBlockMap_ = std::make_unique<CommonBlockMap>();
+  }
+  commonBlockMap_->MapCommonBlockAndCheckConflicts(*this, common);
+}
+
+std::vector<std::pair<SymbolRef, std::size_t>> SemanticsContext::GetCommonBlocks() const {
+  if (commonBlockMap_) {
+    return commonBlockMap_->GetCommonBlocks();
+  }
+  return {};
+}
+
 } // namespace Fortran::semantics

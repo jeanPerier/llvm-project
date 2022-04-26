@@ -83,7 +83,7 @@ struct UnwrapStmt<parser::UnlabeledStatement<A>> {
 class PFTBuilder {
 public:
   PFTBuilder(const semantics::SemanticsContext &semanticsContext)
-      : pgm{std::make_unique<lower::pft::Program>()}, semanticsContext{
+      : pgm{std::make_unique<lower::pft::Program>(semanticsContext.GetCommonBlocks())}, semanticsContext{
                                                           semanticsContext} {
     lower::pft::PftNode pftRoot{*pgm.get()};
     pftParentStack.push_back(pftRoot);

@@ -735,18 +735,20 @@ struct Program {
   using Units = std::variant<FunctionLikeUnit, ModuleLikeUnit, BlockDataUnit,
                              CompilerDirectiveUnit>;
 
-  Program() = default;
+  Program(std::vector<std::pair<SymbolRef, std::size_t>>&& commonBlocks): commonBlocks{std::move(commonBlocks)} {}
   Program(Program &&) = default;
   Program(const Program &) = delete;
 
   const std::list<Units> &getUnits() const { return units; }
   std::list<Units> &getUnits() { return units; }
+  const std::vector<std::pair<SymbolRef, std::size_t>>& getCommonBlocks() const {return commonBlocks;}
 
   /// LLVM dump method on a Program.
   LLVM_DUMP_METHOD void dump() const;
 
 private:
   std::list<Units> units;
+  std::vector<std::pair<SymbolRef, std::size_t>> commonBlocks;
 };
 
 /// Return the list of variables that appears in the specification expressions
