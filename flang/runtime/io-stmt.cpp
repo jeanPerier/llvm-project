@@ -327,7 +327,6 @@ void ExternalIoStatementState<DIR>::CompleteOperation() {
       }
       unit().leftTabLimit = unit().furthestPositionInRecord;
     } else {
-      unit().leftTabLimit.reset();
       unit().AdvanceRecord(*this);
     }
     unit().FlushIfTerminal(*this);
@@ -673,7 +672,14 @@ bool IoStatementState::CheckForEndOfRecord() {
       if (connection.positionInRecord >= *length) {
         IoErrorHandler &handler{GetIoErrorHandler()};
         if (mutableModes().nonAdvancing) {
-          handler.SignalEor();
+          if (connection.unterminatedRecord) {
+            // Reading final unterminated record left by a
+            // non-advancing WRITE prior to positioning or
+            // ENDFILE.  This is an EOF case, not EOR.
+            handler.SignalEnd();
+          } else {
+            handler.SignalEor();
+          }
         } else if (!connection.modes.pad) {
           handler.SignalError(IostatRecordReadOverrun);
         }
