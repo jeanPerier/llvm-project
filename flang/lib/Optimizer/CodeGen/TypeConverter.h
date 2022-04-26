@@ -89,8 +89,8 @@ public:
     addConversion(
         [&](fir::PointerType pointer) { return convertPointerLike(pointer); });
     addConversion([&](fir::RecordType derived,
-                      SmallVectorImpl<mlir::Type> &results,
-                      ArrayRef<mlir::Type> callStack) {
+                      llvm::SmallVectorImpl<mlir::Type> &results,
+                      llvm::ArrayRef<mlir::Type> callStack) {
       return convertRecordType(derived, results, callStack);
     });
     addConversion(
@@ -181,9 +181,9 @@ public:
         members.push_back(convertType(mem.second).cast<mlir::Type>());
     }
     if (mlir::failed(st.setBody(members, /*isPacked=*/false)))
-      return failure();
+      return mlir::failure();
     results.push_back(st);
-    return success();
+    return mlir::success();
   }
 
   // Is an extended descriptor needed given the element type of a fir.box type ?

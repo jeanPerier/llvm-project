@@ -68,9 +68,9 @@ struct FixupTy {
 /// generation that traverses the FIR and modifies types and operations to a
 /// form that is appropriate for the specific target. LLVM IR has specific
 /// idioms that are used for distinct target processor and ABI combinations.
-class TargetRewrite : public TargetRewriteBase<TargetRewrite> {
+class TargetRewrite : public fir::TargetRewriteBase<TargetRewrite> {
 public:
-  TargetRewrite(const TargetRewriteOptions &options) {
+  TargetRewrite(const fir::TargetRewriteOptions &options) {
     noCharacterConversion = options.noCharacterConversion;
     noComplexConversion = options.noComplexConversion;
   }
@@ -81,10 +81,10 @@ public:
 
     auto mod = getModule();
     if (!forcedTargetTriple.empty())
-      setTargetTriple(mod, forcedTargetTriple);
+      fir::setTargetTriple(mod, forcedTargetTriple);
 
-    auto specifics = CodeGenSpecifics::get(
-        mod.getContext(), getTargetTriple(mod), getKindMapping(mod));
+    auto specifics = fir::CodeGenSpecifics::get(
+        mod.getContext(), fir::getTargetTriple(mod), fir::getKindMapping(mod));
     setMembers(specifics.get(), &rewriter);
 
     // Perform type conversion on signatures and call sites.
@@ -96,13 +96,13 @@ public:
 
     // Convert ops in target-specific patterns.
     mod.walk([&](mlir::Operation *op) {
-      if (auto call = dyn_cast<fir::CallOp>(op)) {
+      if (auto call = mlir::dyn_cast<fir::CallOp>(op)) {
         if (!hasPortableSignature(call.getFunctionType()))
           convertCallOp(call);
-      } else if (auto dispatch = dyn_cast<DispatchOp>(op)) {
+      } else if (auto dispatch = mlir::dyn_cast<fir::DispatchOp>(op)) {
         if (!hasPortableSignature(dispatch.getFunctionType()))
           convertCallOp(dispatch);
-      } else if (auto addr = dyn_cast<AddrOfOp>(op)) {
+      } else if (auto addr = mlir::dyn_cast<fir::AddrOfOp>(op)) {
         if (addr.getType().isa<mlir::FunctionType>() &&
             !hasPortableSignature(addr.getType()))
           convertAddrOp(addr);
@@ -140,8 +140,8 @@ public:
     return [=](mlir::Operation *call) -> mlir::Value {
       auto mem = rewriter->create<fir::AllocaOp>(loc, resTy);
       rewriter->create<fir::StoreOp>(loc, call->getResult(0), mem);
-      auto memTy = ReferenceType::get(ty);
-      auto cast = rewriter->create<ConvertOp>(loc, memTy, mem);
+      auto memTy = fir::ReferenceType::get(ty);
+      auto cast = rewriter->create<fir::ConvertOp>(loc, memTy, mem);
       return rewriter->create<fir::LoadOp>(loc, cast);
     };
   }
@@ -157,15 +157,15 @@ public:
     if (m.size() == 1) {
       // COMPLEX is a single aggregate
       auto resTy = std::get<mlir::Type>(m[0]);
-      auto attr = std::get<CodeGenSpecifics::Attributes>(m[0]);
-      auto oldRefTy = ReferenceType::get(ty);
+      auto attr = std::get<fir::CodeGenSpecifics::Attributes>(m[0]);
+      auto oldRefTy = fir::ReferenceType::get(ty);
       if (attr.isByVal()) {
         auto mem = rewriter->create<fir::AllocaOp>(loc, ty);
         rewriter->create<fir::StoreOp>(loc, oper, mem);
-        newOpers.push_back(rewriter->create<ConvertOp>(loc, resTy, mem));
+        newOpers.push_back(rewriter->create<fir::ConvertOp>(loc, resTy, mem));
       } else {
         auto mem = rewriter->create<fir::AllocaOp>(loc, resTy);
-        auto cast = rewriter->create<ConvertOp>(loc, oldRefTy, mem);
+        auto cast = rewriter->create<fir::ConvertOp>(loc, oldRefTy, mem);
         rewriter->create<fir::StoreOp>(loc, oper, cast);
         newOpers.push_back(rewriter->create<fir::LoadOp>(loc, mem));
       }
@@ -179,7 +179,7 @@ public:
         auto ty = std::get<mlir::Type>(tup);
         auto index = e.index();
         auto idx = rewriter->getIntegerAttr(iTy, index);
-        auto val = rewriter->create<ExtractValueOp>(
+        auto val = rewriter->create<fir::ExtractValueOp>(
             loc, ty, oper, rewriter->getArrayAttr(idx));
         newInTys.push_back(ty);
         newOpers.push_back(val);
@@ -235,7 +235,7 @@ public:
       mlir::Value oper = std::get<1>(e.value());
       unsigned index = e.index();
       llvm::TypeSwitch<mlir::Type>(ty)
-          .template Case<BoxCharType>([&](BoxCharType boxTy) {
+          .template Case<fir::BoxCharType>([&](fir::BoxCharType boxTy) {
             bool sret;
             if constexpr (std::is_same_v<std::decay_t<A>, fir::CallOp>) {
               sret = callOp.getCallee() &&
@@ -249,13 +249,14 @@ public:
               TODO(loc, "dispatch + sret not supported yet");
             }
             auto m = specifics->boxcharArgumentType(boxTy.getEleTy(), sret);
-            auto unbox =
-                rewriter->create<UnboxCharOp>(loc, std::get<mlir::Type>(m[0]),
-                                              std::get<mlir::Type>(m[1]), oper);
+            auto unbox = rewriter->create<fir::UnboxCharOp>(
+                loc, std::get<mlir::Type>(m[0]), std::get<mlir::Type>(m[1]),
+                oper);
             // unboxed CHARACTER arguments
             for (auto e : llvm::enumerate(m)) {
               unsigned idx = e.index();
-              auto attr = std::get<CodeGenSpecifics::Attributes>(e.value());
+              auto attr =
+                  std::get<fir::CodeGenSpecifics::Attributes>(e.value());
               auto argTy = std::get<mlir::Type>(e.value());
               if (attr.isAppend()) {
                 trailingInTys.push_back(argTy);
@@ -273,12 +274,12 @@ public:
             rewriteCallComplexInputType(cmplx, oper, newInTys, newOpers);
           })
           .template Case<mlir::TupleType>([&](mlir::TupleType tuple) {
-            if (isCharacterProcedureTuple(tuple)) {
+            if (fir::isCharacterProcedureTuple(tuple)) {
               mlir::ModuleOp module = getModule();
               if constexpr (std::is_same_v<std::decay_t<A>, fir::CallOp>) {
                 if (callOp.getCallee()) {
                   llvm::StringRef charProcAttr =
-                      getCharacterProcedureDummyAttrName();
+                      fir::getCharacterProcedureDummyAttrName();
                   // The charProcAttr attribute is only used as a safety to
                   // confirm that this is a dummy procedure and should be split.
                   // It cannot be used to match because attributes are not
@@ -295,9 +296,10 @@ public:
               }
               mlir::Type funcPointerType = tuple.getType(0);
               mlir::Type lenType = tuple.getType(1);
-              FirOpBuilder builder(*rewriter, getKindMapping(module));
+              fir::FirOpBuilder builder(*rewriter, fir::getKindMapping(module));
               auto [funcPointer, len] =
-                  factory::extractCharacterProcedureTuple(builder, loc, oper);
+                  fir::factory::extractCharacterProcedureTuple(builder, loc,
+                                                               oper);
               newInTys.push_back(funcPointerType);
               newOpers.push_back(funcPointer);
               trailingInTys.push_back(lenType);
@@ -347,7 +349,7 @@ public:
       for (auto &tup :
            specifics->complexReturnType(loc, cmplx.getElementType())) {
         auto argTy = std::get<mlir::Type>(tup);
-        if (std::get<CodeGenSpecifics::Attributes>(tup).isSRet())
+        if (std::get<fir::CodeGenSpecifics::Attributes>(tup).isSRet())
           newInTys.push_back(argTy);
         else
           newResTys.push_back(argTy);
@@ -367,7 +369,7 @@ public:
   }
 
   /// Taking the address of a function. Modify the signature as needed.
-  void convertAddrOp(AddrOfOp addrOp) {
+  void convertAddrOp(fir::AddrOfOp addrOp) {
     rewriter->setInsertionPoint(addrOp);
     auto addrTy = addrOp.getType().cast<mlir::FunctionType>();
     llvm::SmallVector<mlir::Type> newResTys;
@@ -386,12 +388,12 @@ public:
     llvm::SmallVector<mlir::Type> trailingInTys;
     for (mlir::Type ty : addrTy.getInputs()) {
       llvm::TypeSwitch<mlir::Type>(ty)
-          .Case<BoxCharType>([&](BoxCharType box) {
+          .Case<fir::BoxCharType>([&](auto box) {
             if (noCharacterConversion) {
               newInTys.push_back(box);
             } else {
               for (auto &tup : specifics->boxcharArgumentType(box.getEleTy())) {
-                auto attr = std::get<CodeGenSpecifics::Attributes>(tup);
+                auto attr = std::get<fir::CodeGenSpecifics::Attributes>(tup);
                 auto argTy = std::get<mlir::Type>(tup);
                 llvm::SmallVector<mlir::Type> &vec =
                     attr.isAppend() ? trailingInTys : newInTys;
@@ -406,7 +408,7 @@ public:
             lowerComplexSignatureArg(loc, ty, newInTys);
           })
           .Case<mlir::TupleType>([&](mlir::TupleType tuple) {
-            if (isCharacterProcedureTuple(tuple)) {
+            if (fir::isCharacterProcedureTuple(tuple)) {
               newInTys.push_back(tuple.getType(0));
               trailingInTys.push_back(tuple.getType(1));
             } else {
@@ -443,15 +445,15 @@ public:
     assert(signature.isa<mlir::FunctionType>());
     auto func = signature.dyn_cast<mlir::FunctionType>();
     for (auto ty : func.getResults())
-      if ((ty.isa<BoxCharType>() && !noCharacterConversion) ||
-          (isa_complex(ty) && !noComplexConversion)) {
+      if ((ty.isa<fir::BoxCharType>() && !noCharacterConversion) ||
+          (fir::isa_complex(ty) && !noComplexConversion)) {
         LLVM_DEBUG(llvm::dbgs() << "rewrite " << signature << " for target\n");
         return false;
       }
     for (auto ty : func.getInputs())
-      if (((ty.isa<BoxCharType>() || isCharacterProcedureTuple(ty)) &&
+      if (((ty.isa<fir::BoxCharType>() || fir::isCharacterProcedureTuple(ty)) &&
            !noCharacterConversion) ||
-          (isa_complex(ty) && !noComplexConversion)) {
+          (fir::isa_complex(ty) && !noComplexConversion)) {
         LLVM_DEBUG(llvm::dbgs() << "rewrite " << signature << " for target\n");
         return false;
       }
@@ -463,7 +465,7 @@ public:
   static bool hasHostAssociations(mlir::FuncOp func) {
     std::size_t end = func.getType().getInputs().size();
     for (std::size_t i = 0; i < end; ++i)
-      if (func.getArgAttrOfType<mlir::UnitAttr>(i, getHostAssocAttrName()))
+      if (func.getArgAttrOfType<mlir::UnitAttr>(i, fir::getHostAssocAttrName()))
         return true;
     return false;
   }
@@ -501,7 +503,7 @@ public:
       auto ty = e.value();
       unsigned index = e.index();
       llvm::TypeSwitch<mlir::Type>(ty)
-          .Case<BoxCharType>([&](BoxCharType boxTy) {
+          .Case<fir::BoxCharType>([&](fir::BoxCharType boxTy) {
             if (noCharacterConversion) {
               newInTys.push_back(boxTy);
             } else {
@@ -513,7 +515,7 @@ public:
                        boxTy.getEleTy(), sret))) {
                 auto &tup = e.value();
                 auto index = e.index();
-                auto attr = std::get<CodeGenSpecifics::Attributes>(tup);
+                auto attr = std::get<fir::CodeGenSpecifics::Attributes>(tup);
                 auto argTy = std::get<mlir::Type>(tup);
                 if (attr.isAppend()) {
                   trailingTys.push_back(argTy);
@@ -543,7 +545,7 @@ public:
               doComplexArg(func, cmplx, newInTys, fixups);
           })
           .Case<mlir::TupleType>([&](mlir::TupleType tuple) {
-            if (isCharacterProcedureTuple(tuple)) {
+            if (fir::isCharacterProcedureTuple(tuple)) {
               fixups.emplace_back(FixupTy::Codes::TrailingCharProc,
                                   newInTys.size(), trailingTys.size());
               newInTys.push_back(tuple.getType(0));
@@ -554,7 +556,7 @@ public:
           })
           .Default([&](mlir::Type ty) { newInTys.push_back(ty); });
       if (func.getArgAttrOfType<mlir::UnitAttr>(index,
-                                                getHostAssocAttrName())) {
+                                                fir::getHostAssocAttrName())) {
         func.setArgAttr(index, "llvm.nest", rewriter->getUnitAttr());
       }
     }
@@ -575,8 +577,9 @@ public:
           auto newArg = func.front().insertArgument(fixup.index,
                                                     newInTys[fixup.index], loc);
           rewriter->setInsertionPointToStart(&func.front());
-          auto oldArgTy = ReferenceType::get(oldArgTys[fixup.index - offset]);
-          auto cast = rewriter->create<ConvertOp>(loc, oldArgTy, newArg);
+          auto oldArgTy =
+              fir::ReferenceType::get(oldArgTys[fixup.index - offset]);
+          auto cast = rewriter->create<fir::ConvertOp>(loc, oldArgTy, newArg);
           auto load = rewriter->create<fir::LoadOp>(loc, cast);
           func.getArgument(fixup.index + 1).replaceAllUsesWith(load);
           func.front().eraseArgument(fixup.index + 1);
@@ -590,8 +593,9 @@ public:
           auto mem =
               rewriter->create<fir::AllocaOp>(loc, newInTys[fixup.index]);
           rewriter->create<fir::StoreOp>(loc, newArg, mem);
-          auto oldArgTy = ReferenceType::get(oldArgTys[fixup.index - offset]);
-          auto cast = rewriter->create<ConvertOp>(loc, oldArgTy, mem);
+          auto oldArgTy =
+              fir::ReferenceType::get(oldArgTys[fixup.index - offset]);
+          auto cast = rewriter->create<fir::ConvertOp>(loc, oldArgTy, mem);
           mlir::Value load = rewriter->create<fir::LoadOp>(loc, cast);
           func.getArgument(fixup.index + 1).replaceAllUsesWith(load);
           func.front().eraseArgument(fixup.index + 1);
@@ -608,7 +612,7 @@ public:
           if (fixup.second == 1) {
             rewriter->setInsertionPointToStart(&func.front());
             auto boxTy = oldArgTys[fixup.index - offset - fixup.second];
-            auto box = rewriter->create<EmboxCharOp>(
+            auto box = rewriter->create<fir::EmboxCharOp>(
                 loc, boxTy, func.front().getArgument(fixup.index - 1), newArg);
             func.getArgument(fixup.index + 1).replaceAllUsesWith(box);
             func.front().eraseArgument(fixup.index + 1);
@@ -624,8 +628,9 @@ public:
           func.walk([&](mlir::ReturnOp ret) {
             rewriter->setInsertionPoint(ret);
             auto oldOper = ret.getOperand(0);
-            auto oldOperTy = ReferenceType::get(oldOper.getType());
-            auto cast = rewriter->create<ConvertOp>(loc, oldOperTy, newArg);
+            auto oldOperTy = fir::ReferenceType::get(oldOper.getType());
+            auto cast =
+                rewriter->create<fir::ConvertOp>(loc, oldOperTy, newArg);
             rewriter->create<fir::StoreOp>(loc, oldOper, cast);
             rewriter->create<mlir::ReturnOp>(loc);
             ret.erase();
@@ -637,10 +642,10 @@ public:
           func.walk([&](mlir::ReturnOp ret) {
             rewriter->setInsertionPoint(ret);
             auto oldOper = ret.getOperand(0);
-            auto oldOperTy = ReferenceType::get(oldOper.getType());
+            auto oldOperTy = fir::ReferenceType::get(oldOper.getType());
             auto mem =
                 rewriter->create<fir::AllocaOp>(loc, newResTys[fixup.index]);
-            auto cast = rewriter->create<ConvertOp>(loc, oldOperTy, mem);
+            auto cast = rewriter->create<fir::ConvertOp>(loc, oldOperTy, mem);
             rewriter->create<fir::StoreOp>(loc, oldOper, cast);
             mlir::Value load = rewriter->create<fir::LoadOp>(loc, mem);
             rewriter->create<mlir::ReturnOp>(loc, load);
@@ -655,14 +660,14 @@ public:
           if (fixup.second == 1) {
             rewriter->setInsertionPointToStart(&func.front());
             auto cplxTy = oldArgTys[fixup.index - offset - fixup.second];
-            auto undef = rewriter->create<UndefOp>(loc, cplxTy);
+            auto undef = rewriter->create<fir::UndefOp>(loc, cplxTy);
             auto iTy = rewriter->getIntegerType(32);
             auto zero = rewriter->getIntegerAttr(iTy, 0);
             auto one = rewriter->getIntegerAttr(iTy, 1);
-            auto cplx1 = rewriter->create<InsertValueOp>(
+            auto cplx1 = rewriter->create<fir::InsertValueOp>(
                 loc, cplxTy, undef, func.front().getArgument(fixup.index - 1),
                 rewriter->getArrayAttr(zero));
-            auto cplx = rewriter->create<InsertValueOp>(
+            auto cplx = rewriter->create<fir::InsertValueOp>(
                 loc, cplxTy, cplx1, newArg, rewriter->getArrayAttr(one));
             func.getArgument(fixup.index + 1).replaceAllUsesWith(cplx);
             func.front().eraseArgument(fixup.index + 1);
@@ -680,8 +685,8 @@ public:
               func.front().addArgument(trailingTys[fixup.second], loc);
           auto boxTy = oldArgTys[fixup.index - offset];
           rewriter->setInsertionPointToStart(&func.front());
-          auto box =
-              rewriter->create<EmboxCharOp>(loc, boxTy, newBufArg, newLenArg);
+          auto box = rewriter->create<fir::EmboxCharOp>(loc, boxTy, newBufArg,
+                                                        newLenArg);
           func.getArgument(fixup.index + 1).replaceAllUsesWith(box);
           func.front().eraseArgument(fixup.index + 1);
         } break;
@@ -695,8 +700,9 @@ public:
           auto newLenArg = func.front().addArgument(trailingTys[fixup.second]);
           auto tupleType = oldArgTys[fixup.index - offset];
           rewriter->setInsertionPointToStart(&func.front());
-          FirOpBuilder builder(*rewriter, getKindMapping(getModule()));
-          auto tuple = factory::createCharacterProcedureTuple(
+          fir::FirOpBuilder builder(*rewriter,
+                                    fir::getKindMapping(getModule()));
+          auto tuple = fir::factory::createCharacterProcedureTuple(
               builder, loc, tupleType, newProcPointerArg, newLenArg);
           func.getArgument(fixup.index + 1).replaceAllUsesWith(tuple);
           func.front().eraseArgument(fixup.index + 1);
@@ -737,7 +743,7 @@ public:
         specifics->complexReturnType(func.getLoc(), cmplx.getElementType());
     assert(m.size() == 1);
     auto &tup = m[0];
-    auto attr = std::get<CodeGenSpecifics::Attributes>(tup);
+    auto attr = std::get<fir::CodeGenSpecifics::Attributes>(tup);
     auto argTy = std::get<mlir::Type>(tup);
     if (attr.isSRet()) {
       unsigned argNo = newInTys.size();
@@ -787,7 +793,7 @@ public:
     for (auto e : llvm::enumerate(m)) {
       auto &tup = e.value();
       auto index = e.index();
-      auto attr = std::get<CodeGenSpecifics::Attributes>(tup);
+      auto attr = std::get<fir::CodeGenSpecifics::Attributes>(tup);
       auto argTy = std::get<mlir::Type>(tup);
       auto argNo = newInTys.size();
       if (attr.isByVal()) {
@@ -827,19 +833,19 @@ private:
     op->erase();
   }
 
-  inline void setMembers(CodeGenSpecifics *s, mlir::OpBuilder *r) {
+  inline void setMembers(fir::CodeGenSpecifics *s, mlir::OpBuilder *r) {
     specifics = s;
     rewriter = r;
   }
 
   inline void clearMembers() { setMembers(nullptr, nullptr); }
 
-  CodeGenSpecifics *specifics{};
-  mlir::OpBuilder *rewriter;
+  fir::CodeGenSpecifics *specifics = nullptr;
+  mlir::OpBuilder *rewriter = nullptr;
 }; // namespace
 } // namespace
 
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-fir::createFirTargetRewritePass(const TargetRewriteOptions &options) {
+fir::createFirTargetRewritePass(const fir::TargetRewriteOptions &options) {
   return std::make_unique<TargetRewrite>(options);
 }
