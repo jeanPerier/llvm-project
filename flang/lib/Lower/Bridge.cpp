@@ -191,8 +191,10 @@ public:
     //  - Define module variables and OpenMP/OpenACC declarative construct so
     //    that they are available before lowering any function that may use
     //    them.
+    //    TODO: update comment
     //  - Translate block data programs so that common block definitions with
     //    data initializations take precedence over other definitions.
+    lowerCommonBlocks(pft.getCommonBlocks());
     for (Fortran::lower::pft::Program::Units &u : pft.getUnits()) {
       std::visit(
           Fortran::common::visitors{
@@ -205,7 +207,7 @@ public:
                      m.nestedFunctions)
                   declareFunction(f);
               },
-              [&](Fortran::lower::pft::BlockDataUnit &b) { lowerBlockData(b); },
+              [&](Fortran::lower::pft::BlockDataUnit &b) {},
               [&](Fortran::lower::pft::CompilerDirectiveUnit &d) {},
           },
           u);
@@ -2810,6 +2812,14 @@ private:
         }
       }
     });
+  }
+
+  void lowerCommonBlocks(const std::vector<std::pair<Fortran::semantics::SymbolRef, std::size_t>>& commonBlocks) {
+    createGlobalOutsideOfFunctionLowering([&]() {
+      for (const auto [common, size] : commonBlocks)
+        Fortran::lower::defineCommonBlock(*this, common, size);
+    });
+    
   }
 
   /// Lower a procedure (nest).

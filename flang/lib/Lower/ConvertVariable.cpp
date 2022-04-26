@@ -653,7 +653,7 @@ getAggregateType(Fortran::lower::AbstractConverter &converter,
 /// This is to be used when lowering the scope that owns the equivalence
 /// (as opposed to simply using it through host or use association).
 /// This is not to be used for equivalence of common block members (they
-/// already have the common block GlobalOp for them, see defineCommonBlock).
+/// already have the common block GlobalOp for them, see defineCommonBlockImpl).
 static fir::GlobalOp defineGlobalAggregateStore(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::lower::pft::Variable::AggregateStore &aggregate,
@@ -700,7 +700,7 @@ static fir::GlobalOp defineGlobalAggregateStore(
 /// This is to be used when lowering the scope that uses members of an
 /// equivalence it through host or use association.
 /// This is not to be used for equivalence of common block members (they
-/// already have the common block GlobalOp for them, see defineCommonBlock).
+/// already have the common block GlobalOp for them, see defineCommonBlockImpl).
 static fir::GlobalOp declareGlobalAggregateStore(
     Fortran::lower::AbstractConverter &converter, mlir::Location loc,
     const Fortran::lower::pft::Variable::AggregateStore &aggregate,
@@ -899,8 +899,8 @@ getCommonMembersWithInitAliases(const Fortran::semantics::Symbol &common) {
 /// scope that owns common blocks more that the others. All scopes using
 /// a common block attempts to define it with common linkage.
 static fir::GlobalOp
-defineCommonBlock(Fortran::lower::AbstractConverter &converter,
-                  const Fortran::semantics::Symbol &common) {
+defineCommonBlockImpl(Fortran::lower::AbstractConverter &converter,
+                  const Fortran::semantics::Symbol &common, std::size_t commonSize) {
   fir::FirOpBuilder &builder = converter.getFirOpBuilder();
   std::string commonName = Fortran::lower::mangle::mangleName(common);
   fir::GlobalOp global = builder.getNamedGlobal(commonName);
@@ -911,13 +911,14 @@ defineCommonBlock(Fortran::lower::AbstractConverter &converter,
   mlir::Location loc = converter.genLocation(common.name());
   mlir::IndexType idxTy = builder.getIndexType();
   mlir::StringAttr linkage = builder.createCommonLinkage();
+  // FIXME: flang supports initialized blank common
   if (!common.name().size() || !commonBlockHasInit(cmnBlkMems)) {
     // A blank (anonymous) COMMON block must always be initialized to zero.
     // A named COMMON block sans initializers is also initialized to zero.
     // mlir::Vector types must have a strictly positive size, so at least
     // temporarily, force a zero size COMMON block to have one byte.
     const auto sz = static_cast<fir::SequenceType::Extent>(
-        common.size() > 0 ? common.size() : 1);
+        commonSize > 0 ? commonSize : 1);
     fir::SequenceType::Shape shape = {sz};
     mlir::IntegerType i8Ty = builder.getIntegerType(8);
     auto commonTy = fir::SequenceType::get(shape, i8Ty);
@@ -932,7 +933,7 @@ defineCommonBlock(Fortran::lower::AbstractConverter &converter,
   std::sort(cmnBlkMems.begin(), cmnBlkMems.end(),
             [](auto &s1, auto &s2) { return s1->offset() < s2->offset(); });
   mlir::TupleType commonTy =
-      getTypeOfCommonWithInit(converter, cmnBlkMems, common.size());
+      getTypeOfCommonWithInit(converter, cmnBlkMems, commonSize);
   auto initFunc = [&](fir::FirOpBuilder &builder) {
     mlir::Value cb = builder.create<fir::UndefOp>(loc, commonTy);
     unsigned tupIdx = 0;
@@ -988,7 +989,7 @@ static void instantiateCommon(Fortran::lower::AbstractConverter &converter,
     commonAddr = symBox.getAddr();
   if (!commonAddr) {
     // introduce a local AddrOf and add it to the map
-    fir::GlobalOp global = defineCommonBlock(converter, common);
+    fir::GlobalOp global = defineCommonBlockImpl(converter, common, common.size());
     commonAddr = builder.create<fir::AddrOfOp>(loc, global.resultType(),
                                                global.getSymbol());
 
@@ -1820,7 +1821,7 @@ void Fortran::lower::defineModuleVariable(
   if (const Fortran::semantics::Symbol *common =
           Fortran::semantics::FindCommonBlockContaining(var.getSymbol())) {
     // Define common block containing the variable.
-    defineCommonBlock(converter, *common);
+    defineCommonBlockImpl(converter, *common, common->size());
   } else if (var.isAlias()) {
     // Do nothing. Mapping will be done on user side.
   } else {
@@ -1904,4 +1905,8 @@ void Fortran::lower::createRuntimeTypeInfoGlobal(
   auto var = Fortran::lower::pft::Variable(typeInfoSym, /*global=*/true);
   mlir::StringAttr linkage = getLinkageAttribute(builder, var);
   defineGlobal(converter, var, globalName, linkage);
+}
+
+void Fortran::lower::defineCommonBlock(Fortran::lower::AbstractConverter &converter, const Fortran::semantics::Symbol& sym, std::size_t commonSize) {
+  defineCommonBlockImpl(converter, sym, commonSize);
 }

@@ -49,6 +49,7 @@ struct WhereConstruct;
 namespace Fortran::semantics {
 
 class Symbol;
+class CommonBlockMap;
 
 using ConstructNode = std::variant<const parser::AssociateConstruct *,
     const parser::BlockConstruct *, const parser::CaseConstruct *,
@@ -195,6 +196,9 @@ public:
   void UseFortranBuiltinsModule();
   const Scope *GetBuiltinsScope() const { return builtinsScope_; }
 
+  void MapCommonBlockAndCheckConflicts(const Symbol&);
+  std::vector<std::pair<SymbolRef, std::size_t>> GetCommonBlocks() const;
+
 private:
   void CheckIndexVarRedefine(
       const parser::CharBlock &, const Symbol &, parser::MessageFixedText &&);
@@ -226,6 +230,7 @@ private:
   UnorderedSymbolSet errorSymbols_;
   std::set<std::string> tempNames_;
   const Scope *builtinsScope_{nullptr}; // module __Fortran_builtins
+  std::unique_ptr<CommonBlockMap> commonBlockMap_;
 };
 
 class Semantics {

@@ -57,6 +57,8 @@ void instantiateVariable(AbstractConverter &, const pft::Variable &var,
 /// called.
 void defineModuleVariable(AbstractConverter &, const pft::Variable &var);
 
+void defineCommonBlock(AbstractConverter &, const semantics::Symbol& common, std::size_t commonSize);
+
 /// Lower a symbol attributes given an optional storage \p and add it to the
 /// provided symbol map. If \preAlloc is not provided, a temporary storage will
 /// be allocated. This is a low level function that should only be used if
