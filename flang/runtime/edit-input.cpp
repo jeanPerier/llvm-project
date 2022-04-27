@@ -628,7 +628,7 @@ static bool EditListDirectedCharacterInput(
   // or the end of the current record.  Subtlety: the "remaining" count
   // here is a dummy that's used to avoid the interpretation of separators
   // in NextInField.
-  std::optional<int> remaining{maxUTF8Bytes};
+  std::optional<int> remaining{length > 0 ? maxUTF8Bytes : 0};
   while (std::optional<char32_t> next{io.NextInField(remaining, edit)}) {
     switch (*next) {
     case ' ':
@@ -640,8 +640,7 @@ static bool EditListDirectedCharacterInput(
       break;
     default:
       *x++ = *next;
-      --length;
-      remaining = maxUTF8Bytes;
+      remaining = --length > 0 ? maxUTF8Bytes : 0;
     }
   }
   std::fill_n(x, length, ' ');

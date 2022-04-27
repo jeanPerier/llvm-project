@@ -52,22 +52,23 @@ static bool EditBOZOutput(IoStatementState &io, const DataEdit &edit,
   // Emit leading spaces and zeroes; detect field overflow
   int leadingZeroes{0};
   int editWidth{edit.width.value_or(0)};
-  if (edit.digits && digits <= *edit.digits) { // Bw.m, Ow.m, Zw.m
+  int significant{digits - skippedZeroes};
+  if (edit.digits && significant <= *edit.digits) { // Bw.m, Ow.m, Zw.m
     if (*edit.digits == 0 && bytes == 0) {
       editWidth = std::max(1, editWidth);
     } else {
-      leadingZeroes = *edit.digits - digits;
+      leadingZeroes = *edit.digits - significant;
     }
   } else if (bytes == 0) {
     leadingZeroes = 1;
   }
-  int subTotal{leadingZeroes + digits};
+  int subTotal{leadingZeroes + significant};
   int leadingSpaces{std::max(0, editWidth - subTotal)};
   if (editWidth > 0 && leadingSpaces + subTotal > editWidth) {
     return io.EmitRepeated('*', editWidth);
   }
   if (!(io.EmitRepeated(' ', leadingSpaces) &&
-      io.EmitRepeated('0', leadingZeroes))) {
+          io.EmitRepeated('0', leadingZeroes))) {
     return false;
   }
   // Emit remaining digits
@@ -116,11 +117,14 @@ bool EditIntegerOutput(IoStatementState &io, const DataEdit &edit,
     }
     break;
   case 'B':
-    return EditBOZOutput<1>(io, edit, reinterpret_cast<const unsigned char *>(&n), KIND);
+    return EditBOZOutput<1>(
+        io, edit, reinterpret_cast<const unsigned char *>(&n), KIND);
   case 'O':
-    return EditBOZOutput<3>(io, edit, reinterpret_cast<const unsigned char *>(&n), KIND);
+    return EditBOZOutput<3>(
+        io, edit, reinterpret_cast<const unsigned char *>(&n), KIND);
   case 'Z':
-    return EditBOZOutput<4>(io, edit, reinterpret_cast<const unsigned char *>(&n), KIND);
+    return EditBOZOutput<4>(
+        io, edit, reinterpret_cast<const unsigned char *>(&n), KIND);
   case 'A': // legacy extension
     return EditCharacterOutput(
         io, edit, reinterpret_cast<char *>(&n), sizeof n);
@@ -550,11 +554,14 @@ bool EditLogicalOutput(IoStatementState &io, const DataEdit &edit, bool truth) {
     return io.EmitRepeated(' ', std::max(0, edit.width.value_or(1) - 1)) &&
         io.Emit(truth ? "T" : "F", 1);
   case 'B':
-    return EditBOZOutput<1>(io, edit, reinterpret_cast<const unsigned char *>(&truth), sizeof truth);
+    return EditBOZOutput<1>(io, edit,
+        reinterpret_cast<const unsigned char *>(&truth), sizeof truth);
   case 'O':
-    return EditBOZOutput<3>(io, edit, reinterpret_cast<const unsigned char *>(&truth), sizeof truth);
+    return EditBOZOutput<3>(io, edit,
+        reinterpret_cast<const unsigned char *>(&truth), sizeof truth);
   case 'Z':
-    return EditBOZOutput<4>(io, edit, reinterpret_cast<const unsigned char *>(&truth), sizeof truth);
+    return EditBOZOutput<4>(io, edit,
+        reinterpret_cast<const unsigned char *>(&truth), sizeof truth);
   default:
     io.GetIoErrorHandler().SignalError(IostatErrorInFormat,
         "Data edit descriptor '%c' may not be used with a LOGICAL data item",
@@ -625,11 +632,14 @@ bool EditCharacterOutput(IoStatementState &io, const DataEdit &edit,
   case 'G':
     break;
   case 'B':
-    return EditBOZOutput<1>(io, edit, reinterpret_cast<const unsigned char *>(x), sizeof(CHAR) * length);
+    return EditBOZOutput<1>(io, edit,
+        reinterpret_cast<const unsigned char *>(x), sizeof(CHAR) * length);
   case 'O':
-    return EditBOZOutput<3>(io, edit, reinterpret_cast<const unsigned char *>(x), sizeof(CHAR) * length);
+    return EditBOZOutput<3>(io, edit,
+        reinterpret_cast<const unsigned char *>(x), sizeof(CHAR) * length);
   case 'Z':
-    return EditBOZOutput<4>(io, edit, reinterpret_cast<const unsigned char *>(x), sizeof(CHAR) * length);
+    return EditBOZOutput<4>(io, edit,
+        reinterpret_cast<const unsigned char *>(x), sizeof(CHAR) * length);
   default:
     io.GetIoErrorHandler().SignalError(IostatErrorInFormat,
         "Data edit descriptor '%c' may not be used with a CHARACTER data item",
