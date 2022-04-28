@@ -57,7 +57,10 @@ void instantiateVariable(AbstractConverter &, const pft::Variable &var,
 /// called.
 void defineModuleVariable(AbstractConverter &, const pft::Variable &var);
 
-void defineCommonBlock(AbstractConverter &, const semantics::Symbol& common, std::size_t commonSize);
+/// Create fir::GlobalOp for all common blocks, including there initial values
+/// if they have one. This should be called before lowering any scopes so that
+/// common blocks globals are available when a common appear in a scope.
+void defineCommonBlocks(AbstractConverter &, const std::vector<std::pair<semantics::SymbolRef, std::size_t>> &commonBlocks);
 
 /// Lower a symbol attributes given an optional storage \p and add it to the
 /// provided symbol map. If \preAlloc is not provided, a temporary storage will

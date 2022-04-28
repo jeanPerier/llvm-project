@@ -186,15 +186,15 @@ public:
   /// Convert the PFT to FIR.
   void run(Fortran::lower::pft::Program &pft) {
     // Preliminary translation pass.
+
+    // - Lower common blocks from the PFT common block list that contains a consolidated list of the common blocks (with the initialization if any in the Program, and with the common block biggest size in all its appearance). This is done before lowering any scope declarations because it is not know at the local scope level what MLIR type common blocks should have to suit all its usage in the compilation unit.
+    lowerCommonBlocks(pft.getCommonBlocks());
+
     //  - Declare all functions that have definitions so that definition
     //    signatures prevail over call site signatures.
     //  - Define module variables and OpenMP/OpenACC declarative construct so
     //    that they are available before lowering any function that may use
     //    them.
-    //    TODO: update comment
-    //  - Translate block data programs so that common block definitions with
-    //    data initializations take precedence over other definitions.
-    lowerCommonBlocks(pft.getCommonBlocks());
     for (Fortran::lower::pft::Program::Units &u : pft.getUnits()) {
       std::visit(
           Fortran::common::visitors{
@@ -2814,12 +2814,11 @@ private:
     });
   }
 
-  void lowerCommonBlocks(const std::vector<std::pair<Fortran::semantics::SymbolRef, std::size_t>>& commonBlocks) {
+  /// Create fir::Global for all the common blocks that appear in the program.
+  void lowerCommonBlocks(const Fortran::semantics::CommonBlockList& commonBlocks) {
     createGlobalOutsideOfFunctionLowering([&]() {
-      for (const auto [common, size] : commonBlocks)
-        Fortran::lower::defineCommonBlock(*this, common, size);
+      Fortran::lower::defineCommonBlocks(*this, commonBlocks);
     });
-    
   }
 
   /// Lower a procedure (nest).
