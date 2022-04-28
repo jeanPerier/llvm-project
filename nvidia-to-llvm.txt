@@ -43,13 +43,18 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-abc65fe1a8910762998ca8e11d045a55920e0a0c infinity D124401: Accept "INFINITY" as real input
-1903c9f0c7ded9326606e696c5423ed30b1c707c #473a D124400: Fix KIND=16 real/complex component I/O
-0e06a132fd03344215fd5adf80e065406192849d #527 D124303: Fix total MAXLOC/MINLOC for non-integer data
-2bdbbb06102958da7cc873dc6c26845bbb6d6efd #518 D124296: Add semantic checks for intrinsic function REDUCE()
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+6db15ef53c770d4802b699a604e71fa4d4dba41c #530 D124547: Support B/O/Z editing of CHARACTER
+bb89ba9e495eb865ca74200a97715020401be4d9 #475 D124546: Correct emission & reading of unterminated final records
+6d7bc02a0ff431dd1027aa60500b167c87e42abd #450 D124544: Downgrade a fatal error to a warning
+4aa7fa37d11c86ad58252c4a910308075cfcd2b9 #449 D124541: Allow for host association in ConvertTo(Object|Proc)Entity
+da4fece1227444d67825e346838b87ba28db71bb #576 D124467: Fix crash from PDT component init in module file
+0e06a132fd03344215fd5adf80e065406192849d #527 D124303: Fix total MAXLOC/MINLOC for non-integer data
+2bdbbb06102958da7cc873dc6c26845bbb6d6efd #518 D124296: Add semantic checks for intrinsic function REDUCE()
+abc65fe1a8910762998ca8e11d045a55920e0a0c infinity D124401: Accept "INFINITY" as real input
+1903c9f0c7ded9326606e696c5423ed30b1c707c #473a D124400: Fix KIND=16 real/complex component I/O
 239a780779987d3c358b12be0c68a4650362cbfe #513 D124295: Avoid global name conflict when BIND(C,NAME=) is used
 d9a690f4fe23f0acd3896a042f13199b09bce5be #516 D124299: Disambiguate F(X)=Y case where F is a function returning a pointer
 f7a5bbf49cd0df8fbf6c0e939f7ca853121f1f19 #522 D124301: Signal record read overrun when PAD='NO'

@@ -40,9 +40,25 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 72904a990c4d215a617ca77977babbeb45fc36dc
+with llvm-project commit 53f775bbc0b8fbca941b5f7ad324b18884eddd7e
 
 Log of cherry-picked commits in reverse order (latest first):
+53f775bbc0b8fbca941b5f7ad324b18884eddd7e Peter K.: Updates to: [flang][runtime] Support B/O/Z editing of CHARACTER
+5dedf911deb409f6293c71ef6ef524359740f1f0 Chris L.: [AsmParser] Rework logic around "region argument parsing"
+36771bbad1b2588b66f9033074f1f2155065dffb Peter K.: updated: [flang][runtime] Correct emission & reading of unterminated final records
+b5b3e50f65ee99257041723e7645d44c1aeb1117 Kiran C.: [Flang] Initial lowering of the Fortran Do loop
+dcb2ddd6c925e6e4058ca41d2fb0833957fabeb3 Andrzej W.: [flang][driver] Fix spelling (nfc)
+35cc2ec4ed4a7a0862e62ad009d561f61e2d12c3 Mike K.: [flang] Support FINDLOC/MAXLOC/MINLOC with scalar mask
+92e22c97e9ef0da76b52bf56a0ac5d4a312b1ea7 Mike K.: [flang] Fix UBOUND() constant folding for parentheses expr
+b6b8d34554a4d85ec064463b54a27e073c42beeb PeixinQiao: [flang] Add lowering stubs for OpenMP/OpenACC declarative constructs
+9df99d8ac22fe712259ce1a973fbc29c8362ab48 Peter S.: [flang] Fix MAXLOC/MINLOC when MASK is scalar .FALSE.
+d8b4ea486a5c152ba1ceb656a3d6638defe40fe1 Mike K.: [flang] Fix UBOUND() folding for constant arrays
+acd75440c67acc31d9a5b0afdd64b5700be8960e Kiran C.: [Flang] Lower the FailImage Statement
+d902dd011c9403ff746613a73c5d83e13db93fe5 Andrzej W.: [flang][driver] NFC: Make code more in line with LLVM style
+8dc8e59eba4930980fa42232dbcafa969f79477a Eric S.:  Upstream test for wide character literals.
+44e58509be72b49c3abc7b4c5a7ffa81a754fe1c Eric S.: [NFC] More synching of sources for upstreaming.
+e1836123a7ecb57dcb9a4630c6960478df829fc5 Peter K.: [flang] Get ppc64le build bot back up
+1f31795cb38949bec45786dc7e125ddac6d54564 Eric S.: [NFC] Cleanup code to get back in synch for upstreaming.
 97a32d3e43fec35ea424e77c2940ee7ffffe801a Andrzej W.: [flang][driver] Add support for generating executables
 fca52e82185a9eb49da47372ac92b7a4107b0fc9 Jean P.: [flang] fix LBOUND lowering with KIND and no DIM arguments
 6243b90ead7a4d9e4097849498bea6749836de98 Valentin C.: [flang] Do not create arith.extui with same from/to type
