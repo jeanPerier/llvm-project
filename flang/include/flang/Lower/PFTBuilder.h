@@ -28,6 +28,10 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
+namespace Fortran::semantics {
+using CommonBlockList = std::vector<std::pair<SymbolRef, std::size_t>>;
+}
+
 namespace Fortran::lower::pft {
 
 struct Evaluation;
@@ -737,18 +741,23 @@ struct Program {
   using Units = std::variant<FunctionLikeUnit, ModuleLikeUnit, BlockDataUnit,
                              CompilerDirectiveUnit>;
 
-  Program() = default;
+  Program(semantics::CommonBlockList &&commonBlocks)
+      : commonBlocks{std::move(commonBlocks)} {}
   Program(Program &&) = default;
   Program(const Program &) = delete;
 
   const std::list<Units> &getUnits() const { return units; }
   std::list<Units> &getUnits() { return units; }
+  const semantics::CommonBlockList &getCommonBlocks() const {
+    return commonBlocks;
+  }
 
   /// LLVM dump method on a Program.
   LLVM_DUMP_METHOD void dump() const;
 
 private:
   std::list<Units> units;
+  semantics::CommonBlockList commonBlocks;
 };
 
 /// Return the list of variables that appears in the specification expressions
