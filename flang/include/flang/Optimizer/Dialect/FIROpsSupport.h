@@ -70,7 +70,7 @@ static constexpr llvm::StringRef getOptionalAttrName() {
 static constexpr llvm::StringRef getTargetAttrName() { return "fir.target"; }
 
 /// Attribute to keep track of Fortran scoping information for a symbol.
-static constexpr llvm::StringRef getSymbolAttrName() { return "fir.sym_name"; }
+static constexpr llvm::StringRef getSymbolAttrName() { return "fir.bindc_name"; }
 
 /// Attribute to mark a function that takes a host associations argument.
 static constexpr llvm::StringRef getHostAssocAttrName() {
