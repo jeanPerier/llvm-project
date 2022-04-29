@@ -24,13 +24,10 @@
 #include "flang/Parser/parse-tree.h"
 #include "flang/Semantics/attr.h"
 #include "flang/Semantics/scope.h"
+#include "flang/Semantics/semantics.h"
 #include "flang/Semantics/symbol.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
-
-namespace Fortran::semantics {
-using CommonBlockList = std::vector<std::pair<SymbolRef, std::size_t>>;
-}
 
 namespace Fortran::lower::pft {
 
