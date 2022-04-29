@@ -205,7 +205,7 @@ public:
   // appearances in the program and consolidate information about
   // common blocks at the program level for later checks and lowering.
   // This can obviously not check any conflicts between different compilation
-  // units (in case such conflicts exist, the behavior will depend of the
+  // units (in case such conflicts exist, the behavior will depend on the
   // linker).
   void MapCommonBlockAndCheckConflicts(const Symbol &);
 

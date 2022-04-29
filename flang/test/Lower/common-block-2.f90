@@ -16,21 +16,21 @@
 ! CHECK:  fir.has_value %[[init]] : tuple<i32, !fir.array<8xi8>>
 
 
-subroutine first_appreance
+subroutine first_appearance
   real :: x, y, xa, ya
   common // x, y
   common /a/ xa, ya
   call foo(x, xa)
 end subroutine
 
-subroutine second_appreance
+subroutine second_appearance
   real :: x, y, z, xa, ya, za
   common // x, y, z
   common /a/ xa, ya, za
   call foo(x, xa)
 end subroutine
 
-subroutine third_appreance
+subroutine third_appearance
   integer :: x = 42, xa = 42
   common // x
   common /a/ xa
