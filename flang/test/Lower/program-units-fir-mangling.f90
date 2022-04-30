@@ -136,19 +136,42 @@ subroutine should_not_collide()
 end subroutine
 end program
 
-! CHECK-LABEL: func @omp_get_num_threads() -> f32 attributes {fir.sym_name = "_QPomp_get_num_threads"} {
+! CHECK-LABEL: func @omp_get_num_threads() -> f32 attributes {fir.bindc_name = "omp_get_num_threads"} {
 function omp_get_num_threads() bind(c)
 ! CHECK: }
 end function
 
-! CHECK-LABEL: func @get_threads() -> f32 attributes {fir.sym_name = "_QPomp_get_num_threads_1"} {
+! CHECK-LABEL: func @get_threads() -> f32 attributes {fir.bindc_name = "get_threads"} {
 function omp_get_num_threads_1() bind(c, name ="get_threads")
 ! CHECK: }
 end function
 
-! CHECK-LABEL: func @bEtA() -> f32 attributes {fir.sym_name = "_QPalpha"} {
+! CHECK-LABEL: func @bEtA() -> f32 attributes {fir.bindc_name = "bEtA"} {
 function alpha() bind(c, name =" bEtA ")
 ! CHECK: }
 end function
+
+! CHECK-LABEL: func @bc1() attributes {fir.bindc_name = "bc1"} {
+subroutine bind_c_s() Bind(C,Name='bc1')
+  ! CHECK: return
+end subroutine bind_c_s
+
+! CHECK-LABEL: func @_QPbind_c_s() {
+subroutine bind_c_s()
+  ! CHECK: fir.call @_QPbind_c_q() : () -> ()
+  ! CHECK: return
+  call bind_c_q
+end
+
+! CHECK-LABEL: func @_QPbind_c_q() {
+subroutine bind_c_q()
+  interface
+    subroutine bind_c_s() Bind(C, name='bc1')
+    end
+  end interface
+  ! CHECK: fir.call @bc1() : () -> ()
+  ! CHECK: return
+  call bind_c_s
+end
 
 ! CHECK-LABEL: fir.global internal @_QFfooEpi : f32 {
