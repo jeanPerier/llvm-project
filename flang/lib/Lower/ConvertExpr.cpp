@@ -1414,6 +1414,23 @@ public:
     }
   }
 
+  /// Convert string, \p s, to an APFloat value. Recognize and handle Inf and
+  /// NaN strings as well. \p s is assumed to not contain any spaces.
+  static llvm::APFloat consAPFloat(const llvm::fltSemantics &fsem,
+                                   llvm::StringRef s) {
+    assert(s.find(' ') == llvm::StringRef::npos);
+    if (s.compare_insensitive("-inf") == 0)
+      return llvm::APFloat::getInf(fsem, /*negative=*/true);
+    if (s.compare_insensitive("inf") == 0 || s.compare_insensitive("+inf") == 0)
+      return llvm::APFloat::getInf(fsem);
+    // TODO: Add support for quiet and signaling NaNs.
+    if (s.compare_insensitive("-nan") == 0)
+      return llvm::APFloat::getNaN(fsem, /*negative=*/true);
+    if (s.compare_insensitive("nan") == 0 || s.compare_insensitive("+nan") == 0)
+      return llvm::APFloat::getNaN(fsem);
+    return {fsem, s};
+  }
+
   /// Generate a raw literal value and store it in the rawVals vector.
   template <Fortran::common::TypeCategory TC, int KIND>
   void
@@ -1431,18 +1448,19 @@ public:
     } else if constexpr (TC == Fortran::common::TypeCategory::Real) {
       std::string str = value.DumpHexadecimal();
       inInitializer->rawType = converter.genType(TC, KIND);
-      llvm::APFloat floatVal{builder.getKindMap().getFloatSemantics(KIND), str};
+      auto floatVal =
+          consAPFloat(builder.getKindMap().getFloatSemantics(KIND), str);
       val = builder.getFloatAttr(inInitializer->rawType, floatVal);
     } else if constexpr (TC == Fortran::common::TypeCategory::Complex) {
       std::string strReal = value.REAL().DumpHexadecimal();
       std::string strImg = value.AIMAG().DumpHexadecimal();
       inInitializer->rawType = converter.genType(TC, KIND);
-      llvm::APFloat realVal{builder.getKindMap().getFloatSemantics(KIND),
-                            strReal};
+      auto realVal =
+          consAPFloat(builder.getKindMap().getFloatSemantics(KIND), strReal);
       val = builder.getFloatAttr(inInitializer->rawType, realVal);
       inInitializer->rawVals.push_back(val);
-      llvm::APFloat imgVal{builder.getKindMap().getFloatSemantics(KIND),
-                           strImg};
+      auto imgVal =
+          consAPFloat(builder.getKindMap().getFloatSemantics(KIND), strImg);
       val = builder.getFloatAttr(inInitializer->rawType, imgVal);
     }
     inInitializer->rawVals.push_back(val);
@@ -2558,9 +2576,9 @@ public:
     bool callingImplicitInterface = caller.canBeCalledViaImplicitInterface();
     for (auto [fst, snd] :
          llvm::zip(caller.getInputs(), funcType.getInputs())) {
-      // When passing arguments to a procedure that can be called an implicit
-      // interface, allow character actual arguments to be passed to dummy
-      // arguments of any type and vice versa
+      // When passing arguments to a procedure that can be called by implicit
+      // interface, allow any character actual arguments to be passed to dummy
+      // arguments of any type and vice versa.
       mlir::Value cast;
       auto *context = builder.getContext();
       if (snd.isa<fir::BoxProcType>() &&
@@ -2574,6 +2592,12 @@ public:
           cast = builder.create<fir::EmboxProcOp>(loc, boxProcTy, fst);
         }
       } else {
+        if (fir::isa_derived(snd)) {
+          // FIXME: This seems like a serious bug elsewhere in lowering. Paper
+          // over the problem for now.
+          TODO(loc, "derived type argument passed by value");
+        }
+        assert(!fir::isa_derived(snd));
         cast = builder.convertWithSemantics(loc, snd, fst,
                                             callingImplicitInterface);
       }
@@ -5012,10 +5036,10 @@ private:
         isElementalProcWithArrayArgs(x))
       return std::visit([&](const auto &e) { return genarr(e); }, x.u);
     if (explicitSpaceIsActive()) {
-       assert(!isArray(x) && !isLeftHandSide());
-       auto cc = std::visit([&](const auto &e) { return genarr(e); }, x.u);
-       auto result = cc(IterationSpace{});
-       return [=](IterSpace) { return result; };
+      assert(!isArray(x) && !isLeftHandSide());
+      auto cc = std::visit([&](const auto &e) { return genarr(e); }, x.u);
+      auto result = cc(IterationSpace{});
+      return [=](IterSpace) { return result; };
     }
     return genScalarAndForwardValue(x);
   }
