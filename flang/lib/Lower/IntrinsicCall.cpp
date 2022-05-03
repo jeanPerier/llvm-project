@@ -1410,7 +1410,7 @@ mlir::Value toValue(const fir::ExtendedValue &val, fir::FirOpBuilder &builder,
 
 /// Emit a TODO error message for as yet unimplemented intrinsics.
 static void crashOnMissingIntrinsic(mlir::Location loc, llvm::StringRef name) {
-  TODO(loc, "missing intrinsic lowering: " + llvm::Twine(name));
+  TODO(loc, "missing intrinsic implementation: " + llvm::Twine(name));
 }
 
 template <typename GeneratorType>
@@ -1691,7 +1691,8 @@ IntrinsicLibrary::getRuntimeCallGenerator(llvm::StringRef name,
                                           mlir::FunctionType soughtFuncType) {
   mlir::FuncOp funcOp = getRuntimeFunction(loc, builder, name, soughtFuncType);
   if (!funcOp) {
-    std::string buffer("not yet implemented: missing intrinsic lowering: ");
+    std::string buffer(
+        "not yet implemented: missing intrinsic implementation: ");
     llvm::raw_string_ostream sstream(buffer);
     sstream << name << "\nrequested type was: " << soughtFuncType << '\n';
     fir::emitFatalError(loc, buffer);
@@ -3879,8 +3880,7 @@ Fortran::lower::ArgLoweringRule Fortran::lower::lowerIntrinsicArgumentAs(
     if (arg.name && arg.name == argName)
       return {arg.lowerAs, arg.handleDynamicOptional};
   }
-  fir::emitFatalError(loc, "unknown intrinsic argument name in lowering '" +
-                               argName + "'");
+  fir::emitFatalError(loc, "unknown intrinsic argument name '" + argName + "'");
 }
 
 //===----------------------------------------------------------------------===//

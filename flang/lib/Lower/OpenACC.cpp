@@ -654,8 +654,7 @@ genACC(Fortran::lower::AbstractConverter &converter,
     TODO(converter.getCurrentLocation(),
          "OpenACC Serial Loop construct not lowered yet!");
   } else {
-    llvm::report_fatal_error(
-        "Unknown combined construct encountered in lowering");
+    llvm::report_fatal_error("Unknown combined construct encountered");
   }
 }
 
@@ -707,8 +706,7 @@ genACCEnterDataOp(Fortran::lower::AbstractConverter &converter,
                    std::get_if<Fortran::parser::AccClause::Attach>(&clause.u)) {
       genObjectList(attachClause->v, converter, attachOperands);
     } else {
-      llvm::report_fatal_error(
-          "Unknown clause in ENTER DATA directive lowering");
+      llvm::report_fatal_error("Unknown clause in ENTER DATA directive");
     }
   }
 

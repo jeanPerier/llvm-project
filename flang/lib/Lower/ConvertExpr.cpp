@@ -388,8 +388,7 @@ static fir::ExtendedValue genLoad(fir::FirOpBuilder &builder,
       [&](const fir::BoxValue &box) -> fir::ExtendedValue {
         if (box.isUnlimitedPolymorphic())
           fir::emitFatalError(
-              loc,
-              "lowering attempting to load an unlimited polymorphic entity");
+              loc, "attempting to load an unlimited polymorphic entity");
         return genLoad(builder, loc,
                        fir::factory::readBoxValue(builder, loc, box));
       },
@@ -1680,8 +1679,7 @@ public:
 
   template <typename A>
   ExtValue genval(const Fortran::evaluate::ArrayConstructor<A> &) {
-    fir::emitFatalError(getLoc(),
-                        "array constructor: lowering should not reach here");
+    fir::emitFatalError(getLoc(), "array constructor: should not reach here");
   }
 
   ExtValue gen(const Fortran::evaluate::ComplexPart &x) {
@@ -1862,7 +1860,7 @@ public:
         return genval(*sub);
       return genIntegerConstant<8>(builder.getContext(), 1);
     }
-    TODO(getLoc(), "non explicit semantics::Bound lowering");
+    TODO(getLoc(), "non explicit semantics::Bound implementation");
   }
 
   static bool isSlice(const Fortran::evaluate::ArrayRef &aref) {
@@ -1992,7 +1990,7 @@ public:
               loc, "internal: BoxValue in dim-collapsed fir.coordinate_of");
         },
         [&](const auto &) -> ExtValue {
-          fir::emitFatalError(loc, "internal: array lowering failed");
+          fir::emitFatalError(loc, "internal: array processing failed");
         });
   }
 
@@ -2979,7 +2977,7 @@ public:
       }
       const auto *expr = actual->UnwrapExpr();
       if (!expr)
-        TODO(loc, "assumed type actual argument lowering");
+        TODO(loc, "assumed type actual argument");
 
       if (arg.passBy == PassBy::Value) {
         ExtValue argVal = genval(*expr);
@@ -4777,7 +4775,7 @@ private:
           // a potentially absent argument to something else than a value (apart
           // from character MAX/MIN that are handled elsewhere.)
           if (argRules.lowerAs != Fortran::lower::LowerIntrinsicArgAs::Value)
-            TODO(loc, "lowering non trivial optional elemental intrinsic array "
+            TODO(loc, "non trivial optional elemental intrinsic array "
                       "argument");
           PushSemantics(ConstituentSemantics::RefTransparent);
           operands.emplace_back(genarrForwardOptionalArgumentToCall(*expr));
@@ -4850,7 +4848,7 @@ private:
       }
       const auto *expr = actual->UnwrapExpr();
       if (!expr)
-        TODO(loc, "assumed type actual argument lowering");
+        TODO(loc, "assumed type actual argument");
 
       LLVM_DEBUG(expr->AsFortran(llvm::dbgs()
                                  << "argument: " << arg.firArgument << " = [")
