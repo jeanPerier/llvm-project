@@ -568,7 +568,7 @@ mlir::Value fir::runtime::genMaxval(fir::FirOpBuilder &builder,
            builder.getIntegerType(builder.getKindMap().getIntegerBitsize(16)))
     func = fir::runtime::getRuntimeFunc<ForcedMaxvalInteger16>(loc, builder);
   else
-    fir::emitFatalError(loc, "invalid type in Maxval lowering");
+    fir::emitFatalError(loc, "invalid type in Maxval");
 
   auto fTy = func.getType();
   auto sourceFile = fir::factory::locationToFilename(builder, loc);
@@ -687,7 +687,7 @@ mlir::Value fir::runtime::genMinval(fir::FirOpBuilder &builder,
            builder.getIntegerType(builder.getKindMap().getIntegerBitsize(16)))
     func = fir::runtime::getRuntimeFunc<ForcedMinvalInteger16>(loc, builder);
   else
-    fir::emitFatalError(loc, "invalid type in Minval lowering");
+    fir::emitFatalError(loc, "invalid type in Minval");
 
   auto fTy = func.getType();
   auto sourceFile = fir::factory::locationToFilename(builder, loc);
@@ -754,7 +754,7 @@ mlir::Value fir::runtime::genProduct(fir::FirOpBuilder &builder,
   else if (eleTy == fir::ComplexType::get(builder.getContext(), 16))
     func = fir::runtime::getRuntimeFunc<ForcedProductComplex16>(loc, builder);
   else
-    fir::emitFatalError(loc, "invalid type in Product lowering");
+    fir::emitFatalError(loc, "invalid type in Product");
 
   auto fTy = func.getType();
   auto sourceFile = fir::factory::locationToFilename(builder, loc);
@@ -831,7 +831,7 @@ mlir::Value fir::runtime::genDotProduct(fir::FirOpBuilder &builder,
     func =
         fir::runtime::getRuntimeFunc<mkRTKey(DotProductLogical)>(loc, builder);
   else
-    fir::emitFatalError(loc, "invalid type in DotProduct lowering");
+    fir::emitFatalError(loc, "invalid type in DotProduct");
 
   auto fTy = func.getType();
   auto sourceFile = fir::factory::locationToFilename(builder, loc);
@@ -904,7 +904,7 @@ mlir::Value fir::runtime::genSum(fir::FirOpBuilder &builder, mlir::Location loc,
   else if (eleTy == fir::ComplexType::get(builder.getContext(), 16))
     func = fir::runtime::getRuntimeFunc<ForcedSumComplex16>(loc, builder);
   else
-    fir::emitFatalError(loc, "invalid type in Sum lowering");
+    fir::emitFatalError(loc, "invalid type in Sum");
 
   auto fTy = func.getType();
   auto sourceFile = fir::factory::locationToFilename(builder, loc);
