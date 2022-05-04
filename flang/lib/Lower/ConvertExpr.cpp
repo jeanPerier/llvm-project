@@ -3895,6 +3895,7 @@ public:
       mlir::Value oldInnerArg = op.sequence();
       std::size_t offset = explicitSpace->argPosition(oldInnerArg);
       explicitSpace->setInnerArg(offset, fir::getBase(lexv));
+      finalizeElementCtx();
       builder.create<fir::ResultOp>(getLoc(), fir::getBase(lexv));
     };
     llvm::TypeSwitch<mlir::Operation *>(fir::getBase(lexv).getDefiningOp())
@@ -3955,8 +3956,10 @@ public:
     // 4) Finalize the inner context.
     explicitSpace->finalizeContext();
     // 5). Thread the array value updated forward.
-    if (!isIllFormedLHS)
+    if (!isIllFormedLHS) {
+      finalizeElementCtx();
       builder.create<fir::ResultOp>(getLoc(), fir::getBase(lexv));
+    }
     return lexv;
   }
 
