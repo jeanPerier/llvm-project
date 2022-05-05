@@ -3891,18 +3891,25 @@ public:
     // 4) Thread the array value updated forward. Note: the lhs might be
     // ill-formed (performing scalar assignment in an array context),
     // in which case there is no array to thread.
+    auto loc = getLoc();
     auto createResult = [&](auto op) {
       mlir::Value oldInnerArg = op.sequence();
       std::size_t offset = explicitSpace->argPosition(oldInnerArg);
       explicitSpace->setInnerArg(offset, fir::getBase(lexv));
       finalizeElementCtx();
-      builder.create<fir::ResultOp>(getLoc(), fir::getBase(lexv));
+      builder.create<fir::ResultOp>(loc, fir::getBase(lexv));
     };
-    llvm::TypeSwitch<mlir::Operation *>(fir::getBase(lexv).getDefiningOp())
-        .Case([&](fir::ArrayUpdateOp op) { createResult(op); })
-        .Case([&](fir::ArrayAmendOp op) { createResult(op); })
-        .Case([&](fir::ArrayModifyOp op) { createResult(op); })
-        .Default([&](mlir::Operation *) {});
+    if (mlir::Operation *defOp = fir::getBase(lexv).getDefiningOp()) {
+      llvm::TypeSwitch<mlir::Operation *>(defOp)
+          .Case([&](fir::ArrayUpdateOp op) { createResult(op); })
+          .Case([&](fir::ArrayAmendOp op) { createResult(op); })
+          .Case([&](fir::ArrayModifyOp op) { createResult(op); })
+          .Default([&](mlir::Operation *) { finalizeElementCtx(); });
+    } else {
+      // `lhs` isn't from a `fir.array_load`, so there is no array modifications
+      // to thread through the iteration space.
+      finalizeElementCtx();
+    }
     return lexv;
   }
 
