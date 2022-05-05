@@ -1533,7 +1533,9 @@ void Fortran::lower::mapSymbolAttributes(
         mlir::Value local =
             isDummy ? addr
                     : createNewLocal(converter, loc, var, preAlloc, extents);
-        assert(isDummy || Fortran::lower::isExplicitShape(sym));
+        // Must be a dummy argument, have an explicit shape, or be a PARAMETER.
+        assert(isDummy || Fortran::lower::isExplicitShape(sym) ||
+               Fortran::semantics::IsNamedConstant(sym));
         symMap.addSymbolWithBounds(sym, local, extents, lbounds, isDummy);
       },
 
