@@ -361,8 +361,14 @@ bool Fortran::lower::CalleeInterface::isMainProgram() const {
 }
 
 mlir::FuncOp Fortran::lower::CalleeInterface::addEntryBlockAndMapArguments() {
-  // On the callee side, directly map the mlir::value argument of
-  // the function block to the Fortran symbols.
+  // Check for bugs in the front end. The front end must not present multiple
+  // definitions of the same procedure.
+  if (!func.getBlocks().empty())
+    fir::emitFatalError(func.getLoc(),
+                        "cannot process subprogram that was already processed");
+
+  // On the callee side, directly map the mlir::value argument of the function
+  // block to the Fortran symbols.
   func.addEntryBlock();
   mapPassedEntities();
   return func;
