@@ -40,7 +40,7 @@ module real_tests
   TEST_ISNAN(nan_r8_dlog1)
   !WARN: warning: complex argument must be different from zero
   complex(4), parameter :: c4_clog1 = clog((0., 0.))
-  !WARN: warning: argument 'p' must be different from zero
+  !WARN: warning: second argument to MOD must not be zero
   real(4), parameter :: nan_r4_mod = mod(3.5, 0.)
   TEST_ISNAN(nan_r4_mod)
   real(4), parameter :: ok_r4_gamma = gamma(-1.1)
