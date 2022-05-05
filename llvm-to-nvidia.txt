@@ -40,9 +40,26 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 53f775bbc0b8fbca941b5f7ad324b18884eddd7e
+with llvm-project commit 4a64bed2160c6031d2c7c3321d4f88734c00f9bb
 
 Log of cherry-picked commits in reverse order (latest first):
+c12ef70d2b0ac6234feb48e01eb954dd753bb538 Andrzej W.: [flang][driver] Add missing parentheses in an assert
+bb0aa574e7d66049bcb08c8a17532dadd875bf41 Andrzej W.: [flang] Fix triple in a couple of driver tests
+b9f3b7f89a4cb4cf541b7116d9389c73690f78fa Andrzej W.: [flang][driver] Add support for consuming LLVM IR/BC files
+d1344422009732991767bdcaf57dbedd946c7761 Pete S.: [flang][nfc] Use a message class for "not yet implemented" messages
+bb177edc44f412f368c4c5983df15b7364fc3122 Andrzej W.: [flang][driver] Re-organise the code-gen actions (nfc)
+b910cf986ab953874c55cf2eb6981234abad9b76 Jean P.: [flang] use 1-based dim in transformational runtime error msg
+02fb5b771d7ff130eff6c3ee5ac1c7cbdfb5dc63 Andrzej W.: [flang][driver] Define the default frontend driver triple
+8867e83d00322c97630a3019b7f6c580dbcb37b4 Daniil D.: [flang] Fix ICE for passing a label for non alternate return arguments
+1dd8da2d7c75c2a34bf85a37a819755d60ddfb2b Emil K.: [flang] Fix semantics check for RETURN statement
+c685f8212689665968de47f8bd4b1146296e8cc2 Raghu M.: [mlir][OpenMP] Add omp.cancel and omp.cancellationpoint.
+a60fda59dc6b1dda25cad26214b02d1f630319e7 Shraiysh V.: [mlir][OpenMP] Restrict types for omp.parallel args
+e6295c645f85b7f0ffc64183a24feea3c0574c3c Shraiysh V.: [flang] Added tests for taskwait and taskyield translation
+303ecc42d42fcefb421ce9890df97e8ae3e1fd60 PeixinQiao: [flang] Add one semantic check for implicit interface
+d85eb4e2d62e51645922ec17678a319b3c7d872c Chris L.: [AsmParser] Introduce a new "Argument" abstraction + supporting logic
+68ee5ad0082c0a72ff16a6571c9db7054afd6ea3 Alexis P.: [flang] Update Google Doc link for Flang Biweekly Sync call notes
+5a7936401c0a5a8959273108051b094ffba84b8c Peter K.: [flang] Fix build bot problem
+2c8cb9acb51e2fa74bf9339ddd0884ef9d921dfc Jean P.: [flang] Handle common block with different sizes in same file
 53f775bbc0b8fbca941b5f7ad324b18884eddd7e Peter K.: Updates to: [flang][runtime] Support B/O/Z editing of CHARACTER
 5dedf911deb409f6293c71ef6ef524359740f1f0 Chris L.: [AsmParser] Rework logic around "region argument parsing"
 36771bbad1b2588b66f9033074f1f2155065dffb Peter K.: updated: [flang][runtime] Correct emission & reading of unterminated final records
@@ -51,7 +68,7 @@ dcb2ddd6c925e6e4058ca41d2fb0833957fabeb3 Andrzej W.: [flang][driver] Fix spellin
 35cc2ec4ed4a7a0862e62ad009d561f61e2d12c3 Mike K.: [flang] Support FINDLOC/MAXLOC/MINLOC with scalar mask
 92e22c97e9ef0da76b52bf56a0ac5d4a312b1ea7 Mike K.: [flang] Fix UBOUND() constant folding for parentheses expr
 b6b8d34554a4d85ec064463b54a27e073c42beeb PeixinQiao: [flang] Add lowering stubs for OpenMP/OpenACC declarative constructs
-9df99d8ac22fe712259ce1a973fbc29c8362ab48 Peter S.: [flang] Fix MAXLOC/MINLOC when MASK is scalar .FALSE.
+9df99d8ac22fe712259ce1a973fbc29c8362ab48 Pete S.: [flang] Fix MAXLOC/MINLOC when MASK is scalar .FALSE.
 d8b4ea486a5c152ba1ceb656a3d6638defe40fe1 Mike K.: [flang] Fix UBOUND() folding for constant arrays
 acd75440c67acc31d9a5b0afdd64b5700be8960e Kiran C.: [Flang] Lower the FailImage Statement
 d902dd011c9403ff746613a73c5d83e13db93fe5 Andrzej W.: [flang][driver] NFC: Make code more in line with LLVM style
@@ -379,9 +396,9 @@ cc120e36c31a33ff46fa1a5b33d6df4235dcb740 Shraiysh V.: mlir thing
 ad40cc14a8b728dedc20c9397489bda50185b176 Valentin C.: lower basic scalar int function
 7dd7ccd2247052528ea6bbfbd37c7c7e589ac5cb Jean P.: fail link when no derived type descriptions
 bea53eead1de84a28affc6a7cbf88f87a258fed4 Harshil J.: check for non-negative device expr value
-bdf573652138fee827e18e636d92975171b566af Peter S.: improve RESHAPE runtime errors
+bdf573652138fee827e18e636d92975171b566af Pete S.: improve RESHAPE runtime errors
 c45bd4b9e58ec6359ec07993eff81bd163a2d6ac Eric S.: fix to allocmem codegen, missing dims for seq of char types
-1341b5a0f5c39f05883e0f458d60ee4c6f059886 Peter S.: allow mixed assoc's of proc ptrs and targets
+1341b5a0f5c39f05883e0f458d60ee4c6f059886 Pete S.: allow mixed assoc's of proc ptrs and targets
 4ae83bb2b1e27628f6bd14d746aef964ed776d52 Louis D.: update docs about runtimes
 85b89ed213c41a8d7dafff957c8d20a247e6d9df Valentin C.: lower simple RETURN
 2d4dc1cba0a75b29b1a46244ad3e180a2df31e09 Valentin C.: replace hard-coded attribute name
@@ -389,7 +406,7 @@ c2b9e9674d5259c12a055055f4e06eba5b8d0fa6 Rainer O.: fix test link on Solaris
 6da728ad9945e070c0860cc2841deb148a7d76b4 Valentin C.: add FIRInlinerInterface
 7d7ebf3cf06e6845dc5b83912f0adecbf69e1123 Uday B.: fix flang build breakage
 3915789503344e9d4ba8c3e01b9b1dc717a49f44 Eric S.: change to LEN rewriting
-6cd417bfd886ffe4e0cf4b48055aa7bfc352b789 Peter S.: inquiry intrinsics for runtime
+6cd417bfd886ffe4e0cf4b48055aa7bfc352b789 Pete S.: inquiry intrinsics for runtime
 fd0417a3cf7d4cdee7d6984752453ce3ec93e860 Valentin C.: type conversion for !fir.box<none>
 0b626df1bc4e5b9f9ce326d4766465588315da36 Valentin C.: reorder conversions
 50bccf22970239cf292145c548af71e8eac0020b Diana P.: GET_COMMAND API
@@ -427,7 +444,7 @@ db01b123d012df2f0e6acf7e90bf4ba63382587c Valentin C.: lower PAUSE statement
 aab4263ad66c99da15cb9bda6aec8269d159b113 Valentin C.: lower basic STOP statement
 82cf35bc89fcbe666243cd6f9e29af0023016a2d Peter K.: work around GCC 11 warnings
 ce8022faa365e0a48c2d77085d67bd9800bedb0a Josh M.: partial lowering of EXIT extension intrinsic subroutine
-93ee588232877485535f40e56014eb0e12e3fa32 Peter S.: rename runtime routine
+93ee588232877485535f40e56014eb0e12e3fa32 Pete S.: rename runtime routine
 89275300d861aef73225428c95fdb069de36186d Valentin C.: basic empty subroutine
 990759136a268fa51695d04f845ce7f9b36a842f Valentin C.: add lowering placeholders
 697a5036cd9bdf9d12978e082e38ac75f0eb108e Sanjoy D.: remove OpTrait &c.
@@ -435,7 +452,7 @@ ce8022faa365e0a48c2d77085d67bd9800bedb0a Josh M.: partial lowering of EXIT exten
 ddac11aee6494cc91994d5205afd62e2999d3e8c Josh M.: partial COMMAND_ARGUMENT_COUNT
 6d892987bca1cf8aee134e44b1a45c57fba590ac Valentin C.: rm IO helper
 4606f838b2b60ce7d3995adf194eee470bf2395b Andrzej W.: capitalisation
-eb933225f491e2063ba47e18a1153829cb32676c Peter S.: add runtime Crash
+eb933225f491e2063ba47e18a1153829cb32676c Pete S.: add runtime Crash
 e1a12767ee628e179efc8733449f98018a686b4d Valentin C.: lowering for empty program
 b62e5928e452c7f0fd8c5885d15fd9eededce3d2 Valentin C.: rm IntrinsicCall helper
 944dca758f1c25706b0150ea238f46c8707b95af Valentin C.: rm ComplexExpr helper
