@@ -55,7 +55,6 @@ module real_tests
   real(4), parameter :: r4_log_gamma2 = log_gamma(-100001.)
   !WARN: warning: 'x' and 'y' arguments must not be both zero
   real(4), parameter :: r4_atan2 = atan2(0., 0.)
-
   !WARN: warning: overflow on intrinsic function call
   logical, parameter :: test_exp_overflow = exp(256._4).EQ.r4_pinf
 end module
