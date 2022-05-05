@@ -1401,11 +1401,13 @@ struct SymbolDependenceDepth {
     LLVM_DEBUG(llvm::dbgs() << "analyze symbol: " << sym << '\n');
     if (!done.second)
       return 0;
+    const bool isProcedurePointerOrDummy =
+        semantics::IsProcedurePointer(sym) ||
+        (semantics::IsProcedure(sym) && IsDummy(sym));
     // A procedure argument in a subprogram with multiple entry points might
     // need a vars list entry to trigger creation of a symbol map entry in
     // some cases.  Non-dummy procedures don't.
-    if (semantics::IsProcedure(sym) && !semantics::IsProcedurePointer(sym) &&
-        !IsDummy(sym))
+    if (semantics::IsProcedure(sym) && !isProcedurePointerOrDummy)
       return 0;
     semantics::Symbol ultimate = sym.GetUltimate();
     if (const auto *details =
@@ -1416,7 +1418,7 @@ struct SymbolDependenceDepth {
       return 0;
     }
     if (!ultimate.has<semantics::ObjectEntityDetails>() &&
-        !ultimate.has<semantics::ProcEntityDetails>())
+        !isProcedurePointerOrDummy)
       return 0;
 
     if (sym.has<semantics::DerivedTypeDetails>())

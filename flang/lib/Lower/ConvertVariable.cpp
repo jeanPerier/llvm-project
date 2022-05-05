@@ -131,7 +131,7 @@ static fir::GlobalOp declareGlobal(Fortran::lower::AbstractConverter &converter,
   // symbol is an object of a function pointer.
   const Fortran::semantics::Symbol &ultimate = sym.GetUltimate();
   if (!ultimate.has<Fortran::semantics::ObjectEntityDetails>() &&
-      !ultimate.has<Fortran::semantics::ProcEntityDetails>())
+      !Fortran::semantics::IsProcedurePointer(ultimate))
     mlir::emitError(loc, "processing global declaration: symbol '")
         << toStringRef(sym.name()) << "' has unexpected details\n";
   return builder.createGlobal(loc, converter.genType(var), globalName, linkage,
@@ -389,6 +389,10 @@ static fir::GlobalOp defineGlobal(Fortran::lower::AbstractConverter &converter,
 
   if (global && globalIsInitialized(global))
     return global;
+
+  if (Fortran::semantics::IsProcedurePointer(sym))
+    TODO(loc, "procedure pointer globals");
+
   // If this is an array, check to see if we can use a dense attribute
   // with a tensor mlir type.  This optimization currently only supports
   // rank-1 Fortran arrays of integer, real, or logical. The tensor
@@ -1222,8 +1226,9 @@ void Fortran::lower::mapSymbolAttributes(
   if (Fortran::semantics::IsProcedure(sym)) {
     if (isUnusedEntryDummy) {
       // Additional discussion below.
-      mlir::Value undefOp = builder.create<fir::UndefOp>(
-          loc, builder.getRefType(converter.genType(var)));
+      mlir::Type dummyProcType =
+          Fortran::lower::getDummyProcedureType(sym, converter);
+      mlir::Value undefOp = builder.create<fir::UndefOp>(loc, dummyProcType);
       symMap.addSymbol(sym, undefOp);
     }
     if (Fortran::semantics::IsPointer(sym))
