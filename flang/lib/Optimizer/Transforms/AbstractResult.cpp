@@ -32,13 +32,6 @@ struct AbstractResultOptions {
   mlir::Value newArg;
 };
 
-static bool mustConvertCallOrFunc(mlir::FunctionType type) {
-  if (type.getNumResults() == 0)
-    return false;
-  auto resultType = type.getResult(0);
-  return resultType.isa<fir::SequenceType, fir::BoxType, fir::RecordType>();
-}
-
 static mlir::Type getResultArgumentType(mlir::Type resultType,
                                         const AbstractResultOptions &options) {
   return llvm::TypeSwitch<mlir::Type, mlir::Type>(resultType)
@@ -224,7 +217,7 @@ public:
 
     // Convert function type itself if it has an abstract result
     auto funcTy = func.getType().cast<mlir::FunctionType>();
-    if (mustConvertCallOrFunc(funcTy)) {
+    if (hasAbstractResult(funcTy)) {
       func.setType(getNewFunctionType(funcTy, options));
       unsigned zero = 0;
       if (!func.empty()) {
@@ -253,11 +246,11 @@ public:
                            mlir::StandardOpsDialect>();
     target.addIllegalOp<fir::SaveResultOp>();
     target.addDynamicallyLegalOp<fir::CallOp>([](fir::CallOp call) {
-      return !mustConvertCallOrFunc(call.getFunctionType());
+      return !hasAbstractResult(call.getFunctionType());
     });
     target.addDynamicallyLegalOp<fir::AddrOfOp>([](fir::AddrOfOp addrOf) {
       if (auto funTy = addrOf.getType().dyn_cast<mlir::FunctionType>())
-        return !mustConvertCallOrFunc(funTy);
+        return !hasAbstractResult(funTy);
       return true;
     });
     target.addDynamicallyLegalOp<fir::DispatchOp>([](fir::DispatchOp dispatch) {
