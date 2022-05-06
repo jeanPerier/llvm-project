@@ -397,7 +397,6 @@ public:
               }
             } else if (subs.ubound().isStar()) {
               shapes.push_back(fir::SequenceType::getUnknownExtent());
-              continue;
             }
           }
         }
