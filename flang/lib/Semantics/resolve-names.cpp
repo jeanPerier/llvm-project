@@ -6582,9 +6582,10 @@ void DeclarationVisitor::Initialization(const parser::Name &name,
               // work better.
               ultimate.set(Symbol::Flag::InDataStmt);
             },
-            [&](const std::list<Indirection<parser::DataStmtValue>> &) {
+            [&](const std::list<Indirection<parser::DataStmtValue>> &values) {
               // Handled later in data-to-inits conversion
               ultimate.set(Symbol::Flag::InDataStmt);
+              Walk(values);
             },
         },
         init.u);
