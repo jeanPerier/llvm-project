@@ -1380,23 +1380,24 @@ public:
     } else if constexpr (TC == Fortran::common::TypeCategory::Real) {
       std::string str = value.DumpHexadecimal();
       if constexpr (KIND == 2) {
-        llvm::APFloat floatVal{llvm::APFloatBase::IEEEhalf(), str};
+        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEhalf(), str);
         return genRealConstant<KIND>(builder.getContext(), floatVal);
       } else if constexpr (KIND == 3) {
-        llvm::APFloat floatVal{llvm::APFloatBase::BFloat(), str};
+        auto floatVal = consAPFloat(llvm::APFloatBase::BFloat(), str);
         return genRealConstant<KIND>(builder.getContext(), floatVal);
       } else if constexpr (KIND == 4) {
-        llvm::APFloat floatVal{llvm::APFloatBase::IEEEsingle(), str};
+        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEsingle(), str);
         return genRealConstant<KIND>(builder.getContext(), floatVal);
       } else if constexpr (KIND == 10) {
-        llvm::APFloat floatVal{llvm::APFloatBase::x87DoubleExtended(), str};
+        auto floatVal =
+            consAPFloat(llvm::APFloatBase::x87DoubleExtended(), str);
         return genRealConstant<KIND>(builder.getContext(), floatVal);
       } else if constexpr (KIND == 16) {
-        llvm::APFloat floatVal{llvm::APFloatBase::IEEEquad(), str};
+        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEquad(), str);
         return genRealConstant<KIND>(builder.getContext(), floatVal);
-      } else {
+      } else /*constexpr*/ {
         // convert everything else to double
-        llvm::APFloat floatVal{llvm::APFloatBase::IEEEdouble(), str};
+        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEdouble(), str);
         return genRealConstant<KIND>(builder.getContext(), floatVal);
       }
     } else if constexpr (TC == Fortran::common::TypeCategory::Complex) {
