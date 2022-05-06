@@ -4098,6 +4098,11 @@ private:
   /// dealing with any bounds parameters on the pointer assignment.
   mlir::Value convertElementForUpdate(mlir::Location loc, mlir::Type eleTy,
                                       mlir::Value origVal) {
+    if (origVal.getType().isa<fir::BoxType>() && !eleTy.isa<fir::BoxType>()) {
+      if (isPointerAssignment())
+        TODO(loc, "lhs of pointer assignment returned unexpected value");
+      TODO(loc, "invalid box conversion in elemental computation");
+    }
     mlir::Value val = builder.createConvert(loc, eleTy, origVal);
     if (isBoundsSpec()) {
       auto lbs = lbounds.getValue();
@@ -6824,10 +6829,7 @@ private:
           // conversion and store.
           if (!isPointerAssignment()) {
             if (auto boxTy = eleTy.dyn_cast<fir::BoxType>()) {
-              eleTy = boxTy.getEleTy();
-              if (!(eleTy.isa<fir::PointerType>() ||
-                    eleTy.isa<fir::HeapType>()))
-                eleTy = builder.getRefType(eleTy);
+              eleTy = fir::boxMemRefType(boxTy);
               addr = builder.create<fir::BoxAddrOp>(loc, eleTy, addr);
               eleTy = fir::unwrapRefType(eleTy);
             }
@@ -6949,8 +6951,8 @@ private:
       return [=, &x, builder = &converter.getFirOpBuilder()](
                  IterSpace iters) -> ExtValue {
         ExtValue exv = asScalarRef(x);
-        mlir::Value val = fir::getBase(exv);
-        mlir::Type eleTy = fir::unwrapRefType(val.getType());
+        mlir::Value addr = fir::getBase(exv);
+        mlir::Type eleTy = fir::unwrapRefType(addr.getType());
         if (isAdjustedArrayElementType(eleTy)) {
           if (fir::isa_char(eleTy)) {
             fir::factory::CharacterExprHelper{*builder, loc}.createAssign(
@@ -6961,7 +6963,8 @@ private:
             fir::emitFatalError(loc, "array type not expected in scalar");
           }
         } else {
-          builder->create<fir::StoreOp>(loc, iters.getElement(), val);
+          auto eleVal = convertElementForUpdate(loc, eleTy, iters.getElement());
+          builder->create<fir::StoreOp>(loc, eleVal, addr);
         }
         return exv;
       };
