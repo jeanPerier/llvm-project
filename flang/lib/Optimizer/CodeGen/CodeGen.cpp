@@ -16,7 +16,7 @@
 #include "PassDetail.h"
 #include "Target.h"
 #include "flang/ISO_Fortran_binding.h"
-#include "flang/Lower/Todo.h" // remove when TODO's are done
+#include "flang/Optimizer/Builder/Todo.h" // remove when TODO's are done
 #include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
