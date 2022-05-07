@@ -43,6 +43,29 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+1b75a3c20f30a7aa80006925ff4f74145806bd39 #544 D125153 val: Enforce limit on rank + corank
+25ae5261ccef8110fde5aad42e04c5b39564e461 #597 D125151 jean: Fold real-valued MODULO() and MOD()
+d55947a0e18d26f1a2b9f515cafc37af1fbc336e #596 D125146 val: Fold real-valued DIM()
+eaa6e154ec812bb153ad7e2069ca016b76519ef8 #582 D125144 pete: Allow ENTRY function result symbol usage before the ENTRY
+bb3bb1c7b3b92da90c3ee4aea7f5477273e04820 #595 D125139 jean: Accept POINTER followed by INTERFACE
+4b21c662c02cdb13a0837d6579814cbb41e386a5 #572 D125135 jean: Reverse a reversed type compatibility check
+b4173706b9b1efe492928b35906d99734aa4f938 #571 D125131 pete: Refine error checking in specification expressions
+56ecda074beb85199625c5474a204078b5a4960b #570 D125129 pete: Allow implicit declaration of DATA objects in inner procedures
+c9aece2d955aafc89b1739c5ef17e08504821792 #566 D125127 pete: Allow NULL() actual argument for optional dummy procedure
+75745bd9e7b06f4bcb3cabb9969eeadf61c7cd56 #561 D125124 pete: Allow PDTs with LEN parameters in REDUCE()
+ac0f1bbd0856da0bb2377b2d6acb4d3288f1805e #558 D125123 jean: Correct actual/dummy procedure compatibility for ALLOCATABLE/POINTER functions
+46bda50c36c3c16e24fcbfe8ed529186da0988f0 #555 D125119 jean: Fix to UnwrapConvertedExpr()
+f779cb710849cf796ce092a0e346629c5dcfba35 #554 D125116 pete: Ensure that structure constructors fold parameter references
+3e9ca0566924878073bbfd06a3b1fbfef8dfc5c7 #551 D125115 jean: Refine handling of short character actual arguments
+5e36084f916867bffb396e7fad3c15d6eb7fd815 #549 D125113 pete: Correct folding of SPREAD() for higher ranks
+860ad95defdbd576990bc892ce4814e2960d73e0 #546 D125105 pete: Operands of SIGN() need not have same kind
+93b4a82be3591684a8f6705353c794bddc557808 #545 D125100 pete: Fold intrinsic functions SPACING() and RRSPACING()
+f4e67f7dbf05cb8426f0d89ad3eb3f677a9fbd96 #534 D125062 jean: Fold intrinsic inquiry functions SAME_TYPE_AS() and EXTENDS_TYPE_OF()
+f974ea47dd723d6ecefc782877d8ec8c880b1a2f #533 D125057 val: BACKSPACE after non-advancing I/O
+6098b8259965085140b6ddc31f5fe4016fabda4b #532 D125056 val: (G0) for CHARACTER means (A), not (A0)
+8d5e2b8bf9484692b35098d5f7b49ad8017b687b #531 D125054 val: Enforce restrictions on unlimited format repetition
+7835f9a2fd63bdcb84eb28584db387a042b4b3c6 #522 D125053 val: Don't pad CHARACTER input at end of record unless PAD='YES'
+23bed318bfdf6679380e0cdb6887de10237aa59d #500 D125048 val: Fix input of NAN(...) on non-fast path
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):

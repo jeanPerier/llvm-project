@@ -40,9 +40,20 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 4a64bed2160c6031d2c7c3321d4f88734c00f9bb
+with llvm-project commit f827ee671f5440a7514d071abbfec0556119a34f
 
 Log of cherry-picked commits in reverse order (latest first):
+a8308020ac2fce5ad7d616b2dbdbe7ccae0585a4 River R.: [mlir] Remove special case parsing/printing of `func` operations
+2c27d5b36a55c75a33a2a97198d0f0cd1d3d42bf Daniil D.: [flang] Fix internal error with DATA-statement style initializers
+2472b6869a6eeb198a4e982fd7c3ffc89dd4f6f5 PeixinQiao: [flang] Add one semantic check for masked array assignment
+ffc7f9d542370eb72ad1f4bf79f763ca685bab8b PeixinQiao: [flang] Support external procedure passed as actual argument with implicit character type
+ac0f4c8f362e819316ca152315e930f4e6515e9d PeixinQiao: [flang] Fix AllocaOp/AllocMemOp type conversion
+b85c39dd007858aac3edd915d802ff191bd58fe3 Kiran C.: [Flang][OpenMP] Initial lowering of the OpenMP worksharing loop
+aa0e167fab88cbef4d3f301534c86d143f2274ec Kiran C.: [Flang] Lower Unstructured do loops
+a65afce731c2fa91effcfa5d4917d6ad90a28bf0 Andrzej W.: [flang][driver] Add support for -save-temps
+f1d4cef8528eceef4d6aaaae1f99d927fd5c370d Diana P.: [flang] Add ExternalNameConversionPass to pass pipeline
+ebe24a2a3116a5668c3fff27524d485e6956072e Pete S.: [flang] Change "unsupported" messages in the runtime to "not yet implemented"
+6609c1cc5997baa75c45283fd559897334e5d1a2 River R.: [mlir] Add a better error message when failing to parse an attribute
 c12ef70d2b0ac6234feb48e01eb954dd753bb538 Andrzej W.: [flang][driver] Add missing parentheses in an assert
 bb0aa574e7d66049bcb08c8a17532dadd875bf41 Andrzej W.: [flang] Fix triple in a couple of driver tests
 b9f3b7f89a4cb4cf541b7116d9389c73690f78fa Andrzej W.: [flang][driver] Add support for consuming LLVM IR/BC files
