@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Optimizer/Builder/MutableBox.h"
-#include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/Runtime/Derived.h"

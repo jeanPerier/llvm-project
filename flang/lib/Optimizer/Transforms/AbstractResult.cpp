@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "PassDetail.h"
-#include "flang/Lower/Todo.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
