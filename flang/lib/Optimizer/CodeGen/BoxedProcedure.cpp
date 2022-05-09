@@ -304,7 +304,7 @@ public:
             auto toTy = typeConverter.convertType(ty);
             auto toOnTy = typeConverter.convertType(onTy);
             rewriter.replaceOpWithNewOp<LenParamIndexOp>(
-                mem, toTy, index.field_id(), toOnTy);
+                mem, toTy, index.field_id(), toOnTy, index.typeparams());
           }
         } else if (op->getDialect() == firDialect) {
           rewriter.startRootUpdate(op);
