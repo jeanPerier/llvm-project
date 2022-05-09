@@ -973,12 +973,13 @@ static mlir::LogicalResult verify(fir::CoordinateOp op) {
             return op.emitOpError("too many operands for len_param_index case");
         }
         if (eleTy != index.getOnType())
-          op.emitOpError(
+          return op.emitOpError(
               "len_param_index type not compatible with reference type");
         return mlir::success();
       } else if (auto index = mlir::dyn_cast<fir::FieldIndexOp>(defOp)) {
         if (eleTy != index.getOnType())
-          op.emitOpError("field_index type not compatible with reference type");
+          return op.emitOpError(
+              "field_index type not compatible with reference type");
         if (auto recTy = eleTy.dyn_cast<fir::RecordType>()) {
           eleTy = recTy.getType(index.getFieldName());
           continue;
