@@ -27,12 +27,12 @@
 #include "flang/Lower/Runtime.h"
 #include "flang/Lower/StatementContext.h"
 #include "flang/Lower/Support/Utils.h"
-#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/Runtime/Character.h"
 #include "flang/Optimizer/Builder/Runtime/Ragged.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
@@ -2830,10 +2830,10 @@ private:
     if (!funit.isMainProgram()) {
       const Fortran::semantics::Symbol &procSymbol =
           funit.getSubprogramSymbol();
-      if (procSymbol.owner().IsSubmodule()) {
+      if (procSymbol.owner().IsSubmodule())
         TODO(toLocation(), "support for submodules");
-        return;
-      }
+      if (Fortran::semantics::IsSeparateModuleProcedureInterface(&procSymbol))
+        TODO(toLocation(), "separate module procedure");
     }
     setCurrentPosition(funit.getStartingSourceLoc());
     for (int entryIndex = 0, last = funit.entryPointList.size();
