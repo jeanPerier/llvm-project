@@ -257,7 +257,7 @@ inline bool isRecordWithTypeParameters(mlir::Type ty) {
   return false;
 }
 
-/// Is this tuple type holding a character function and its result length ?
+/// Is this tuple type holding a character function and its result length?
 bool isCharacterProcedureTuple(mlir::Type type, bool acceptRawFunc = true);
 
 /// Apply the components specified by `path` to `rootTy` to determine the type
@@ -266,7 +266,7 @@ bool isCharacterProcedureTuple(mlir::Type type, bool acceptRawFunc = true);
 mlir::Type applyPathToType(mlir::Type rootTy, mlir::ValueRange path);
 
 /// Does this function type has a result that require binding the result value
-/// with a storage in a fir.save_result operation in order to use the result ?
+/// with a storage in a fir.save_result operation in order to use the result?
 bool hasAbstractResult(mlir::FunctionType ty);
 
 } // namespace fir
