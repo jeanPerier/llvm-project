@@ -450,3 +450,26 @@ contains
     f3 = 'c c c'
   end
 end
+
+! CHECK-LABEL: func @_QPassumed_size() {
+subroutine assumed_size()
+  real :: x(*)
+! CHECK:  %[[VAL_0:.*]] = fir.alloca !fir.box<!fir.heap<!fir.array<?xf32>>>
+! CHECK:  %[[VAL_1:.*]] = fir.zero_bits !fir.heap<!fir.array<?xf32>>
+! CHECK:  %[[VAL_2:.*]] = arith.constant 0 : index
+! CHECK:  %[[VAL_3:.*]] = fir.shape %[[VAL_2]] : (index) -> !fir.shape<1>
+! CHECK:  %[[VAL_4:.*]] = fir.embox %[[VAL_1]](%[[VAL_3]]) : (!fir.heap<!fir.array<?xf32>>, !fir.shape<1>) -> !fir.box<!fir.heap<!fir.array<?xf32>>>
+! CHECK:  fir.store %[[VAL_4]] to %[[VAL_0]] : !fir.ref<!fir.box<!fir.heap<!fir.array<?xf32>>>>
+! CHECK:  br ^bb1
+! CHECK:  ^bb1:
+! CHECK:  return
+! CHECK:  }
+
+! CHECK-LABEL: func @_QPentry_with_assumed_size(
+  entry entry_with_assumed_size(x)
+! CHECK-SAME:  %[[VAL_0:.*]]: !fir.ref<!fir.array<?xf32>> {fir.bindc_name = "x"}) {
+! CHECK:  br ^bb1
+! CHECK:  ^bb1:
+! CHECK:  return
+! CHECK:  }
+end subroutine

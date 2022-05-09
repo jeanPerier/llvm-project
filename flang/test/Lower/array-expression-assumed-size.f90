@@ -16,7 +16,9 @@ end subroutine assumed_size_forall_test
 
 ! CHECK-LABEL: func @_QPassumed_size_test(
 ! CHECK-SAME:    %[[VAL_0:.*]]: !fir.ref<!fir.array<10x?xi32>>{{.*}}) {
-! CHECK:         %[[VAL_1:.*]] = arith.constant 10 : index
+! CHECK:         %[[VAL_1A:.*]] = fir.convert %c10{{.*}} : (i64) -> index 
+! CHECK:         %[[VAL_1B:.*]] = arith.cmpi sgt, %[[VAL_1A]], %c0{{.*}} : index 
+! CHECK:         %[[VAL_1:.*]] = select %[[VAL_1B]], %[[VAL_1A]], %c0{{.*}} : index 
 ! CHECK:         %[[VAL_2:.*]] = fir.undefined index
 ! CHECK:         %[[VAL_3:.*]] = arith.constant 1 : index
 ! CHECK:         %[[VAL_4:.*]] = arith.constant 1 : i64
@@ -77,7 +79,9 @@ end subroutine assumed_size_forall_test
 ! CHECK-LABEL: func @_QPassumed_size_forall_test(
 ! CHECK-SAME:       %[[VAL_0:.*]]: !fir.ref<!fir.array<10x?xi32>>{{.*}}) {
 ! CHECK:         %[[VAL_1:.*]] = fir.alloca i32 {adapt.valuebyref, bindc_name = "i"}
-! CHECK:         %[[VAL_2:.*]] = arith.constant 10 : index
+! CHECK:         %[[VAL_2A:.*]] = fir.convert %c10{{.*}} : (i64) -> index 
+! CHECK:         %[[VAL_2B:.*]] = arith.cmpi sgt, %[[VAL_2A]], %c0{{.*}} : index 
+! CHECK:         %[[VAL_2:.*]] = select %[[VAL_2B]], %[[VAL_2A]], %c0{{.*}} : index 
 ! CHECK:         %[[VAL_3:.*]] = fir.undefined index
 ! CHECK:         %[[VAL_4:.*]] = arith.constant 2 : i32
 ! CHECK:         %[[VAL_5:.*]] = fir.convert %[[VAL_4]] : (i32) -> index
@@ -139,12 +143,12 @@ end subroutine assumed_size_forall_test
 
 ! PostOpt-LABEL: func @_QPassumed_size_test(
 ! PostOpt-SAME:        %[[VAL_0:.*]]: !fir.ref<!fir.array<10x?xi32>>{{.*}}) {
-! PostOpt:         %[[VAL_1:.*]] = arith.constant 10 : index
-! PostOpt:         %[[VAL_2:.*]] = arith.constant 1 : index
-! PostOpt:         %[[VAL_3:.*]] = arith.constant 2 : index
-! PostOpt:         %[[VAL_4:.*]] = arith.constant 0 : index
-! PostOpt:         %[[VAL_5:.*]] = arith.constant 3 : index
-! PostOpt:         %[[VAL_6:.*]] = arith.constant 4 : index
+! PostOpt-DAG:         %[[VAL_1:.*]] = arith.constant 10 : index
+! PostOpt-DAG:         %[[VAL_2:.*]] = arith.constant 1 : index
+! PostOpt-DAG:         %[[VAL_3:.*]] = arith.constant 2 : index
+! PostOpt-DAG:         %[[VAL_4:.*]] = arith.constant 0 : index
+! PostOpt-DAG:         %[[VAL_5:.*]] = arith.constant 3 : index
+! PostOpt-DAG:         %[[VAL_6:.*]] = arith.constant 4 : index
 ! PostOpt:         %[[VAL_7:.*]] = fir.undefined index
 ! PostOpt:         %[[VAL_8:.*]] = fir.shape %[[VAL_1]], %[[VAL_7]] : (index, index) -> !fir.shape<2>
 ! PostOpt:         %[[VAL_9:.*]] = fir.slice %[[VAL_2]], %[[VAL_1]], %[[VAL_2]], %[[VAL_2]], %[[VAL_3]], %[[VAL_2]] : (index, index, index, index, index, index) -> !fir.slice<2>
@@ -217,12 +221,12 @@ end subroutine assumed_size_forall_test
 
 ! PostOpt-LABEL: func @_QPassumed_size_forall_test(
 ! PostOpt-SAME:        %[[VAL_0:.*]]: !fir.ref<!fir.array<10x?xi32>>{{.*}}) {
-! PostOpt:         %[[VAL_1:.*]] = arith.constant 3 : index
-! PostOpt:         %[[VAL_2:.*]] = arith.constant 10 : index
-! PostOpt:         %[[VAL_3:.*]] = arith.constant 2 : index
-! PostOpt:         %[[VAL_4:.*]] = arith.constant 1 : index
-! PostOpt:         %[[VAL_5:.*]] = arith.constant 0 : index
-! PostOpt:         %[[VAL_6:.*]] = arith.constant 5 : index
+! PostOpt-DAG:         %[[VAL_1:.*]] = arith.constant 3 : index
+! PostOpt-DAG:         %[[VAL_2:.*]] = arith.constant 10 : index
+! PostOpt-DAG:         %[[VAL_3:.*]] = arith.constant 2 : index
+! PostOpt-DAG:         %[[VAL_4:.*]] = arith.constant 1 : index
+! PostOpt-DAG:         %[[VAL_5:.*]] = arith.constant 0 : index
+! PostOpt-DAG:         %[[VAL_6:.*]] = arith.constant 5 : index
 ! PostOpt:         %[[VAL_7:.*]] = fir.alloca i32 {adapt.valuebyref, bindc_name = "i"}
 ! PostOpt:         %[[VAL_8:.*]] = fir.undefined index
 ! PostOpt:         %[[VAL_9:.*]] = fir.shape %[[VAL_2]], %[[VAL_8]] : (index, index) -> !fir.shape<2>
