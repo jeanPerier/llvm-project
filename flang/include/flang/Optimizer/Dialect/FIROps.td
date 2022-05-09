@@ -2073,27 +2073,24 @@ def fir_LenParamIndexOp : fir_OneResultOp<"len_param_index", [NoSideEffect]> {
     ```
   }];
 
-  let arguments = (ins StrAttr:$field_id, TypeAttr:$on_type);
+  let arguments = (ins
+    StrAttr:$field_id,
+    TypeAttr:$on_type,
+    Variadic<AnyIntegerType>:$typeparams
+  );
 
   let parser = "return parseLenParamIndexOp(parser, result);";
 
   let printer = "::print(p, *this);";
 
   let builders = [OpBuilder<(ins "llvm::StringRef":$fieldName,
-      "mlir::Type":$recTy),
-    [{
-      $_state.addAttribute(getFieldAttrName(),
-          $_builder.getStringAttr(fieldName));
-      $_state.addAttribute(getTypeAttrName(), TypeAttr::get(recTy));
-    }]
-  >];
+      "mlir::Type":$recTy, CArg<"mlir::ValueRange","{}">:$operands)>];
 
   let extraClassDeclaration = [{
     static constexpr llvm::StringRef getFieldAttrName() { return "field_id"; }
     static constexpr llvm::StringRef getTypeAttrName() { return "on_type"; }
-    mlir::Type getOnTypeAttrType() {
-      return (*this)->getAttrOfType<TypeAttr>(getTypeAttrName()).getValue();
-    }
+    llvm::StringRef getParamName() { return getFieldId(); }
+    llvm::SmallVector<mlir::Attribute> getAttributes();
   }];
 }
 
