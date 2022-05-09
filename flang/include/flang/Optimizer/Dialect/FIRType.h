@@ -257,6 +257,10 @@ bool isCharacterProcedureTuple(mlir::Type type, bool acceptRawFunc = true);
 /// Returns null on error.
 mlir::Type applyPathToType(mlir::Type rootTy, mlir::ValueRange path);
 
+/// Does this function type has a result that require binding the result value
+/// with a storage in a fir.save_result operation in order to use the result ?
+bool hasAbstractResult(mlir::FunctionType ty);
+
 } // namespace fir
 
 #endif // FORTRAN_OPTIMIZER_DIALECT_FIRTYPE_H

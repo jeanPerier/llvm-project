@@ -939,6 +939,13 @@ bool fir::isCharacterProcedureTuple(mlir::Type ty, bool acceptRawFunc) {
          fir::isa_integer(tuple.getType(1));
 }
 
+bool fir::hasAbstractResult(mlir::FunctionType ty) {
+  if (ty.getNumResults() == 0)
+    return false;
+  auto resultType = ty.getResult(0);
+  return resultType.isa<fir::SequenceType, fir::BoxType, fir::RecordType>();
+}
+
 //===----------------------------------------------------------------------===//
 // FIROpsDialect
 //===----------------------------------------------------------------------===//
