@@ -2518,7 +2518,9 @@ void IntrinsicLibrary::genGetEnvironmentVariable(
 mlir::Value IntrinsicLibrary::genIand(mlir::Type resultType,
                                       llvm::ArrayRef<mlir::Value> args) {
   assert(args.size() == 2);
-  return builder.create<mlir::arith::AndIOp>(loc, args[0], args[1]);
+  auto arg0 = builder.createConvert(loc, resultType, args[0]);
+  auto arg1 = builder.createConvert(loc, resultType, args[1]);
+  return builder.create<mlir::arith::AndIOp>(loc, arg0, arg1);
 }
 
 // IBCLR
