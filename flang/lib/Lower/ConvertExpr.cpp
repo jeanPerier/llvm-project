@@ -4106,10 +4106,28 @@ private:
   /// dealing with any bounds parameters on the pointer assignment.
   mlir::Value convertElementForUpdate(mlir::Location loc, mlir::Type eleTy,
                                       mlir::Value origVal) {
+    if (auto origEleTy = fir::dyn_cast_ptrEleTy(origVal.getType()))
+      if (origEleTy.isa<fir::BoxType>()) {
+        // If origVal is a box variable, load it so it is in the value domain.
+        origVal = builder.create<fir::LoadOp>(loc, origVal);
+      }
     if (origVal.getType().isa<fir::BoxType>() && !eleTy.isa<fir::BoxType>()) {
       if (isPointerAssignment())
         TODO(loc, "lhs of pointer assignment returned unexpected value");
       TODO(loc, "invalid box conversion in elemental computation");
+    }
+    if (isPointerAssignment() && eleTy.isa<fir::BoxType>() &&
+        !origVal.getType().isa<fir::BoxType>()) {
+      // This is a pointer assignment and the rhs is a raw reference to a TARGET
+      // in memory. Embox the reference so it can be stored to the boxed
+      // POINTER variable.
+      assert(fir::isa_ref_type(origVal.getType()));
+      if (auto eleTy = fir::dyn_cast_ptrEleTy(origVal.getType());
+          fir::hasDynamicSize(eleTy))
+        TODO(loc, "TARGET of pointer assignment with runtime size/shape");
+      auto memrefTy = fir::boxMemRefType(eleTy.cast<fir::BoxType>());
+      auto castTo = builder.createConvert(loc, memrefTy, origVal);
+      origVal = builder.create<fir::EmboxOp>(loc, eleTy, castTo);
     }
     mlir::Value val = builder.createConvert(loc, eleTy, origVal);
     if (isBoundsSpec()) {
@@ -5020,18 +5038,21 @@ private:
               procRef, *intrinsic, retTy));
     }
 
+    const bool isPtrAssn = isPointerAssignment();
     if (explicitSpaceIsActive() && procRef.Rank() == 0) {
       // Elide any implicit loop iters.
       return [=, &procRef](IterSpace) {
-        return ScalarExprLowering{loc, converter, symMap, stmtCtx}
-            .genProcedureRef(procRef, retTy);
+        ScalarExprLowering sel(loc, converter, symMap, stmtCtx);
+        return isPtrAssn ? sel.genRawProcedureRef(procRef, retTy)
+                         : sel.genProcedureRef(procRef, retTy);
       };
     }
     // In the default case, the call can be hoisted out of the loop nest. Apply
     // the iterations to the result, which may be an array value.
-    return genarr(
-        ScalarExprLowering{loc, converter, symMap, stmtCtx}.genProcedureRef(
-            procRef, retTy));
+    ScalarExprLowering sel(loc, converter, symMap, stmtCtx);
+    auto exv = isPtrAssn ? sel.genRawProcedureRef(procRef, retTy)
+                         : sel.genProcedureRef(procRef, retTy);
+    return genarr(exv);
   }
 
   CC genarr(const Fortran::evaluate::ProcedureDesignator &) {
