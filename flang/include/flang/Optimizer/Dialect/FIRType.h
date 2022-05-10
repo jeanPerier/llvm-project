@@ -16,6 +16,13 @@
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/Type.h"
+
+namespace fir {
+class FIROpsDialect;
+class KindMapping;
+using KindTy = unsigned;
+} // namespace fir
 
 #define GET_TYPEDEF_CLASSES
 #include "flang/Optimizer/Dialect/FIROpsTypes.h.inc"
@@ -37,11 +44,6 @@ class ValueRange;
 } // namespace mlir
 
 namespace fir {
-
-class FIROpsDialect;
-
-using KindTy = unsigned;
-
 namespace detail {
 struct RecordTypeStorage;
 } // namespace detail
@@ -268,6 +270,10 @@ mlir::Type applyPathToType(mlir::Type rootTy, mlir::ValueRange path);
 /// Does this function type has a result that require binding the result value
 /// with a storage in a fir.save_result operation in order to use the result?
 bool hasAbstractResult(mlir::FunctionType ty);
+
+/// Convert llvm::Type::TypeID to mlir::Type
+mlir::Type fromRealTypeID(mlir::MLIRContext *context, llvm::Type::TypeID typeID,
+                          fir::KindTy kind);
 
 } // namespace fir
 
