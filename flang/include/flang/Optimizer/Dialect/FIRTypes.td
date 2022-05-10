@@ -147,6 +147,7 @@ def fir_ComplexType : FIR_Type<"Complex", "complex"> {
     using KindTy = unsigned;
 
     mlir::Type getElementType() const;
+    mlir::Type getEleType(const fir::KindMapping &kindMap) const;
   }];
 }
 
