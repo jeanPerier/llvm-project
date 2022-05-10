@@ -612,6 +612,10 @@ public:
       return *symbol;
     } else {
       if (!CheckPossibleBadForwardRef(*symbol)) {
+        if (name.empty() && symbol->name().empty()) {
+          // report the error elsewhere
+          return *symbol;
+        }
         SayAlreadyDeclared(name, *symbol);
       }
       // replace the old symbol with a new one with correct details
@@ -644,7 +648,6 @@ protected:
   std::optional<SourceName> HadForwardRef(const Symbol &) const;
   bool CheckPossibleBadForwardRef(const Symbol &);
 
-  bool inExecutionPart_{false};
   bool inSpecificationPart_{false};
   bool inEquivalenceStmt_{false};
 
@@ -774,9 +777,7 @@ public:
   bool isAbstract() const;
 
 protected:
-  Symbol &GetGenericSymbol() {
-    return DEREF(genericInfo_.top().symbol);
-  }
+  Symbol &GetGenericSymbol() { return DEREF(genericInfo_.top().symbol); }
   // Add to generic the symbol for the subprogram with the same name
   void CheckGenericProcedures(Symbol &);
 
@@ -839,6 +840,7 @@ private:
       const parser::LanguageBindingSpec * = nullptr);
   Symbol *GetSpecificFromGeneric(const parser::Name &);
   SubprogramDetails &PostSubprogramStmt(const parser::Name &);
+  void PostEntryStmt(const parser::EntryStmt &stmt);
 };
 
 class DeclarationVisitor : public ArraySpecVisitor,
@@ -3319,7 +3321,11 @@ SubprogramDetails &SubprogramVisitor::PostSubprogramStmt(
 }
 
 void SubprogramVisitor::Post(const parser::EntryStmt &stmt) {
-  auto attrs{EndAttrs()}; // needs to be called even if early return
+  PostEntryStmt(stmt);
+  EndAttrs();
+}
+
+void SubprogramVisitor::PostEntryStmt(const parser::EntryStmt &stmt) {
   Scope &inclusiveScope{InclusiveScope()};
   const Symbol *subprogram{inclusiveScope.symbol()};
   if (!subprogram) {
@@ -3382,7 +3388,7 @@ void SubprogramVisitor::Post(const parser::EntryStmt &stmt) {
                 context().SetError(*resultSymbol);
               }},
           resultSymbol->details());
-    } else if (inExecutionPart_) {
+    } else if (!inSpecificationPart_) {
       ObjectEntityDetails entity;
       entity.set_funcResult(true);
       resultSymbol = &MakeSymbol(effectiveResultName, std::move(entity));
@@ -3415,7 +3421,7 @@ void SubprogramVisitor::Post(const parser::EntryStmt &stmt) {
             dummy->details());
       } else {
         dummy = &MakeSymbol(*dummyName, EntityDetails{true});
-        if (inExecutionPart_) {
+        if (!inSpecificationPart_) {
           ApplyImplicitRules(*dummy);
         }
       }
@@ -3433,8 +3439,8 @@ void SubprogramVisitor::Post(const parser::EntryStmt &stmt) {
   Symbol::Flag subpFlag{
       inFunction ? Symbol::Flag::Function : Symbol::Flag::Subroutine};
   Scope &outer{inclusiveScope.parent()}; // global or module scope
-  if (outer.IsModule() && !attrs.test(Attr::PRIVATE)) {
-    attrs.set(Attr::PUBLIC);
+  if (outer.IsModule() && attrs_ && !attrs_->test(Attr::PRIVATE)) {
+    attrs_->set(Attr::PUBLIC);
   }
   if (Symbol * extant{FindSymbol(outer, name)}) {
     if (!HandlePreviousCalls(name, *extant, subpFlag)) {
@@ -3448,7 +3454,7 @@ void SubprogramVisitor::Post(const parser::EntryStmt &stmt) {
     }
   }
 
-  Symbol *entrySymbol{&MakeSymbol(outer, name.source, attrs)};
+  Symbol *entrySymbol{&MakeSymbol(outer, name.source, GetAttrs())};
   if (auto *generic{entrySymbol->detailsIf<GenericDetails>()}) {
     CHECK(generic->specific());
     entrySymbol = generic->specific();
@@ -4895,7 +4901,7 @@ bool DeclarationVisitor::Pre(const parser::StructureDef &def) {
 }
 
 bool DeclarationVisitor::Pre(const parser::Union::UnionStmt &) {
-  Say("not yet implemented: support for UNION"_err_en_US); // TODO
+  Say("support for UNION"_todo_en_US); // TODO
   return true;
 }
 
@@ -5852,6 +5858,12 @@ bool ConstructVisitor::Pre(const parser::DataIDoObject &x) {
 }
 
 bool ConstructVisitor::Pre(const parser::DataStmtObject &x) {
+  // Subtle: DATA statements may appear in both the specification and
+  // execution parts, but should be treated as if in the execution part
+  // for purposes of implicit variable declaration vs. host association.
+  // When a name first appears as an object in a DATA statement, it should
+  // be implicitly declared locally as if it had been assigned.
+  auto flagRestorer{common::ScopedSet(inSpecificationPart_, false)};
   common::visit(common::visitors{
                     [&](const Indirection<parser::Variable> &y) {
                       Walk(y.value());
@@ -6408,7 +6420,7 @@ const parser::Name *DeclarationVisitor::ResolveName(const parser::Name &name) {
 // be wrong we report an error later in CheckDeclarations().
 bool DeclarationVisitor::CheckForHostAssociatedImplicit(
     const parser::Name &name) {
-  if (inExecutionPart_) {
+  if (!inSpecificationPart_) {
     return false;
   }
   if (name.symbol) {
@@ -6564,9 +6576,10 @@ void DeclarationVisitor::Initialization(const parser::Name &name,
               // work better.
               ultimate.set(Symbol::Flag::InDataStmt);
             },
-            [&](const std::list<Indirection<parser::DataStmtValue>> &) {
+            [&](const std::list<Indirection<parser::DataStmtValue>> &values) {
               // Handled later in data-to-inits conversion
               ultimate.set(Symbol::Flag::InDataStmt);
+              Walk(values);
             },
         },
         init.u);
@@ -7220,9 +7233,7 @@ bool ResolveNamesVisitor::Pre(const parser::ProgramUnit &x) {
   SetScope(topScope_);
   ResolveSpecificationParts(root);
   FinishSpecificationParts(root);
-  inExecutionPart_ = true;
   ResolveExecutionParts(root);
-  inExecutionPart_ = false;
   ResolveAccParts(context(), x);
   ResolveOmpParts(context(), x);
   return false;
