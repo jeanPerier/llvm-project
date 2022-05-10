@@ -40,9 +40,17 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit f827ee671f5440a7514d071abbfec0556119a34f
+with llvm-project commit 045665423e6e893ee168368dab10469c8d3168c5
 
 Log of cherry-picked commits in reverse order (latest first):
+940871dd289c9f92ee32d899d58538c57c76c16d Peter K.: edits to: [flang] Enforce limit on rank + corank
+71728360ada3e0f6c21d4c09d33424f6150afcc9 Peter K.: edits to: [flang] Fold real-valued MODULO() and MOD()
+9e50168be444dc6cc076fe3ac3d0fb73dfca7428 Peter K.: edits to: [flang] Fold real-valued DIM()
+04cb01cf102a3ecb52de4cd3f007dceb5698e6a0 Shraiysh V.: [flang][OpenMP] Lowering for task construct
+d38915ffebee403dd1786ad4e165100160529939 Jean P.: [flang] Fix windows bot after D125140
+ed0341788af290f4028c0e200f4a8854bfe46e7d Jean P.: [flang] retain binding label of entry subprograms
+c207e36025f7a7889f1f26cf8a1b797656060e78 PeixinQiao: [flang] Enforce a program not including more than one main program
+1bffc75383a2285e69deda90cd10860769485234 Eric S.: Upstream support for POINTER assignment in FORALL.
 a8308020ac2fce5ad7d616b2dbdbe7ccae0585a4 River R.: [mlir] Remove special case parsing/printing of `func` operations
 2c27d5b36a55c75a33a2a97198d0f0cd1d3d42bf Daniil D.: [flang] Fix internal error with DATA-statement style initializers
 2472b6869a6eeb198a4e982fd7c3ffc89dd4f6f5 PeixinQiao: [flang] Add one semantic check for masked array assignment
