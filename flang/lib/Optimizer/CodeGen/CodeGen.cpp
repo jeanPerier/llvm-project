@@ -166,7 +166,7 @@ protected:
 
   /// Method to construct code sequence to get the triple for dimension `dim`
   /// from a box.
-  SmallVector<mlir::Value, 3>
+  llvm::SmallVector<mlir::Value, 3>
   getDimsFromBox(mlir::Location loc, ArrayRef<mlir::Type> retTys,
                  mlir::Value box, mlir::Value dim,
                  mlir::ConversionPatternRewriter &rewriter) const {
@@ -276,7 +276,7 @@ protected:
   mlir::LLVM::GEPOp genGEP(mlir::Location loc, mlir::Type ty,
                            mlir::ConversionPatternRewriter &rewriter,
                            mlir::Value base, ARGS... args) const {
-    SmallVector<mlir::Value> cv{args...};
+    llvm::SmallVector<mlir::Value> cv = {args...};
     return rewriter.create<mlir::LLVM::GEPOp>(loc, ty, base, cv);
   }
 
@@ -710,7 +710,7 @@ struct CmpcOpConversion : public FIROpConversion<fir::CmpcOp> {
     mlir::Type resTy = convertType(cmp.getType());
     mlir::Location loc = cmp.getLoc();
     auto pos0 = mlir::ArrayAttr::get(ctxt, rewriter.getI32IntegerAttr(0));
-    llvm::SmallVector<mlir::Value, 2> rp{
+    llvm::SmallVector<mlir::Value, 2> rp = {
         rewriter.create<mlir::LLVM::ExtractValueOp>(loc, eleTy, operands[0],
                                                     pos0),
         rewriter.create<mlir::LLVM::ExtractValueOp>(loc, eleTy, operands[1],
@@ -718,14 +718,14 @@ struct CmpcOpConversion : public FIROpConversion<fir::CmpcOp> {
     auto rcp =
         rewriter.create<mlir::LLVM::FCmpOp>(loc, resTy, rp, cmp->getAttrs());
     auto pos1 = mlir::ArrayAttr::get(ctxt, rewriter.getI32IntegerAttr(1));
-    llvm::SmallVector<mlir::Value, 2> ip{
+    llvm::SmallVector<mlir::Value, 2> ip = {
         rewriter.create<mlir::LLVM::ExtractValueOp>(loc, eleTy, operands[0],
                                                     pos1),
         rewriter.create<mlir::LLVM::ExtractValueOp>(loc, eleTy, operands[1],
                                                     pos1)};
     auto icp =
         rewriter.create<mlir::LLVM::FCmpOp>(loc, resTy, ip, cmp->getAttrs());
-    llvm::SmallVector<mlir::Value, 2> cp{rcp, icp};
+    llvm::SmallVector<mlir::Value, 2> cp = {rcp, icp};
     switch (cmp.getPredicate()) {
     case mlir::arith::CmpFPredicate::OEQ: // .EQ.
       rewriter.replaceOpWithNewOp<mlir::LLVM::AndOp>(cmp, resTy, cp);
@@ -1040,7 +1040,7 @@ computeDerivedTypeSize(mlir::Location loc, mlir::Type ptrTy, mlir::Type idxTy,
                        mlir::ConversionPatternRewriter &rewriter) {
   auto nullPtr = rewriter.create<mlir::LLVM::NullOp>(loc, ptrTy);
   mlir::Value one = genConstantIndex(loc, idxTy, rewriter, 1);
-  llvm::SmallVector<mlir::Value> args{nullPtr, one};
+  llvm::SmallVector<mlir::Value> args = {nullPtr, one};
   auto gep = rewriter.create<mlir::LLVM::GEPOp>(loc, ptrTy, args);
   return rewriter.create<mlir::LLVM::PtrToIntOp>(loc, idxTy, gep);
 }
@@ -1418,8 +1418,7 @@ struct EmboxCommonConversion : public FIROpConversion<OP> {
         base.getType().cast<mlir::LLVM::LLVMPointerType>().getElementType();
     if (baseType.isa<mlir::LLVM::LLVMArrayType>()) {
       auto idxTy = this->lowerTy().indexType();
-      mlir::Value zero = genConstantIndex(loc, idxTy, rewriter, 0);
-      gepOperands.push_back(zero);
+      gepOperands.push_back(genConstantIndex(loc, idxTy, rewriter, 0));
       gepOperands.push_back(lowerBound);
     } else {
       gepOperands.push_back(lowerBound);
@@ -1779,7 +1778,6 @@ private:
       auto llvmElePtrTy =
           mlir::LLVM::LLVMPointerType::get(convertType(inputEleTy));
       base = rewriter.create<mlir::LLVM::BitcastOp>(loc, llvmElePtrTy, base);
-
       if (!rebox.subcomponent().empty()) {
         llvm::SmallVector<mlir::Value> gepOperands = {zero};
         for (unsigned i = 0; i < rebox.subcomponent().size(); ++i)
@@ -2072,8 +2070,8 @@ struct InsertOnRangeOpConversion
       upperBound.push_back(*i);
     }
 
-    SmallVector<std::uint64_t> lBounds;
-    SmallVector<std::uint64_t> uBounds;
+    llvm::SmallVector<std::uint64_t> lBounds;
+    llvm::SmallVector<std::uint64_t> uBounds;
 
     // Extract the integer value from the attribute bounds and convert to row
     // major format.
@@ -2089,7 +2087,7 @@ struct InsertOnRangeOpConversion
 
     while (subscripts != uBounds) {
       // Convert uint64_t's to Attribute's.
-      SmallVector<mlir::Attribute> subscriptAttrs;
+      llvm::SmallVector<mlir::Attribute> subscriptAttrs;
       for (const auto &subscript : subscripts)
         subscriptAttrs.push_back(
             IntegerAttr::get(rewriter.getI64Type(), subscript));
@@ -2102,7 +2100,7 @@ struct InsertOnRangeOpConversion
     }
 
     // Convert uint64_t's to Attribute's.
-    SmallVector<mlir::Attribute> subscriptAttrs;
+    llvm::SmallVector<mlir::Attribute> subscriptAttrs;
     for (const auto &subscript : subscripts)
       subscriptAttrs.push_back(
           IntegerAttr::get(rewriter.getI64Type(), subscript));
@@ -2195,7 +2193,7 @@ struct XArrayCoorOpConversion
       auto base = loadBaseAddrFromBox(loc, baseTy, operands[0], rewriter);
       auto voidPtrTy = ::getVoidPtrType(coor.getContext());
       base = rewriter.create<mlir::LLVM::BitcastOp>(loc, voidPtrTy, base);
-      llvm::SmallVector<mlir::Value> args{base, off};
+      llvm::SmallVector<mlir::Value> args = {base, off};
       auto addr = rewriter.create<mlir::LLVM::GEPOp>(loc, voidPtrTy, args);
       if (coor.subcomponent().empty()) {
         rewriter.replaceOpWithNewOp<mlir::LLVM::BitcastOp>(coor, ty, addr);
@@ -2249,7 +2247,7 @@ struct XArrayCoorOpConversion
       auto newTy = mlir::LLVM::LLVMPointerType::get(eleTy);
       base = rewriter.create<mlir::LLVM::BitcastOp>(loc, newTy, operands[0]);
     }
-    SmallVector<mlir::Value> args = {base, off};
+    llvm::SmallVector<mlir::Value> args = {base, off};
     args.append(coor.subcomponent().begin(), coor.subcomponent().end());
     rewriter.replaceOpWithNewOp<mlir::LLVM::GEPOp>(coor, ty, args);
     return success();
@@ -2268,7 +2266,6 @@ struct CoordinateOpConversion
   mlir::LogicalResult
   doRewrite(fir::CoordinateOp coor, mlir::Type ty, OperandTy operands,
             mlir::ConversionPatternRewriter &rewriter) const override {
-
     mlir::Location loc = coor.getLoc();
     mlir::Value base = operands[0];
     mlir::Type baseObjectTy = coor.getBaseType();
@@ -2440,7 +2437,7 @@ private:
         }
         auto voidPtrBase =
             rewriter.create<mlir::LLVM::BitcastOp>(loc, voidPtrTy, resultAddr);
-        SmallVector<mlir::Value> args{voidPtrBase, off};
+        llvm::SmallVector<mlir::Value> args = {voidPtrBase, off};
         resultAddr = rewriter.create<mlir::LLVM::GEPOp>(loc, voidPtrTy, args);
         i += arrTy.getDimension() - 1;
         cpnTy = arrTy.getEleTy();
@@ -2557,7 +2554,6 @@ private:
           cpnTy = tupTy.getType(getIntValue(nxtOpnd));
         else
           cpnTy = nullptr;
-
         offs.push_back(nxtOpnd);
       }
       if (dims.hasValue())
@@ -3045,7 +3041,7 @@ struct UnboxProcOpConversion : public FIROpConversion<fir::UnboxProcOp> {
         genExtractValueWithIndex(loc, tuple, ty, rewriter, ctx, 0);
     mlir::Value host =
         genExtractValueWithIndex(loc, tuple, ty, rewriter, ctx, 1);
-    llvm::SmallVector<mlir::Value> repls{ptr, host};
+    llvm::SmallVector<mlir::Value> repls = {ptr, host};
     rewriter.replaceOp(unboxproc, repls);
     return success();
   }
