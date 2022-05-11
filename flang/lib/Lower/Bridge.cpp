@@ -1786,6 +1786,9 @@ private:
     // (which is possible with characters).
     mlir::OpBuilder::InsertPoint insertPt = builder->saveInsertionPoint();
     builder->setInsertionPointToEnd(eval.parentConstruct->constructExit->block);
+    if (!stmtCtx.nothingToGen())
+      TODO(loc, "CFG must be constructed with postdominating exit block for "
+                "all constructs");
     stmtCtx.finalize();
     builder->restoreInsertionPoint(insertPt);
   }
