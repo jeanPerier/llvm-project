@@ -4607,6 +4607,10 @@ private:
     if (auto recTy = seqTy.getEleTy().dyn_cast<fir::RecordType>())
       if (recTy.getNumLenParams() > 0)
         TODO(loc, "derived type array expression temp with LEN parameters");
+    if (mlir::Type eleTy = fir::unwrapSequenceType(type);
+        fir::isRecordWithAllocatableMember(eleTy))
+      TODO(loc, "creating an array temp where the element type has "
+                "allocatable members");
     mlir::Value temp = seqTy.hasConstantShape()
                            ? builder.create<fir::AllocMemOp>(loc, type)
                            : builder.create<fir::AllocMemOp>(
