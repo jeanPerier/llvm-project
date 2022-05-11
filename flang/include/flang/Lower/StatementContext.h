@@ -70,6 +70,12 @@ public:
       cufs.back().reset();
   }
 
+  bool nothingToGen() const {
+    return cufs.empty() || llvm::all_of(cufs, [](auto &opt) -> bool {
+             return !opt.hasValue();
+           });
+  }
+
 private:
   // A statement context should never be copied or moved.
   StatementContext(const StatementContext &) = delete;
