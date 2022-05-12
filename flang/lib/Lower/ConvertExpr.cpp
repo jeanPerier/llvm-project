@@ -5702,6 +5702,40 @@ private:
     return genarr(extMemref, dummy);
   }
 
+  // If the slice values are given then use them. Otherwise, generate triples
+  // that cover the entire shape specified by \p shapeVal.
+  inline llvm::SmallVector<mlir::Value>
+  padSlice(llvm::ArrayRef<mlir::Value> triples, mlir::Value shapeVal) {
+    llvm::SmallVector<mlir::Value> result;
+    mlir::Location loc = getLoc();
+    if (triples.size()) {
+      result.assign(triples.begin(), triples.end());
+    } else {
+      auto one = builder.createIntegerConstant(loc, builder.getIndexType(), 1);
+      if (!shapeVal) {
+        TODO(loc, "shape must be recovered from box");
+      } else if (auto shapeOp = mlir::dyn_cast_or_null<fir::ShapeOp>(
+                     shapeVal.getDefiningOp())) {
+        for (auto ext : shapeOp.getExtents()) {
+          result.push_back(one);
+          result.push_back(ext);
+          result.push_back(one);
+        }
+      } else if (auto shapeShift = mlir::dyn_cast_or_null<fir::ShapeShiftOp>(
+                     shapeVal.getDefiningOp())) {
+        for (auto [lb, ext] :
+             llvm::zip(shapeShift.getOrigins(), shapeShift.getExtents())) {
+          result.push_back(lb);
+          result.push_back(ext);
+          result.push_back(one);
+        }
+      } else {
+        TODO(loc, "shape must be recovered from box");
+      }
+    }
+    return result;
+  }
+
   /// Base case of generating an array reference,
   CC genarr(const ExtValue &extMemref, ComponentPath &components) {
     mlir::Location loc = getLoc();
@@ -5749,9 +5783,9 @@ private:
         // size = MAX(upper - (lower - 1), 0)
         substringBounds[1] =
             builder.create<mlir::SelectOp>(loc, cmp, size, zero);
-        slice = builder.create<fir::SliceOp>(loc, components.trips,
-                                             components.suffixComponents,
-                                             substringBounds);
+        slice = builder.create<fir::SliceOp>(
+            loc, padSlice(components.trips, shape), components.suffixComponents,
+            substringBounds);
       } else {
         slice = builder.createSlice(loc, extMemref, components.trips,
                                     components.suffixComponents);
