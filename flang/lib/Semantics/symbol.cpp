@@ -305,13 +305,15 @@ void Symbol::SetType(const DeclTypeSpec &type) {
 template <typename T>
 constexpr bool HasBindName{std::is_convertible_v<T, const WithBindName *>};
 
-const std::string *Symbol::GetBindName() const {
+std::optional<std::string> Symbol::GetBindName() const {
   return common::visit(
       [&](auto &x) -> const std::string * {
         if constexpr (HasBindName<decltype(&x)>) {
-          return x.bindName();
+          if (const std::string* name{x.bindName()}) {
+          return *name;
+      }
         } else {
-          return nullptr;
+          return {};
         }
       },
       details_);

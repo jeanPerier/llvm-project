@@ -54,7 +54,7 @@ static void PutShapeSpec(llvm::raw_ostream &, const ShapeSpec &);
 static void PutShape(
     llvm::raw_ostream &, const ArraySpec &, char open, char close);
 llvm::raw_ostream &PutAttrs(llvm::raw_ostream &, Attrs,
-    const std::string * = nullptr, std::string before = ","s,
+    std::optional<std::string>&& = {}, std::string before = ","s,
     std::string after = ""s);
 
 static llvm::raw_ostream &PutAttr(llvm::raw_ostream &, Attr);
@@ -763,7 +763,7 @@ void ModFileWriter::PutEntity(llvm::raw_ostream &os, const Symbol &symbol,
 // Put out each attribute to os, surrounded by `before` and `after` and
 // mapped to lower case.
 llvm::raw_ostream &PutAttrs(llvm::raw_ostream &os, Attrs attrs,
-    const std::string *bindName, std::string before, std::string after) {
+    std::optional<std::string> &&bindName, std::string before, std::string after) {
   attrs.set(Attr::PUBLIC, false); // no need to write PUBLIC
   attrs.set(Attr::EXTERNAL, false); // no need to write EXTERNAL
   if (bindName) {

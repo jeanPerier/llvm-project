@@ -1838,19 +1838,19 @@ void CheckHelper::CheckGenericOps(const Scope &scope) {
   helper.Check(scope);
 }
 
-static const std::string *DefinesBindCName(const Symbol &symbol) {
+static std::optional<std::string> DefinesBindCName(const Symbol &symbol) {
   const auto *subp{symbol.detailsIf<SubprogramDetails>()};
   if ((subp && !subp->isInterface()) || symbol.has<ObjectEntityDetails>()) {
     // Symbol defines data or entry point
     return symbol.GetBindName();
   } else {
-    return nullptr;
+    return {};
   }
 }
 
 // Check that BIND(C) names are distinct
 void CheckHelper::CheckBindCName(const Symbol &symbol) {
-  if (const std::string * name{DefinesBindCName(symbol)}) {
+  if (std::optional<std::string> name{DefinesBindCName(symbol)}) {
     auto pair{bindC_.emplace(*name, symbol)};
     if (!pair.second) {
       const Symbol &other{*pair.first->second};

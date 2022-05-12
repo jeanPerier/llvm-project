@@ -607,7 +607,7 @@ public:
   inline const DeclTypeSpec *GetType() const;
   void SetType(const DeclTypeSpec &);
 
-  const std::string *GetBindName() const;
+  std::optional<std::string> GetBindName() const;
   void SetBindName(std::string &&);
   bool IsFuncResult() const;
   bool IsObjectArray() const;
