@@ -13,9 +13,9 @@
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/StatementContext.h"
 #include "flang/Lower/Support/Utils.h"
-#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Support/InternalNames.h"
@@ -27,8 +27,14 @@
 //===----------------------------------------------------------------------===//
 
 // Return the binding label (from BIND(C...)) or the mangled name of a symbol.
-static std::string getMangledName(const Fortran::semantics::Symbol &symbol) {
+static std::string getMangledName(mlir::Location loc,
+                                  const Fortran::semantics::Symbol &symbol) {
   const std::string *bindName = symbol.GetBindName();
+  // TODO: update GetBindName so that it does not return a label for internal
+  // procedures.
+  if (bindName && Fortran::semantics::ClassifyProcedure(symbol) ==
+                      Fortran::semantics::ProcedureDefinitionClass::Internal)
+    TODO(loc, "BIND(C) internal procedures");
   return bindName ? *bindName : Fortran::lower::mangle::mangleName(symbol);
 }
 
@@ -63,7 +69,8 @@ bool Fortran::lower::CallerInterface::hasAlternateReturns() const {
 std::string Fortran::lower::CallerInterface::getMangledName() const {
   const Fortran::evaluate::ProcedureDesignator &proc = procRef.proc();
   if (const Fortran::semantics::Symbol *symbol = proc.GetSymbol())
-    return ::getMangledName(symbol->GetUltimate());
+    return ::getMangledName(converter.getCurrentLocation(),
+                            symbol->GetUltimate());
   assert(proc.GetSpecificIntrinsic() &&
          "expected intrinsic procedure in designator");
   return proc.GetName();
@@ -329,7 +336,8 @@ bool Fortran::lower::CalleeInterface::hasAlternateReturns() const {
 std::string Fortran::lower::CalleeInterface::getMangledName() const {
   if (funit.isMainProgram())
     return fir::NameUniquer::doProgramEntry().str();
-  return ::getMangledName(funit.getSubprogramSymbol());
+  return ::getMangledName(converter.getCurrentLocation(),
+                          funit.getSubprogramSymbol());
 }
 
 const Fortran::semantics::Symbol *
