@@ -341,8 +341,9 @@ Cookie IONAME(BeginWait)(ExternalUnit unitNumber, AsynchronousId id) {
   // TODO: add and use sourceFile & sourceLine here
   Terminator oom;
   // TODO: add and use sourceFile & sourceLine here
-  auto &io{
-      New<NoopStatementState>{oom}(nullptr, 0).release()->ioStatementState()};
+  auto &io{New<NoopStatementState>{oom}(nullptr, 0, unitNumber)
+               .release()
+               ->ioStatementState()};
   if (id != 0 && !ExternalFileUnit::LookUp(unitNumber)) {
     io.GetIoErrorHandler().SetPendingError(IostatBadWaitUnit);
   }
@@ -360,7 +361,7 @@ Cookie IONAME(BeginClose)(
   } else {
     // CLOSE(UNIT=bad unit) is just a no-op
     Terminator oom{sourceFile, sourceLine};
-    return &New<NoopStatementState>{oom}(sourceFile, sourceLine)
+    return &New<NoopStatementState>{oom}(sourceFile, sourceLine, unitNumber)
                 .release()
                 ->ioStatementState();
   }
@@ -374,7 +375,7 @@ Cookie IONAME(BeginFlush)(
   } else {
     // FLUSH(UNIT=unknown) is a no-op
     Terminator oom{sourceFile, sourceLine};
-    return &New<NoopStatementState>{oom}(sourceFile, sourceLine)
+    return &New<NoopStatementState>{oom}(sourceFile, sourceLine, unitNumber)
                 .release()
                 ->ioStatementState();
   }
@@ -420,7 +421,7 @@ Cookie IONAME(BeginInquireUnit)(
   } else {
     // INQUIRE(UNIT=unrecognized unit)
     Terminator oom{sourceFile, sourceLine};
-    return &New<InquireNoUnitState>{oom}(sourceFile, sourceLine)
+    return &New<InquireNoUnitState>{oom}(sourceFile, sourceLine, unitNumber)
                 .release()
                 ->ioStatementState();
   }
