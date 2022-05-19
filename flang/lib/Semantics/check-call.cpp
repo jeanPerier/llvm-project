@@ -167,16 +167,17 @@ static void CheckExplicitDataArg(const characteristics::DummyDataObject &dummy,
     characteristics::TypeAndShape &actualType, bool isElemental,
     evaluate::FoldingContext &context, const Scope *scope,
     const evaluate::SpecificIntrinsic *intrinsic,
-    bool allowIntegerConversions) {
+    bool allowActualArgumentConversions) {
 
   // Basic type & rank checking
   parser::ContextualMessages &messages{context.messages()};
   CheckCharacterActual(actual, dummy.type, actualType, context, messages);
-  if (allowIntegerConversions) {
+  if (allowActualArgumentConversions) {
     ConvertIntegerActual(actual, dummy.type, actualType, messages);
   }
   bool typesCompatible{dummy.type.type().IsTkCompatibleWith(actualType.type())};
-  if (!typesCompatible && dummy.type.Rank() == 0) {
+  if (!typesCompatible && dummy.type.Rank() == 0 &&
+      allowActualArgumentConversions) {
     // Extension: pass Hollerith literal to scalar as if it had been BOZ
     if (auto converted{
             evaluate::HollerithToBOZ(context, actual, dummy.type.type())}) {
@@ -694,7 +695,7 @@ static void CheckExplicitInterfaceArg(evaluate::ActualArgument &arg,
     const characteristics::DummyArgument &dummy,
     const characteristics::Procedure &proc, evaluate::FoldingContext &context,
     const Scope *scope, const evaluate::SpecificIntrinsic *intrinsic,
-    bool allowIntegerConversions) {
+    bool allowActualArgumentConversions) {
   auto &messages{context.messages()};
   std::string dummyName{"dummy argument"};
   if (!dummy.name.empty()) {
@@ -725,7 +726,7 @@ static void CheckExplicitInterfaceArg(evaluate::ActualArgument &arg,
                       object.type.Rank() == 0 && proc.IsElemental()};
                   CheckExplicitDataArg(object, dummyName, *expr, *type,
                       isElemental, context, scope, intrinsic,
-                      allowIntegerConversions);
+                      allowActualArgumentConversions);
                 } else if (object.type.type().IsTypelessIntrinsicArgument() &&
                     IsBOZLiteral(*expr)) {
                   // ok
@@ -878,7 +879,7 @@ static parser::Messages CheckExplicitInterface(
     const characteristics::Procedure &proc, evaluate::ActualArguments &actuals,
     const evaluate::FoldingContext &context, const Scope *scope,
     const evaluate::SpecificIntrinsic *intrinsic,
-    bool allowIntegerConversions) {
+    bool allowActualArgumentConversions) {
   parser::Messages buffer;
   parser::ContextualMessages messages{context.messages().at(), &buffer};
   RearrangeArguments(proc, actuals, messages);
@@ -889,7 +890,7 @@ static parser::Messages CheckExplicitInterface(
       const auto &dummy{proc.dummyArguments.at(index++)};
       if (actual) {
         CheckExplicitInterfaceArg(*actual, dummy, proc, localContext, scope,
-            intrinsic, allowIntegerConversions);
+            intrinsic, allowActualArgumentConversions);
       } else if (!dummy.IsOptional()) {
         if (dummy.name.empty()) {
           messages.Say(
@@ -920,9 +921,9 @@ parser::Messages CheckExplicitInterface(const characteristics::Procedure &proc,
 
 bool CheckInterfaceForGeneric(const characteristics::Procedure &proc,
     evaluate::ActualArguments &actuals, const evaluate::FoldingContext &context,
-    bool allowIntegerConversions) {
+    bool allowActualArgumentConversions) {
   return !CheckExplicitInterface(
-      proc, actuals, context, nullptr, nullptr, allowIntegerConversions)
+      proc, actuals, context, nullptr, nullptr, allowActualArgumentConversions)
               .AnyFatalError();
 }
 
