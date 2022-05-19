@@ -176,6 +176,17 @@ static void CheckExplicitDataArg(const characteristics::DummyDataObject &dummy,
     ConvertIntegerActual(actual, dummy.type, actualType, messages);
   }
   bool typesCompatible{dummy.type.type().IsTkCompatibleWith(actualType.type())};
+  if (!typesCompatible && dummy.type.Rank() == 0) {
+    // Extension: pass Hollerith literal to scalar as if it had been BOZ
+    if (auto converted{
+            evaluate::HollerithToBOZ(context, actual, dummy.type.type())}) {
+      messages.Say(
+          "passing Hollerith or character literal as if it were BOZ"_port_en_US);
+      actual = *converted;
+      actualType.type() = dummy.type.type();
+      typesCompatible = true;
+    }
+  }
   if (typesCompatible) {
     if (isElemental) {
     } else if (dummy.type.attrs().test(
