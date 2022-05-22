@@ -46,6 +46,9 @@ In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+94de624b7a7f42ae9913f85bb9d119928ee99635 #628 D125342: Fix test for assumed-size arguments to SHAPE() & al.
+3612913f30fb594e169b7e201dfad9a1f37d4432 #598 D125341: Fold complex component references
+bf74c1fcf236aac3d731369cb593d92fcb79a514 spec-expr D125343: Allow local variables and function result inquiries in specification expressions
 1b75a3c20f30a7aa80006925ff4f74145806bd39 #544 D125153: Enforce limit on rank + corank
 25ae5261ccef8110fde5aad42e04c5b39564e461 #597 D125151: Fold real-valued MODULO() and MOD()
 d55947a0e18d26f1a2b9f515cafc37af1fbc336e #596 D125146: Fold real-valued DIM()

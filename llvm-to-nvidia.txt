@@ -40,9 +40,30 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 045665423e6e893ee168368dab10469c8d3168c5
+with llvm-project commit 705f048cbbfd51569097f235b5a08563ce40509a
 
 Log of cherry-picked commits in reverse order (latest first):
+a61835b1e3f5e074f4c8174edadfc6bef975138f Daniil D.: Fix use-associated false-positive error
+870f4421acc67899d1fe6db392fe555a4b186e80 PeixinQiao: Fix the types of worksharing-loop variables
+4202d69d9efe450f6f9f09ef58fcc008b707d24e Kiran C.: Upstream the lowering of the parallel do combined construct
+e601b2a1542710789395ab1121b1ccc7076e39d1 Andrzej W.: Add support for generating executables on MacOSX/Darwin
+3b390a1682232a0d6921692f72fac65ec4374597 Mats P.: Support for Collapse
+b2f9bde2e0e0fb9a26c2809aed17213e0920cf0f Daniil D.: Allow whitespaces before `ERROR`
+f820625503744472be8312bb70ee0da197816067 Andrzej W.: Make driver accept `-module-dir<value>
+565f5dfa1f3ea52637fcfec4babd4a406d2e4c03 Damian R.: test conforming & non-conforming lcobound
+1c0b03f6e706978f2e87408f7fd5e4c846d6c9a8 Diana P.: Support parsing response files
+6bcafce103a4d759fd9acdc472bb2c8d0b2c859c Diana P.: Use proper prototypes in Fortran_main. NFCI
+7814b559bd5e1dbb3c016b393068698bc5781cc5 rkayaith: Avoid reversing constant order
+5646d82885f64f1f886d84aff5422697f355f6c4 PeixinQiao: Add one semantic check for elemental call arguments
+f305ac3d5d0e02df68efbad42ab9c209f99d51a7 PeixinQiao: Support lowering to MLIR for ordered clause
+a6cef03f66ca76169ba629d21f1245b50b646ee0 River R.: Remove the `type` keyword from type alias definitions
+3d2e05d542e646891745c5278a09950d3c4fb4a5 Diana P.: Install Fortran_main library
+ea18987094eff5a5835135da1f472d2e7bf6c68e Andrzej W.: Fix driver method names overridden by the plugins
+1e462fafdf8be70137c8eaf856f4eb886f8b4d4c Andrzej W.: Switch to the MLIR coding style in the driver (nfc)
+27478872fd153b3edd123d586dd86210b3f59f2c Chris L.: Fix warning in flang build, incorporate feedback from River.
+a2ac0bb2f141520150c823eb28896f45feb59832 PeixinQiao: Warn for the limit on name length
+6822ed035f188aa55f9ac283d2eb20dcc7a9ca07 Eric S.:  Fixes a performance problem with lowering of forall loops and creating...
+d4609ae47d16a8f5ccd761fa1b61cf52505b1a08 Pete S.: Change "bad kind" messages in the runtime to "not yet implemented"
 940871dd289c9f92ee32d899d58538c57c76c16d Peter K.: edits to: [flang] Enforce limit on rank + corank
 71728360ada3e0f6c21d4c09d33424f6150afcc9 Peter K.: edits to: [flang] Fold real-valued MODULO() and MOD()
 9e50168be444dc6cc076fe3ac3d0fb73dfca7428 Peter K.: edits to: [flang] Fold real-valued DIM()
