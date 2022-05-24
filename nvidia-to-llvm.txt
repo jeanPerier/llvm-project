@@ -1,4 +1,4 @@
-571How to cherry-pick commits from f18-stage to llvm-project
+How to cherry-pick commits from f18-stage to llvm-project
 
 Do once:
   git clone https://github.com/llvm/llvm-project.git $DIRECTORY
@@ -46,6 +46,23 @@ In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+281dd02a94603e958779ec66de08489a5a666211 #708 D126155: Catch decimal integer input overflow
+eba342019c9014f585b26d7ae6f1ffb184dda30c #701 D126154: Replace crash and improve a semantics TODO message
+9e2067a4b7bd59fea8cf05b76f768df42731b02c #700 D126153: Process subprogram BIND(C,NAME=...) locally
+90e8f12414dc65da8709dad61ba487ad07883d29 #695 D126152: Fix false error for multiple defined I/O subroutines
+7486051d6c1f27ed95cccce41644ad0bce344a2c #688 D126151: Accept defined assignment with CLASS(*) RHS
+4e51577f1e54cc2e80b1a932d57e58096479de51 #641 D126150: Fix purity testing for generic calls
+385d404635a38d251c50104c5c602f0bb3ee2b21 #639 D126149: Don't prematurely resolve subprogram names
+18f8acea442c79d5c116147b76128f4186b1ef19 #624 D126148: Catch calls to assumed-length character functions
+d70948dd69aaeb5173a901e9db36111ff4fdeb8a #627 D126147: Fix crash in semantics after PDT instantiation
+f6210f7031ea740407b2f32e0a38844b31b525fd #620 D126146: Handle BACKSPACE after reading past EOF
+809c361877c9e6d5e64b712a515f461e4ad74f06 #619 D126145: INQUIRE(UNIT=666,NUMBER=n) must set n=666 - will break bad test /proj/ta/tests/nag_f95_syntax/919t924.f90 with "(3|4)-maximal-NUMBER INQUIRE statement-by-unit in 919T924"
+3529642770706d0f698945218ff4142fc47d7d7f #607 D126144: Extension: Accept Hollerith actual arguments as if they were BOZ - UPDATED
+6dbc1040c6ddbad7089e6fff33a29dfb9704dbd0 #610 D126143: Clean up asynchronous I/O APIs
+d01f33cc947e755cc516a0817c1baaf1d328af10 #587 D126142: Allow more forward references to ENTRY names
+aceaec6e0ae2727ec26689b2345cc6f9439854b6 #609 D126141: Ignore BIND(C) binding name conflicts of inner procedures
+b88e20763fe3974714dbe6dbb6c5b7aa84a3156d #608 D126140: Allow global scope names that clash with intrinsic modules
+8df0480c4990d7797df6b6543c535b25e2dbae9f #604 D126139: Fix character length calculation for Unicode component
 94de624b7a7f42ae9913f85bb9d119928ee99635 #628 D125342: Fix test for assumed-size arguments to SHAPE() & al.
 3612913f30fb594e169b7e201dfad9a1f37d4432 #598 D125341: Fold complex component references
 bf74c1fcf236aac3d731369cb593d92fcb79a514 spec-expr D125343: Allow local variables and function result inquiries in specification expressions

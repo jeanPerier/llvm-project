@@ -40,9 +40,13 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 705f048cbbfd51569097f235b5a08563ce40509a
+with llvm-project commit cdd54cbdd937f7473e0ba065ecafc70742f3f1fd
 
 Log of cherry-picked commits in reverse order (latest first):
+c428620913ba318a7d6d2a2164b56ff116f90c56 Peter K.: Edits to: Catch calls to assumed-length character functions
+1e1f60c605a9b1c803f3bbb1a1339c9bb1af4e34 Val D. for Jean P.: Alternate entry points with unused arguments
+574f9dfee86a8084b8fca43c850f8a3387c6c68b Peter K.: Edits to: Extension: Accept Hollerith actual arguments as if they were BOZ
+b050686c4b30c53486955097d8678d43f97fef85 PeixinQiao: [NFC] Change the OpenMP atomic read/write test cases
 a61835b1e3f5e074f4c8174edadfc6bef975138f Daniil D.: Fix use-associated false-positive error
 870f4421acc67899d1fe6db392fe555a4b186e80 PeixinQiao: Fix the types of worksharing-loop variables
 4202d69d9efe450f6f9f09ef58fcc008b707d24e Kiran C.: Upstream the lowering of the parallel do combined construct
