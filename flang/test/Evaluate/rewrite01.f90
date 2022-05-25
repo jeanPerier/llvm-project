@@ -129,7 +129,7 @@ subroutine len_test(a,b, c, d, e, n, m)
   print *, len(a(1:5))
   !CHECK: PRINT *, 10_4
   print *, len(b(a))
-  !CHECK: PRINT *, int(10_8+int(a%len,kind=8),kind=4)
+  !CHECK: PRINT *, len(b(a)//a)
   print *, len(b(a) // a)
   !CHECK: PRINT *, 10_4
   print *, len(c)

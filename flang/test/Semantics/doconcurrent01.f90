@@ -1,5 +1,4 @@
 ! RUN: %python %S/test_errors.py %s %flang_fc1
-! XFAIL: *
 ! C1141
 ! A reference to the procedure IEEE_SET_HALTING_MODE ! from the intrinsic 
 ! module IEEE_EXCEPTIONS, shall not ! appear within a DO CONCURRENT construct.

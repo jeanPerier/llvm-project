@@ -198,28 +198,26 @@ module testMod3
     end subroutine
   end interface
  contains
-! CHECK-LABEL: func @ok3() -> f32 attributes {fir.sym_name = "_QMtestmod3Pf2"} {
+! CHECK-LABEL: func @ok3() -> f32 attributes {fir.bindc_name = "ok3"} {
   real function f2() bind(c,name=foo//'3')
     character*(*), parameter :: foo = ok
 ! CHECK: fir.call @ok1() : () -> f32
-! CHECK-LABEL: func @ok4() -> f32 attributes {fir.sym_name = "_QMtestmod3Pf3"} {
+! CHECK-LABEL: func @ok4() -> f32 attributes {fir.bindc_name = "ok4"} {
     entry f3() bind(c,name=foo//'4')
 ! CHECK: fir.call @ok1() : () -> f32
     f2 = f1()
   end function
-! CHECK-LABEL: func @ok5() attributes {fir.sym_name = "_QMtestmod3Ps2"} {
+! CHECK-LABEL: func @ok5() attributes {fir.bindc_name = "ok5"} {
   subroutine s2() bind(c,name=foo//'5')
     character*(*), parameter :: foo = ok
 ! CHECK: fir.call @ok2() : () -> ()
-! CHECK-LABEL: func @ok6() attributes {fir.sym_name = "_QMtestmod3Ps3"} {
+! CHECK-LABEL: func @ok6() attributes {fir.bindc_name = "ok6"} {
     entry s3() bind(c,name=foo//'6')
 ! CHECK: fir.call @ok2() : () -> ()
     continue ! force end of specification part
-! CHECK-LABEL: func @ok7() attributes {fir.sym_name = "_QMtestmod3Ps4"} {
+! CHECK-LABEL: func @ok7() attributes {fir.bindc_name = "ok7"} {
     entry s4() bind(c,name=foo//'7')
 ! CHECK: fir.call @ok2() : () -> ()
     call s1
   end subroutine
 end module
-
-! CHECK-LABEL: fir.global internal @_QFfooEpi : f32 {

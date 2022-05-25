@@ -41,35 +41,6 @@ contains
   end subroutine
 end subroutine
 
-! CHECK-LABEL: func @_QPcapture_char_func_assumed_dummy(
-! CHECK-SAME:  %[[VAL_0:.*]]: tuple<!fir.boxproc<() -> ()>, i64> {fir.char_proc}) {
-subroutine capture_char_func_assumed_dummy(char_func_dummy)
-  character(*),external :: char_func_dummy
-! CHECK:  %[[VAL_1:.*]] = fir.alloca tuple<tuple<!fir.boxproc<() -> ()>, i64>>
-! CHECK:  %[[VAL_2:.*]] = arith.constant 0 : i32
-! CHECK:  %[[VAL_3:.*]] = fir.coordinate_of %[[VAL_1]], %[[VAL_2]] : (!fir.ref<tuple<tuple<!fir.boxproc<() -> ()>, i64>>>, i32) -> !fir.ref<tuple<!fir.boxproc<() -> ()>, i64>>
-! CHECK:  fir.store %[[VAL_0]] to %[[VAL_3]] : !fir.ref<tuple<!fir.boxproc<() -> ()>, i64>>
-! CHECK:  fir.call @_QFcapture_char_func_assumed_dummyPinternal(%[[VAL_1]]) : (!fir.ref<tuple<tuple<!fir.boxproc<() -> ()>, i64>>>) -> ()
-  call internal()
-contains
-! CHECK-LABEL: func @_QFcapture_char_func_assumed_dummyPinternal(
-! CHECK-SAME:  %[[VAL_0:.*]]: !fir.ref<tuple<tuple<!fir.boxproc<() -> ()>, i64>>> {fir.host_assoc}) {
-  subroutine internal()
-! CHECK:  %[[VAL_1:.*]] = arith.constant 0 : i32
-! CHECK:  %[[VAL_2:.*]] = fir.coordinate_of %[[VAL_0]], %[[VAL_1]] : (!fir.ref<tuple<tuple<!fir.boxproc<() -> ()>, i64>>>, i32) -> !fir.ref<tuple<!fir.boxproc<() -> ()>, i64>>
-! CHECK:  %[[VAL_3:.*]] = fir.load %[[VAL_2]] : !fir.ref<tuple<!fir.boxproc<() -> ()>, i64>>
-! CHECK:  %[[VAL_9:.*]] = fir.extract_value %[[VAL_3]], [0 : index] : (tuple<!fir.boxproc<() -> ()>, i64>) -> !fir.boxproc<() -> ()>
-! CHECK:  %[[VAL_10:.*]] = fir.box_addr %[[VAL_9]] : (!fir.boxproc<() -> ()>) -> (() -> ())
-! CHECK:  %[[VAL_11:.*]] = fir.extract_value %[[VAL_3]], [1 : index] : (tuple<!fir.boxproc<() -> ()>, i64>) -> i64
-! CHECK:  %[[VAL_12:.*]] = fir.call @llvm.stacksave() : () -> !fir.ref<i8>
-! CHECK:  %[[VAL_13:.*]] = fir.alloca !fir.char<1,?>(%[[VAL_11]] : i64) {bindc_name = ".result"}
-! CHECK:  %[[VAL_14:.*]] = fir.convert %[[VAL_10]] : (() -> ()) -> ((!fir.ref<!fir.char<1,?>>, index) -> !fir.boxchar<1>)
-! CHECK:  %[[VAL_15:.*]] = fir.convert %[[VAL_11]] : (i64) -> index
-! CHECK:  %[[VAL_16:.*]] = fir.call %[[VAL_14]](%[[VAL_13]], %[[VAL_15]]) : (!fir.ref<!fir.char<1,?>>, index) -> !fir.boxchar<1>
-   print *, char_func_dummy()
-  end subroutine
-end subroutine
-
 ! CHECK-LABEL: func @_QPcapture_char_func(
 ! CHECK-SAME:  %[[VAL_0:.*]]: !fir.ref<i32> {fir.bindc_name = "n"}) {
 subroutine capture_char_func(n)
