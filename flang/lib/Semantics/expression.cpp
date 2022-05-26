@@ -9,6 +9,7 @@
 #include "flang/Semantics/expression.h"
 #include "check-call.h"
 #include "pointer-assignment.h"
+#include "resolve-names-utils.h"
 #include "resolve-names.h"
 #include "flang/Common/Fortran.h"
 #include "flang/Common/idioms.h"
@@ -2121,6 +2122,28 @@ std::pair<const Symbol *, bool> ExpressionAnalyzer::ResolveGeneric(
   }
   if (mightBeStructureConstructor && details.derivedType()) {
     return {details.derivedType(), false};
+  }
+  // Check for generic or explicit intrinsic of the same name in outer scopes.
+  // See 15.5.5.2 for details.
+  const Symbol *outer{nullptr};
+  if (!symbol.owner().IsGlobal()) {
+    for (const std::string &n : GetAllNames(context_, symbol.name())) {
+      outer = symbol.owner().parent().FindSymbol(n);
+      if (outer) {
+        break;
+      }
+    }
+  }
+  if (outer) {
+    const Symbol &outerUltimate{outer->GetUltimate()};
+    if (outerUltimate.has<semantics::GenericDetails>()) {
+      return ResolveGeneric(
+          *outer, actuals, adjustActuals, mightBeStructureConstructor);
+    }
+    if (outerUltimate.has<semantics::SubprogramDetails>() &&
+        outer->attrs().test(semantics::Attr::INTRINSIC)) {
+      return {outer, false};
+    }
   }
   return {nullptr, false};
 }
