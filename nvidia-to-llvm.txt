@@ -46,6 +46,9 @@ In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+d7891fc649a09b31086a16cf6eb9d55ccdc52dee + ...Handle forward reference to derived type when generic interface exists
+4d91085cb7547995eba45f8bb0ced8732a125cfc #55240, 55300 generics D126587: Make generic resolution conform to 15.5.5.2 w/r/t host association
+27d5506db09b56639ff04348af125c064b5ab34a #55081 warnings D126584: Avoid spurious warnings from reading module files
 281dd02a94603e958779ec66de08489a5a666211 #708 D126155: Catch decimal integer input overflow
 eba342019c9014f585b26d7ae6f1ffb184dda30c #701 D126154: Replace crash and improve a semantics TODO message
 9e2067a4b7bd59fea8cf05b76f768df42731b02c #700 D126153: Process subprogram BIND(C,NAME=...) locally

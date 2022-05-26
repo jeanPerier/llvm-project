@@ -40,16 +40,22 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit f15c60218d5c88c9f32942bce119e7ac25cb6d73
+with llvm-project commit 0c190575ebfc81e117d95e2eca25789610192125
 
 Log of cherry-picked commits in reverse order (latest first):
-4c549a0b593e787ac2431ecbcf50b5a5de795f0c Emil K.: [NFC] Make semantics test dosemantics03.f90 warning-correct
+3142c761da974e6f963cebca34a7880392203347 Peter K.: Fix spelling errors and usage in an error message
+66073306d888acd9b3e8acbbb4bda54ba25bc7e9 PeixinQiao: Fix pointer variables in atomic read/write
+65af17c7a00df3f8906cded34b63b309e687cf61 PeixinQiao: Fix exit of a region
+dae2c24eb2385d5bf34e7199bae26080a5eb17b3 Shraiysh V.: Cleanup the sections tests
+889c7c8e9260932dce5367df3f7ed7ecc32dbe8e Daniil D.: Support correct continuations for compiler directives
+d1440ccaa5bce1726da283759e95ef99a25d4276 Damian R.: expand the this_image test coverage
+4c549a0b593e787ac2431ecbcf50b5a5de795f0c Emil K.: [Make semantics test dosemantics03.f90 warning-correct
 ad1d60c3befd606d6864b367f939238e50fb0f7e Ivan K.: Catch missspelled directives.
 ddd692e9d5722b8b85a871d9a4188358274b5f6e Peter K.: Allow forward reference to ENTRY from generic interface
 6b99dc29c6efa5d36306dd567c5e972cafb85c17 Peter K.: Fix crash from a blank BIND(C,NAME="") on subprogram
 bbad981dab49851ab0b94fbb27925fe1c80f888b Peter K.: Address regression (calls to assumed-length character function dummy procedures)
-360411957b6f40f50b35097b7abedd91250f2434 Mehdi C.: MSVC] Fix building with `/permissive-` flag
-29f167abcf7d871d17dd3f38f361916de1a12470 Kiran C.: OpenMP] Fixes for unstructured OpenMP code
+360411957b6f40f50b35097b7abedd91250f2434 Mehdi C.: Fix building with `/permissive-` flag
+29f167abcf7d871d17dd3f38f361916de1a12470 Kiran C.: Fixes for unstructured OpenMP code
 c428620913ba318a7d6d2a2164b56ff116f90c56 Peter K.: Edits to: Catch calls to assumed-length character functions
 1e1f60c605a9b1c803f3bbb1a1339c9bb1af4e34 Val D. for Jean P.: Alternate entry points with unused arguments
 574f9dfee86a8084b8fca43c850f8a3387c6c68b Peter K.: Edits to: Extension: Accept Hollerith actual arguments as if they were BOZ
