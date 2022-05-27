@@ -105,9 +105,11 @@ end subroutine
 !CHECK: len_test
 subroutine len_test(a,b, c, d, e, n, m)
   character(*), intent(in) :: a
-  character(10) :: b
+  character(*) :: b
   external b
   character(10), intent(in) :: c
+  character(10) :: d
+  external d
   integer, intent(in) :: n, m
   character(n), intent(in) :: e
   interface
@@ -127,7 +129,7 @@ subroutine len_test(a,b, c, d, e, n, m)
   print *, len(a)
   !CHECK: PRINT *, 5_4
   print *, len(a(1:5))
-  !CHECK: PRINT *, 10_4
+  !CHECK: PRINT *, len(b(a))
   print *, len(b(a))
   !CHECK: PRINT *, len(b(a)//a)
   print *, len(b(a) // a)
@@ -138,14 +140,14 @@ subroutine len_test(a,b, c, d, e, n, m)
   !CHECK: PRINT *, 5_4
   print *, len(c(1:5))
   !CHECK: PRINT *, 10_4
-  print *, len(b(c))
+  print *, len(d(c))
   !CHECK: PRINT *, 20_4
-  print *, len(b(c) // c)
+  print *, len(d(c) // c)
   !CHECK: PRINT *, 0_4
   print *, len(a(10:4))
   !CHECK: PRINT *, len(a(int(n,kind=8):int(m,kind=8)))
   print *, len(a(n:m))
-  !CHECK: PRINT *, 10_4
+  !CHECK: PRINT *, len(b(a(int(n,kind=8):int(m,kind=8))))
   print *, len(b(a(n:m)))
   !CHECK: PRINT *, len(e(4_8:max(0_8,int(n,kind=8))))
   print *, len(e(4:))
