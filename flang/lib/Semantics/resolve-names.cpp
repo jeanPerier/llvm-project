@@ -593,6 +593,10 @@ public:
             derivedType =
                 &currScope().MakeSymbol(name, attrs, std::move(details));
             d->set_derivedType(*derivedType);
+          } else if (derivedType->CanReplaceDetails(details)) {
+            // was forward-referenced
+            derivedType->attrs() |= attrs;
+            derivedType->set_details(std::move(details));
           } else {
             SayAlreadyDeclared(name, *derivedType);
           }
@@ -5595,13 +5599,28 @@ void DeclarationVisitor::SetType(
 
 std::optional<DerivedTypeSpec> DeclarationVisitor::ResolveDerivedType(
     const parser::Name &name) {
-  Symbol *symbol{FindSymbol(NonDerivedTypeScope(), name)};
-  if (!symbol || symbol->has<UnknownDetails>()) {
+  Scope &outer{NonDerivedTypeScope()};
+  Symbol *symbol{FindSymbol(outer, name)};
+  Symbol *ultimate{symbol ? &symbol->GetUltimate() : nullptr};
+  auto *generic{ultimate ? ultimate->detailsIf<GenericDetails>() : nullptr};
+  if (generic) {
+    if (Symbol * genDT{generic->derivedType()}) {
+      symbol = genDT;
+      generic = nullptr;
+    }
+  }
+  if (!symbol || symbol->has<UnknownDetails>() ||
+      (generic && &ultimate->owner() == &outer)) {
     if (allowForwardReferenceToDerivedType()) {
       if (!symbol) {
-        symbol = &MakeSymbol(InclusiveScope(), name.source, Attrs{});
+        symbol = &MakeSymbol(outer, name.source, Attrs{});
         Resolve(name, *symbol);
-      };
+      } else if (generic) {
+        // forward ref to type with later homonymous generic
+        symbol = &outer.MakeSymbol(name.source, Attrs{}, UnknownDetails{});
+        generic->set_derivedType(*symbol);
+        name.symbol = symbol;
+      }
       DerivedTypeDetails details;
       details.set_isForwardReferenced(true);
       symbol->set_details(std::move(details));
@@ -5614,11 +5633,6 @@ std::optional<DerivedTypeSpec> DeclarationVisitor::ResolveDerivedType(
     return std::nullopt;
   }
   symbol = &symbol->GetUltimate();
-  if (auto *details{symbol->detailsIf<GenericDetails>()}) {
-    if (details->derivedType()) {
-      symbol = &details->derivedType()->GetUltimate();
-    }
-  }
   if (symbol->has<DerivedTypeDetails>()) {
     return DerivedTypeSpec{name.source, *symbol};
   } else {

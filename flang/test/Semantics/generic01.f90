@@ -5,12 +5,15 @@ module m1
   private
   public abs
   interface abs
-    module procedure abs_int_redef
+    module procedure :: abs_int_redef, abs_noargs
   end interface
 contains
   integer function abs_int_redef(j)
     integer, intent(in) :: j
     abs_int_redef = j
+  end function
+  integer function abs_noargs()
+    abs_noargs = 0
   end function
 end module
 
@@ -39,9 +42,11 @@ contains
     print *, abs(1.)
     !CHECK: 1.41421353816986083984375_4
     print *, abs((1,1))
+    !CHECK: abs_noargs(
+    print *, abs()
   end subroutine
   subroutine test2
-    intrinsic abs ! override module's use of m1
+    intrinsic abs ! override some of module's use of m1
     block
       use m2, only: abs
       !CHECK: 1_4
@@ -50,6 +55,8 @@ contains
       print *, abs(1.)
       !CHECK: 1.41421353816986083984375_4
       print *, abs((1,1))
+      !CHECK: abs_noargs(
+      print *, abs()
     end block
   end subroutine
   subroutine test3
@@ -62,6 +69,8 @@ contains
     print *, abs(1.)
     !CHECK: 1.41421353816986083984375_4
     print *, abs((1,1))
+    !CHECK: abs_noargs(
+    print *, abs()
     block
       use m1, only: abs ! override the override
       !CHECK: abs_int_redef(
