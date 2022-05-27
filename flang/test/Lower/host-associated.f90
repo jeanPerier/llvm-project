@@ -608,7 +608,7 @@ end subroutine test_proc_dummy_other
 ! CHECK:         br ^bb1(%[[VAL_33]], %[[VAL_34]] : index, index)
 ! CHECK:       ^bb3:
 ! CHECK:         %[[VAL_35:.*]] = arith.cmpi slt, %[[VAL_3]], %[[VAL_19]] : index
-! CHECK:         %[[VAL_36:.*]] = arith.select %[[VAL_35]], %[[VAL_3]], %[[VAL_19]] : index
+! CHECK:         %[[VAL_36:.*]] = select %[[VAL_35]], %[[VAL_3]], %[[VAL_19]] : index
 ! CHECK:         %[[VAL_37:.*]] = fir.convert %[[VAL_36]] : (index) -> i64
 ! CHECK:         %[[VAL_38:.*]] = fir.convert %[[VAL_9]] : (!fir.ref<!fir.char<1,?>>) -> !fir.ref<i8>
 ! CHECK:         fir.call @llvm.memmove.p0i8.p0i8.i64(%[[VAL_38]], %[[VAL_22]], %[[VAL_37]], %[[VAL_5]]) : (!fir.ref<i8>, !fir.ref<i8>, i64, i1) -> ()
