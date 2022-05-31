@@ -32,6 +32,12 @@ template <TypeCategory CAT, int KIND>
 constexpr bool HasCppTypeFor{
     !std::is_void_v<typename CppTypeForHelper<CAT, KIND>::type>};
 
+template <TypeCategory CAT, int KIND, bool SFINAE = false>
+constexpr bool HasCppTypeFor{false};
+template <TypeCategory CAT, int KIND>
+constexpr bool HasCppTypeFor<CAT, KIND, true>{
+    !std::is_void_v<typename CppTypeForHelper<CAT, KIND>::type>};
+
 template <int KIND> struct CppTypeForHelper<TypeCategory::Integer, KIND> {
   using type = common::HostSignedIntType<8 * KIND>;
 };

@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "terminator.h"
 #include "flang/Runtime/numeric.h"
+#include "terminator.h"
 #include "flang/Runtime/float128.h"
 #include <cfloat>
 #include <climits>
@@ -475,7 +475,7 @@ CppTypeFor<TypeCategory::Integer, 16> RTNAME(Floor10_16)(
   return Floor<CppTypeFor<TypeCategory::Integer, 16>>(x);
 }
 #endif
-#else
+#elif LDBL_MANT_DIG == 113
 CppTypeFor<TypeCategory::Integer, 1> RTNAME(Floor16_1)(
     CppTypeFor<TypeCategory::Real, 16> x) {
   return Floor<CppTypeFor<TypeCategory::Integer, 1>>(x);
