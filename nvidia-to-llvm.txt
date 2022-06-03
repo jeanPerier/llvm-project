@@ -43,6 +43,27 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+5bfb54eb0a91a64c171a3bf17b1970c83e2ff451 #875 D127035: [runtime] Catch OPEN of connected file
+17e961fad2290aa9a9e66a307e963ba125537959 #846 D127034: [runtime] Emit error message rather than crashing for MOD(ULO)(x,P=0)
+b0f3aa2ff8aecdcc9b6a401a7dbc5a7899cdd24c #845 D127032: [runtime] Fix deadlock in error recovery
+3007ae369cf5bc9006e598796ceadc3f4c1518fd #841 D127030: When folding FINDLOC, convert operands to a common type
+f133a6e963ffe5568909368397d077f14957e167 #839 D127029: [runtime] Fix WRITE after OPEN(.., ACCESS="APPEND")
+cc0011313a87b77967a044c633510be9ad7a3936 #826 D127028: [runtime] Fix edge case discrepancies with EN output editing
+9bdcf9e920f768947e2f109bcabc820537bd8e3a #833 D127027: Don't crash on initialization with a zero-sized derived type
+6a7aab2bfdee88c8635fb5f282b1467849798725 #529 D127025: [runtime] Use __float128 where possible & needed in runtime
+188c63baaa078d266bb86b1955d7bec5447b4a3b #494 D127024: [runtime] Don't crash after surviving internal output overflow
+6c7901380277c6cc8edf6870579012e59d95aed3 #490 D127023: [runtime] Don't let random seed queries change the sequence
+5bb111d8750a8f5a593fee157c58850af51b0f93 #818 D127022: [runtime] Signal new I/O error on floating-point input overflow
+da283e7be61753e4f79ea7f5c11dcf8b1657d43d #816 D127021: Don't discard lower bounds of implicit-shape named constants
+e471ac0d9559858e40b7e75b63f912e6a4eada3f #813 D127020: [runtime] Ensure that 0. <= RANDOM_NUMBER() < 1.
+31643d5890a830f6cecc8fd7ae6a8ee862d053d4 #809 D127019: Distinguish intrinsic module USE in module files; correct search paths
+b515e038ff779bf38c09bfd72bfecd199e06edb2 #805 D127018: Correct folding of CSHIFT and EOSHIFT for DIM>1
+1460c82fee438266b11aac6bca8a725a4c65d34d #802 D127017: [runtime] Signal format error when input field width is zero
+8ad91f600e0650d4c51dbe9cb2123f1adb0162f5 #790 D127015: [runtime] OPEN write-only files
+20f2ed45546c43fe9086ecc2c705a206dfaa2a27 #789 D127014: [runtime] INQUIRE(FILE="...",SIZE=nbytes)
+9aae3b825a608aa807db39b173edb05824a44cba #787 D127013: [runtime] Allow extra character for E0.0 output editing
+f9ab41e44b4465a361f9bcb9b9477f4b334eee22 #753 D127012: [runtime] Fix bug with extra leading zero in octal output
+77e61e673cdf5a6fd4699097cc99596210f67a9a #748 D127011: Fix crash in IsSaved()
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):

@@ -40,9 +40,30 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 0c190575ebfc81e117d95e2eca25789610192125
+with llvm-project commit 8da5d5dbdc0872d3cdbeb5ff42c94775a98c71bc
 
 Log of cherry-picked commits in reverse order (latest first):
+7ce8c59b383a372d8fd4c44ab3b0dfbcd568d757 Diana P.: Document need for NO_STOP_MESSAGE environment variable. NFC
+e2ac99b79d6f36de93775aa683a4e439cb4b5344 PeixinQiao: Add check for conflict of BIND(C) and Parameter attributes
+72911227d4c73c19035ea9ed05f785bb691a816c Andrzej W.: docs] Document CMake support
+f09b0c8422d2a81c15b581ed115af66d17755ac4 Nikita P.: Update memcpy intrinsic mangling for opaque pointers
+e3bfd7e52d5fb48f5fc88d9a5fe7fa0d36f66f47 Nikita P.: Update tests for opaque pointers
+f2ee0a3f2c5c6f1fd25b0cb9b52745dd368827e9 Peter K.: Document intentional non-support for an extension
+dc4bf2c33ce48ab03ba2a497e4d2c875162b0435 Mats P.: Make omp.wsloop arguments appear in memory
+0a90b72c432d70aae035727ece4ba80ce820f381 PeixinQiao: Add semantic checks for threadprivate and declare target directives
+8c349d707ec2677e6235b4e9e3efa1e0c4de11f2 Kiran C.: Lower the infinite do loop
+c7c76ecd1a535ecfaf3bfb93e385fe7d9c4d10b4 Andrzej W.: Make sure that `flang` is also installed
+a159128811ae1d0a781dbc8590fa1e0f26642f82 Diana P.: Upstream lowering of real control loops
+e72f5738488766e61dec55d4bd93bb542825eca5 Dossay O.: Added parser support for defaultmap (OpenMP 5.0)
+5491fdf559ec68039a218bab6bf41901611554f0 PeixinQiao: Add semantic check for named constant as function result
+11837af03d0fe88657ffdc06ba326c4b69a7da1e Andrzej W.: Fix Windows build
+4b763c4ef83501e7884eae062d449e8185839da0 Andrzej W.: Rename `flang` as `flang-to-external-fc`
+f3d8335383672df3b3b950a082c2b11a80cbdb9d PeixinQiao: Support BIND(C) variable scope check
+b501503ca0bc5562e5ef4eb736ab718fd29c7bc3 Kiran C.: Fix for unstructured regions in OpenMP constructs - 2
+11fb1aa5a40885188b014b3ccd326cc92e4a3b9e Diana P.: Upstream the lowering of the while loop
+314abe3922c1dc5050b3eefc09ff794ba4dd807c Arnamoy B.: Check for occurrence of multiple list items in nontemporal clause for simd directive
+820146abe9083dc3c522de03998cf296f97ffe52 Mats P.: Pass chunk-size to MLIR while lowering from parse-tree
+f1983feaa1962b37e590dbf7875481210ace6f17 Emil K.: Make extension explicit: exponent-letter matching kind-param
 3142c761da974e6f963cebca34a7880392203347 Peter K.: Fix spelling errors and usage in an error message
 66073306d888acd9b3e8acbbb4bda54ba25bc7e9 PeixinQiao: Fix pointer variables in atomic read/write
 65af17c7a00df3f8906cded34b63b309e687cf61 PeixinQiao: Fix exit of a region
