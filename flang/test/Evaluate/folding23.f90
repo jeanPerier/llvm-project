@@ -11,5 +11,5 @@ module m
   logical, parameter :: test_eoshift_5 = all([eoshift(arr, 1, dim=1)] == [2, 0, 4, 0, 6, 0])
   logical, parameter :: test_eoshift_6 = all([eoshift(arr, 1, dim=2)] == [3, 4, 5, 6, 0, 0])
   logical, parameter :: test_eoshift_7 = all([eoshift(arr, [1, -1, 0])] == [2, 0, 0, 3, 5, 6])
-  logical, parameter :: test_eoshift_8 = all([eoshift(arr, [1, -1], dim=2)] == [3, 0, 5, 2, 0, 0, 4])
+  logical, parameter :: test_eoshift_8 = all([eoshift(arr, [1, -1], dim=2)] == [3, 0, 5, 2, 0, 4])
 end module

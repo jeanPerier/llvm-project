@@ -686,8 +686,10 @@ TEST(IOApiTests, FormatDoubleValues) {
   };
 
   for (auto const &[value, expect] : individualENTestCases) {
-    ASSERT_TRUE(CompareFormatReal("(EN10.1)", value, expect))
-        << "Failed to format EN10.1, expected " << expect;
+    std::string got;
+    ASSERT_TRUE(CompareFormatReal("(EN10.1)", value, expect, got))
+        << "Failed to format EN10.1, expected " << expect << ", got "
+        << got;
   }
 }
 
