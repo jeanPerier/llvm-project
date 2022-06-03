@@ -276,7 +276,7 @@ bool RealOutputEditing<binaryPrecision>::EditEorDOutput(const DataEdit &edit) {
   int scale{edit.modes.scale}; // 'kP' value
   int zeroesAfterPoint{0};
   if (isEN) {
-    scale = isZero() ? 1 : 3;
+    scale = IsZero() ? 1 : 3;
     significantDigits += scale;
   } else if (isES) {
     scale = 1;
