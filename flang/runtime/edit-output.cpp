@@ -21,7 +21,11 @@ static bool EditBOZOutput(IoStatementState &io, const DataEdit &edit,
     const unsigned char *data0, std::size_t bytes) {
   int digits{static_cast<int>((bytes * 8) / LOG2_BASE)};
   int get{static_cast<int>(bytes * 8) - digits * LOG2_BASE};
-  get = get ? get : LOG2_BASE;
+  if (get > 0) {
+    ++digits;
+  } else {
+    get = LOG2_BASE;
+  }
   int shift{7};
   int increment{isHostLittleEndian ? -1 : 1};
   const unsigned char *data{data0 + (isHostLittleEndian ? bytes - 1 : 0)};
@@ -256,7 +260,11 @@ bool RealOutputEditing<binaryPrecision>::EditEorDOutput(const DataEdit &edit) {
   }
   if (editWidth == 0) { // "the processor selects the field width"
     if (edit.digits.has_value()) { // E0.d
-      editWidth = editDigits + 6; // -.666E+ee
+      if (editDigits == 0) { // E0.0
+        editWidth = 7; // -.0E+ee
+      } else {
+        editWidth = editDigits + 6; // -.666E+ee
+      }
     } else { // E0
       flags |= decimal::Minimize;
       significantDigits =
