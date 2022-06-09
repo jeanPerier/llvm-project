@@ -28,9 +28,6 @@ template <TypeCategory CAT, int KIND> struct CppTypeForHelper {
 };
 template <TypeCategory CAT, int KIND>
 using CppTypeFor = typename CppTypeForHelper<CAT, KIND>::type;
-template <TypeCategory CAT, int KIND>
-constexpr bool HasCppTypeFor{
-    !std::is_void_v<typename CppTypeForHelper<CAT, KIND>::type>};
 
 template <TypeCategory CAT, int KIND, bool SFINAE = false>
 constexpr bool HasCppTypeFor{false};
