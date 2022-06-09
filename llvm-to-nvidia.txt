@@ -40,9 +40,28 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 8da5d5dbdc0872d3cdbeb5ff42c94775a98c71bc
+with llvm-project commit 4110c2c657b329f91a5c4eef653a15c1a15b61ed
 
 Log of cherry-picked commits in reverse order (latest first):
+08407255b2d29968f050e5c2ac81fe85f66ea34f Kiran C.: Temporary fix for conversion materialization
+1953bcdaac2cefe28b101fcfabee4f85bd6d2370 Andrzej W.: Add RUN lines using `fir-opt`
+8b951e64d9ab0026fe5b445d72f69369ab2418b1 Kiran C.: [OpenMP] Lower schedule modifiers for worksharing loop
+ef4318e1a4ee7c9c1854d15b1343df73c2901f35 Andrzej W.: [driver] Generate run-time type info
+1f17a8978c32af4b65615d32f367c341bacb4770 PeixinQiao: Add one missed semantic check for named constant in common block
+b6713feec76af095fa066aa6a4aad72783e5d7d2 PeixinQiao: Add one semantic check for procedure bind(C) interface-name
+bc99d56589d86fbd7280b525d0889ca591012a6f PeixinQiao: [OpenMP] Refactor getting ompobject symbol
+d91735b5fad84883444acea4e64d4cd606786fd9 Jean P.: [NFC] Move genMaxWithZero into fir:::factory
+e530073c3e31b1e2a454ae488a97e5a4657127bf Valentin C.: Add proper todo in BoxValue
+7eecfc077f36fe249d5457e2d9a0e294cb25d615 Kiran C.: Add flag dependent code to execute the loop-body atleast once
+dd32bf9a7792dd3fd1ce3abe112ef6360ac04270 Kiran C.: [MLIR,OpenMP] Fix a few tests that were not converting to LLVM
+e4f47c8e058b708d3fc43c15538154ec0cf46bc2 Andrzej W.: [docs] Remove the out-dated note on Windows support
+411bd2d40788c8cb869dc4fdc37e01a57213cda9 PeixinQiao: OpenMP] Support lowering parse-tree to MLIR for threadprivate directive
+1b182c65ebe9d86f8c8d9c8212eda1c5e6681ace PeixinQiao: Fix XArrayCoorOp conversion for index type slices
+48a70ea177ad912b870cc75cd73d8459c03e8579 PeixinQiao: Fix semantic checks for C919
+c2e3e91ddec002ac2514708867153e5f6b03dc48 Andrzej W.: [driver] Remove references to the `flang` bash script
+6a3c4a40f4ba6943c5902660858d0c3df2830330 Nimish M.: [OpenMP] Added parser support for in_reduction clause
+4daa33f6d14b8356c492d8a385d77de7994ff565 Peter K.: Edits to: [runtime] Use __float128 where possible & needed in runtime
+9a163ffe1a507c1f5a3d29b896224112d7e54f62 Peter K.: [runtime] Fix WRITE after OPEN(.., ACCESS="APPEND")
 7ce8c59b383a372d8fd4c44ab3b0dfbcd568d757 Diana P.: Document need for NO_STOP_MESSAGE environment variable. NFC
 e2ac99b79d6f36de93775aa683a4e439cb4b5344 PeixinQiao: Add check for conflict of BIND(C) and Parameter attributes
 72911227d4c73c19035ea9ed05f785bb691a816c Andrzej W.: docs] Document CMake support
