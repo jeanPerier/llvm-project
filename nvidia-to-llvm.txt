@@ -43,9 +43,22 @@ For each change to merge:
 To do (oldest last):
 
 In review:
+b02bd8c032328b3547da86f2257ea6c60c1ec085 #799 D127433: [runtime] Skip remainder of bad input record even with ADVANCE='NO'
+82fd603a48dd9964ecd1841f89a00839dd65d875 #887 D127431: [runtime] Don't loop in runtime if blank appears in BOZ input
+520a9a59b75325cc86118552388a4906d9b138a0 #885 D127430: Handle USE association in parse tree rewriting
+d20956a3d15db16be6f68c9c7a09a90b284d39d7 #859 D127429: Fix crash on USE error
+8b25a2c7fe2fa2eea0fa7a9f9081ae29b5d9158f #829 D127428: [runtime] Detect overflow of fixed-sized exponent output field
+32e69166360ee86105191dd39a261b23d9a9ba30 #818 D127427: [runtime] Fix overflow detection for REAL input
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+eb2f97791adb30a8265d7f5ac1e7abe738cfcb50 #801 D127435: [docs] Document extension: Ew.0 output editing
+2899c64e646247000e0fd5115a80e5455b931906 #767 D127425: Fix bogus branch target error on END SELECT
+490b0edff48375039308df6370181e49ff6839b9 #805 D127424: [runtime] Fix runtime CSHIFT of rank>1 array case of negative shift count
+accf64df7abe74da3fefcc8fdaab6cb8d628f0d2 #790 D127423: [runtime] Don't crash after reporting I/O statement errors
+074cae953cc6327b390a425e77ca876de6f89589 #788 D127422: [runtime] Fix list-directed/NAMELIST complex input with "r*" repetition count
+b0dda97b7a4b0d220392218a3f1a1fa3e8d9a702 #610 D127421: [runtime] Better (but still synchronous) support for asynchronous I/O
+72eac20bd559f3dda7331e8339eabb00e6d96e68 #734 D127420: [runtime] Fix nonadvancing output edge case
 6a7aab2bfdee88c8635fb5f282b1467849798725 #529 D127025: [runtime] Use __float128 where possible & needed in runtime
 5bfb54eb0a91a64c171a3bf17b1970c83e2ff451 #875 D127035: [runtime] Catch OPEN of connected file
 17e961fad2290aa9a9e66a307e963ba125537959 #846 D127034: [runtime] Emit error message rather than crashing for MOD(ULO)(x,P=0)

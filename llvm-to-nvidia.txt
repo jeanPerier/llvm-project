@@ -40,9 +40,29 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 4110c2c657b329f91a5c4eef653a15c1a15b61ed
+with llvm-project commit 8e1f47b596b28fbc88cf32e8f46eb2fecb145fb2
 
 Log of cherry-picked commits in reverse order (latest first):
+f1c84d0ff0510d360d261ff13c7ac1014657e19e Valentin C.: [NFC] Add TODOs for KIND = 2
+c030f467036403bee2d640e910154281377c6f39 Kiran C.: [OpenMP] Avoid double privatisation of loop variables
+e16d13322b2617843511aebb29a502166824b07a Mogball: (NFC) Clean up bazel and CMake target names
+4a8305ce856b6f4d2e49f3100226d00b402dff86 Valentin C.: Add TODO for half-precision intrinsic reductions
+a370a4ffce083a218daed4de468853c1db7e3a1e Jean P.: Avoid raising a TODO in fir.boxproc rewrite when not needed (#1560)
+c8a9afe7c81bc874debbe319f3cf6b7b89f90aa2 Jean P.: Handle reversed bounds and negative length in inlined allocation
+70ade047a44584aa3c31735690e2bffe17d6b04f Val D.: system_clock intrinsic calls with dynamically optional arguments
+e9bf76675d8260bb4feebb12ca353b56ca7f9623 Andrzej W.: Add target/triple in a test
+3f4a63e5f882eb062da33a5643499597efefe1ba Arnamoy B.: [OpenMP] Implementation of lowering of SIMD construct.
+a405db9c375fbdc341b7c968bf2355eb9b4c8471 Valentin C.: [NFC] Fix typo
+84b9ae662419ce97b3cb13879be431f6a0c9eaa4 Mats P.: Add support for do concurrent
+b826d551fcd2eb0c4f13fd57471bd3142d26d3ba PeixinQiao: Move flang OpenMP semantic tests under one single directory
+494cd9b6fc7ff3e9d9bfad08cfd329763b799749 Andrzej W.: [lowering] Ignore compiler directives
+46f08a4ee0e9169fdc153e2e4f9a5bb695372b27 Diana P.:  Fix RUN line in test from 3e782ba
+99fe38a13a2d111fbb0b7848415d4ba3cab11437 Markus M.: [runtime] Remove dependency on C++ <mutex> on Windows
+cc3c6b61095a47687858b21e93d1a2fc3a6e192b Andrzej W.: [driver] Make `flang-new -fc1` accept MLIR files
+3e782ba21be4b88c761d3b0854df130d7ca08a56 Andrzej W.: [driver] Fix support for `-x`
+5b66cc1000f999e3fbf463a1a722249b8a6e51cb Valentin C.: [NFC] Move Todo.h from Lower to Optimizer
+68cfb6a8e567531ab77fa5ac1eb8bd57844ccb4d Eric S.: Fixes assertion that arose from bad FIR being constructed.
+2a40267a0d3d6ca4e0a340f9e8a159012e0b6e53 Damian R.: semantics test for ucobound
 08407255b2d29968f050e5c2ac81fe85f66ea34f Kiran C.: Temporary fix for conversion materialization
 1953bcdaac2cefe28b101fcfabee4f85bd6d2370 Andrzej W.: Add RUN lines using `fir-opt`
 8b951e64d9ab0026fe5b445d72f69369ab2418b1 Kiran C.: [OpenMP] Lower schedule modifiers for worksharing loop
