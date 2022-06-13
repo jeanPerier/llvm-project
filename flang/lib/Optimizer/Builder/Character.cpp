@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Optimizer/Builder/Character.h"
-#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Builder/DoLoopHelper.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "llvm/Support/Debug.h"
 #include <optional>
 
@@ -153,7 +153,7 @@ fir::factory::CharacterExprHelper::toExtendedValue(mlir::Value character,
     // the generated fir with embox/unbox.
     mlir::Value boxCharLen;
     if (auto definingOp = character.getDefiningOp()) {
-      if (auto box = dyn_cast<fir::EmboxCharOp>(definingOp)) {
+      if (auto box = mlir::dyn_cast<fir::EmboxCharOp>(definingOp)) {
         base = box.getMemref();
         boxCharLen = box.getLen();
       }
@@ -696,7 +696,7 @@ fir::factory::extractCharacterProcedureTuple(fir::FirOpBuilder &builder,
                                              mlir::Location loc,
                                              mlir::Value tuple) {
   mlir::TupleType tupleType = tuple.getType().cast<mlir::TupleType>();
-  auto addr = builder.create<fir::ExtractValueOp>(
+  mlir::Value addr = builder.create<fir::ExtractValueOp>(
       loc, tupleType.getType(0), tuple,
       builder.getArrayAttr(
           {builder.getIntegerAttr(builder.getIndexType(), 0)}));
