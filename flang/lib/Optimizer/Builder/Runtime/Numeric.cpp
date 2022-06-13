@@ -213,9 +213,9 @@ mlir::Value fir::runtime::genExponent(fir::FirOpBuilder &builder,
   mlir::FuncOp func;
   mlir::Type fltTy = x.getType();
 
-  if (fltTy.isF16())
+  if (fltTy.isF16()) {
     TODO(loc, "support for REAL with KIND = 2 in EXPONENT");
-  else if (fltTy.isF32()) {
+  } else if (fltTy.isF32()) {
     if (resultType.isInteger(32))
       func = fir::runtime::getRuntimeFunc<mkRTKey(Exponent4_4)>(loc, builder);
     else if (resultType.isInteger(64))
