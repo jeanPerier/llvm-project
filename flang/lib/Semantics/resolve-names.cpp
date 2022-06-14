@@ -6722,7 +6722,58 @@ void DeclarationVisitor::NonPointerInitialization(
       } else if (auto *details{ultimate.detailsIf<ObjectEntityDetails>()}) {
         CHECK(!details->init());
         Walk(expr);
-        if (ultimate.owner().IsParameterizedDerivedType()) {
+        bool hasTypeParamInInit{false};
+        if (const Symbol * owner{ultimate.owner().symbol()}) {
+          if (const auto *dtDetails{owner->detailsIf<DerivedTypeDetails>()}) {
+            for (std::size_t i{0}; i < dtDetails->paramDecls().size(); ++i) {
+              std::string exprStr = expr.thing.value().source.ToString();
+              std::string paramStr =
+                  dtDetails->paramDecls()[i].get().name().ToString();
+              // Check if the constant expression has type parameters. Be aware
+              // of the kind/len intrinsics such as the expression of
+              // "int(kind(0), kind(kind))", in which only the last "kind" is
+              // the type parameter.
+              if (exprStr.size() < paramStr.size()) {
+                continue;
+              }
+              for (std::size_t j{0}; j <= exprStr.size() - paramStr.size();
+                   j = j + paramStr.size()) {
+                if (exprStr.find(paramStr, j) != std::string::npos &&
+                    (exprStr.find(paramStr, j) + paramStr.size() >=
+                            exprStr.size() ||
+                        exprStr.at(exprStr.find(paramStr, j) +
+                            paramStr.size()) != '(')) {
+                  hasTypeParamInInit = true;
+                  break;
+                }
+              }
+              // Check if the shape has the type parameters. The constant
+              // expression such as "kind(kind)" has been folded before.
+              for (const auto &elem : details->shape()) {
+                if (elem.lbound().isExplicit()) {
+                  if (paramStr.compare(
+                          (*elem.lbound().GetExplicit()).AsFortran()) == 0) {
+                    hasTypeParamInInit = true;
+                    break;
+                  }
+                }
+                if (elem.ubound().isExplicit()) {
+                  if (paramStr.compare(
+                          (*elem.ubound().GetExplicit()).AsFortran()) == 0) {
+                    hasTypeParamInInit = true;
+                    break;
+                  }
+                }
+              }
+              if (hasTypeParamInInit) {
+                break;
+              }
+            }
+          }
+        }
+        if (ultimate.owner().IsParameterizedDerivedType() &&
+            (!semantics::HasConstantKindAndLen(*name.symbol) ||
+                hasTypeParamInInit)) {
           // Save the expression for per-instantiation analysis.
           details->set_unanalyzedPDTComponentInit(&expr.thing.value());
         } else {

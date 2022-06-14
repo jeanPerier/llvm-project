@@ -1577,4 +1577,22 @@ bool AreTkCompatibleTypes(const DeclTypeSpec *x, const DeclTypeSpec *y) {
   return false;
 }
 
+bool HasConstantKindAndLen(const Symbol &sym) {
+  if (const DeclTypeSpec * type{sym.GetType()}) {
+    if (type->category() == DeclTypeSpec::Numeric) {
+      return evaluate::IsActuallyConstant(type->numericTypeSpec().kind());
+    } else if (type->category() == DeclTypeSpec::Logical) {
+      return evaluate::IsActuallyConstant(type->logicalTypeSpec().kind());
+    } else if (type->category() == DeclTypeSpec::Character) {
+      if (evaluate::IsActuallyConstant(type->characterTypeSpec().kind())) {
+        if (const auto &length{
+                type->characterTypeSpec().length().GetExplicit()}) {
+          return evaluate::IsActuallyConstant(*length);
+        }
+      }
+    }
+  }
+  return false;
+}
+
 } // namespace Fortran::semantics

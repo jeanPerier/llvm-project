@@ -60,7 +60,6 @@ subroutine components(n)
     integer, kind :: kind
     integer, len :: len
 !ERROR: Dimension 1 of initialized object has extent 2, but initialization expression has extent 3
-!ERROR: Dimension 1 of initialized object has extent 2, but initialization expression has extent 3
     real :: x1(2) = [1., 2., 3.]
 !ERROR: Dimension 1 of initialized object has extent 2, but initialization expression has extent 3
     real :: x2(kind) = [1., 2., 3.]

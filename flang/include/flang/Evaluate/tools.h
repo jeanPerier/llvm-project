@@ -1149,6 +1149,8 @@ const Symbol *FindFunctionResult(const Symbol &);
 // but identical derived types.
 bool AreTkCompatibleTypes(const DeclTypeSpec *x, const DeclTypeSpec *y);
 
+bool HasConstantKindAndLen(const Symbol &);
+
 } // namespace Fortran::semantics
 
 #endif // FORTRAN_EVALUATE_TOOLS_H_
