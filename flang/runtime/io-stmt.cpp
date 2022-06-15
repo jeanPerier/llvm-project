@@ -319,9 +319,10 @@ void ExternalIoStatementState<DIR>::CompleteOperation() {
   }
   if constexpr (DIR == Direction::Input) {
     BeginReadingRecord(); // in case there were no I/O items
-    if (mutableModes().nonAdvancing && !InError()) {
+    if (mutableModes().nonAdvancing) {
       unit().leftTabLimit = unit().furthestPositionInRecord;
-    } else {
+    }
+    if (!mutableModes().nonAdvancing || GetIoStat() == IostatEor) {
       FinishReadingRecord();
     }
   } else { // output
