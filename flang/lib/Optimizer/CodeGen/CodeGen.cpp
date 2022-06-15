@@ -243,7 +243,7 @@ protected:
   }
 
   // Get the element type given an LLVM type that is of the form
-  // [llvm.ptr](llvm.array|llvm.struct)+ and the provided indexes.
+  // [llvm.ptr](array|struct|vector)+ and the provided indexes.
   static mlir::Type getBoxEleTy(mlir::Type type,
                                 llvm::ArrayRef<unsigned> indexes) {
     if (auto t = type.dyn_cast<mlir::LLVM::LLVMPointerType>())
@@ -317,9 +317,7 @@ public:
 
   virtual mlir::LogicalResult
   doRewrite(FromOp addr, mlir::Type ty, OperandTy operands,
-            mlir::ConversionPatternRewriter &rewriter) const {
-    llvm_unreachable("derived class must override");
-  }
+            mlir::ConversionPatternRewriter &rewriter) const = 0;
 };
 } // namespace
 
@@ -2350,9 +2348,9 @@ struct CoordinateOpConversion
     assert(val && val.dyn_cast<mlir::OpResult>() && "must not be null value");
     mlir::Operation *defop = val.getDefiningOp();
 
-    if (auto constOp = dyn_cast<mlir::arith::ConstantIntOp>(defop))
+    if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantIntOp>(defop))
       return constOp.value();
-    if (auto llConstOp = dyn_cast<mlir::LLVM::ConstantOp>(defop))
+    if (auto llConstOp = mlir::dyn_cast<mlir::LLVM::ConstantOp>(defop))
       if (auto attr = llConstOp.value().dyn_cast<mlir::IntegerAttr>())
         return attr.getValue().getSExtValue();
     fir::emitFatalError(val.getLoc(), "must be a constant");
@@ -2397,8 +2395,7 @@ struct CoordinateOpConversion
   /// array types with unknown shape. Return true iff all the array types have a
   /// constant shape along the path.
   static bool arraysHaveKnownShape(mlir::Type type, mlir::ValueRange coors) {
-    const std::size_t sz = coors.size();
-    for (std::size_t i = 0; i < sz; ++i) {
+    for (std::size_t i = 0, sz = coors.size(); i < sz; ++i) {
       mlir::Value nxtOpnd = coors[i];
       if (auto arrTy = type.dyn_cast<fir::SequenceType>()) {
         if (fir::sequenceWithNonConstantShape(arrTy))
@@ -2432,7 +2429,7 @@ private:
     //   %addr = coordinate_of %box, %lenp
     if (coor.getNumOperands() == 2) {
       mlir::Operation *coordinateDef = (*coor.coor().begin()).getDefiningOp();
-      if (isa_and_nonnull<fir::LenParamIndexOp>(coordinateDef))
+      if (mlir::isa_and_nonnull<fir::LenParamIndexOp>(coordinateDef))
         TODO(loc,
              "fir.coordinate_of - fir.len_param_index is not supported yet");
     }
@@ -2706,9 +2703,9 @@ struct GlobalOpConversion : public FIROpConversion<fir::GlobalOp> {
     auto loc = global.getLoc();
     mlir::Attribute initAttr;
     if (global.initVal())
-      initAttr = global.initVal().getValue();
-    auto linkage = convertLinkage(global.linkName());
-    auto isConst = global.constant().hasValue();
+      initAttr = global.getInitVal().getValue();
+    auto linkage = convertLinkage(global.getLinkName());
+    auto isConst = global.getConstant().hasValue();
     auto g = rewriter.create<mlir::LLVM::GlobalOp>(loc, objTy, isConst, linkage,
                                                    global.sym_name(), initAttr);
     auto &gr = g.getInitializerRegion();
@@ -2718,7 +2715,7 @@ struct GlobalOpConversion : public FIROpConversion<fir::GlobalOp> {
       // initialization is on the full range.
       auto insertOnRangeOps = gr.front().getOps<fir::InsertOnRangeOp>();
       for (auto insertOp : insertOnRangeOps) {
-        if (isFullRange(insertOp.coor(), insertOp.getType())) {
+        if (isFullRange(insertOp.getCoor(), insertOp.getType())) {
           auto seqTyAttr = convertType(insertOp.getType());
           auto *op = insertOp.val().getDefiningOp();
           auto constant = mlir::dyn_cast<mlir::arith::ConstantOp>(op);
@@ -2726,7 +2723,7 @@ struct GlobalOpConversion : public FIROpConversion<fir::GlobalOp> {
             auto convertOp = mlir::dyn_cast<fir::ConvertOp>(op);
             if (!convertOp)
               continue;
-            constant = cast<mlir::arith::ConstantOp>(
+            constant = mlir::cast<mlir::arith::ConstantOp>(
                 convertOp.value().getDefiningOp());
           }
           mlir::Type vecType = mlir::VectorType::get(
@@ -2814,7 +2811,7 @@ struct NoReassocOpConversion : public FIROpConversion<fir::NoReassocOp> {
 };
 
 static void genCondBrOp(mlir::Location loc, mlir::Value cmp, mlir::Block *dest,
-                        Optional<OperandTy> destOps,
+                        llvm::Optional<OperandTy> destOps,
                         mlir::ConversionPatternRewriter &rewriter,
                         mlir::Block *newBlock) {
   if (destOps.hasValue())
@@ -2825,7 +2822,7 @@ static void genCondBrOp(mlir::Location loc, mlir::Value cmp, mlir::Block *dest,
 }
 
 template <typename A, typename B>
-static void genBrOp(A caseOp, mlir::Block *dest, Optional<B> destOps,
+static void genBrOp(A caseOp, mlir::Block *dest, llvm::Optional<B> destOps,
                     mlir::ConversionPatternRewriter &rewriter) {
   if (destOps.hasValue())
     rewriter.replaceOpWithNewOp<mlir::LLVM::BrOp>(caseOp, destOps.getValue(),
@@ -2835,7 +2832,8 @@ static void genBrOp(A caseOp, mlir::Block *dest, Optional<B> destOps,
 }
 
 static void genCaseLadderStep(mlir::Location loc, mlir::Value cmp,
-                              mlir::Block *dest, Optional<OperandTy> destOps,
+                              mlir::Block *dest,
+                              llvm::Optional<OperandTy> destOps,
                               mlir::ConversionPatternRewriter &rewriter) {
   auto *thisBlock = rewriter.getInsertionBlock();
   auto *newBlock = createBlock(rewriter, dest);
@@ -2930,9 +2928,9 @@ struct SelectCaseOpConversion : public FIROpConversion<fir::SelectCaseOp> {
 };
 
 template <typename OP>
-void selectMatchAndRewrite(fir::LLVMTypeConverter &lowering, OP select,
-                           OperandTy operands,
-                           mlir::ConversionPatternRewriter &rewriter) {
+static void selectMatchAndRewrite(fir::LLVMTypeConverter &lowering, OP select,
+                                  OperandTy operands,
+                                  mlir::ConversionPatternRewriter &rewriter) {
   unsigned conds = select.getNumConditions();
   auto cases = select.getCases().getValue();
   mlir::Value selector = select.selector();
