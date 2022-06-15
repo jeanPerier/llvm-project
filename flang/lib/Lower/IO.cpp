@@ -20,12 +20,12 @@
 #include "flang/Lower/Runtime.h"
 #include "flang/Lower/StatementContext.h"
 #include "flang/Lower/Support/Utils.h"
-#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Lower/VectorSubscripts.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/Complex.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/Runtime/RTBuilder.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Support/FIRContext.h"
 #include "flang/Parser/parse-tree.h"
 #include "flang/Runtime/io-api.h"
@@ -1756,6 +1756,11 @@ Fortran::lower::genWaitStatement(Fortran::lower::AbstractConverter &converter,
     mlir::Value id = fir::getBase(converter.genExprValue(
         loc, getExpr<Fortran::parser::IdExpr>(stmt), stmtCtx));
     args.push_back(builder.createConvert(loc, beginFuncTy.getInput(1), id));
+    args.push_back(locToFilename(converter, loc, beginFuncTy.getInput(2)));
+    args.push_back(locToLineNo(converter, loc, beginFuncTy.getInput(3)));
+  } else {
+    args.push_back(locToFilename(converter, loc, beginFuncTy.getInput(1)));
+    args.push_back(locToLineNo(converter, loc, beginFuncTy.getInput(2)));
   }
   auto cookie = builder.create<fir::CallOp>(loc, beginFunc, args).getResult(0);
   genConditionHandlerCall(converter, loc, cookie, stmt.v, csi);
