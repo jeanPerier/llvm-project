@@ -11,7 +11,7 @@ subroutine sub(x, y)
     end
   end interface
 
-  !Allowed as an extension
+  !Acceptable (as an extension)
   procedure(proc), bind(c, name="aaa") :: pc1, pc2
 
   !ERROR: BIND(C) procedure with NAME= specified can neither have POINTER attribute nor be a dummy procedure
