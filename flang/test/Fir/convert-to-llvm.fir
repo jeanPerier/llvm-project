@@ -71,9 +71,7 @@ func @test_string_with_shape(%len: index, %nelems: index) {
 
 // CHECK-LABEL: llvm.func @test_string_with_shape
 // CHECK-SAME: %[[LEN:.*]]: i64, %[[NELEMS:.*]]: i64)
-// CHECK:   %[[ONE_1:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:   %[[ONE_2:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:   %[[ONE:.*]] = llvm.mul %[[ONE_1]], %[[ONE_2]]  : i64
+// CHECK:   %[[ONE:.*]] = llvm.mlir.constant(1 : i64) : i64
 // CHECK:   %[[LEN_SIZE:.*]] = llvm.mul %[[ONE]], %[[LEN]]  : i64
 // CHECK:   %[[TOTAL_SIZE:.*]] = llvm.mul %[[LEN_SIZE]], %[[NELEMS]]  : i64
 // CHECK:   %[[MEM:.*]] = llvm.call @malloc(%[[TOTAL_SIZE]])
