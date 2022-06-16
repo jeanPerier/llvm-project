@@ -16,9 +16,9 @@
 
 #include "PassDetail.h"
 #include "Target.h"
-#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/CodeGen/CodeGen.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
@@ -29,8 +29,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
-
-using namespace fir;
 
 #define DEBUG_TYPE "flang-target-rewrite"
 
@@ -121,18 +119,18 @@ public:
     auto m = specifics->complexReturnType(loc, ty.getElementType());
     // Currently targets mandate COMPLEX is a single aggregate or packed
     // scalar, including the sret case.
-    assert(m.size() == 1 && "target of complex return not supported");
+    assert(m.size() == 1 && "target lowering of complex return not supported");
     auto resTy = std::get<mlir::Type>(m[0]);
-    auto attr = std::get<CodeGenSpecifics::Attributes>(m[0]);
+    auto attr = std::get<fir::CodeGenSpecifics::Attributes>(m[0]);
     if (attr.isSRet()) {
-      assert(isa_ref_type(resTy));
+      assert(fir::isa_ref_type(resTy) && "must be a memory reference type");
       mlir::Value stack =
-          rewriter->create<fir::AllocaOp>(loc, dyn_cast_ptrEleTy(resTy));
+          rewriter->create<fir::AllocaOp>(loc, fir::dyn_cast_ptrEleTy(resTy));
       newInTys.push_back(resTy);
       newOpers.push_back(stack);
       return [=](mlir::Operation *) -> mlir::Value {
-        auto memTy = ReferenceType::get(ty);
-        auto cast = rewriter->create<ConvertOp>(loc, memTy, stack);
+        auto memTy = fir::ReferenceType::get(ty);
+        auto cast = rewriter->create<fir::ConvertOp>(loc, memTy, stack);
         return rewriter->create<fir::LoadOp>(loc, cast);
       };
     }
@@ -421,8 +419,8 @@ public:
     newInTys.insert(newInTys.end(), trailingInTys.begin(), trailingInTys.end());
     // replace this op with a new one with the updated signature
     auto newTy = rewriter->getFunctionType(newInTys, newResTys);
-    auto newOp =
-        rewriter->create<AddrOfOp>(addrOp.getLoc(), newTy, addrOp.getSymbol());
+    auto newOp = rewriter->create<fir::AddrOfOp>(addrOp.getLoc(), newTy,
+                                                 addrOp.getSymbol());
     LLVM_DEBUG(llvm::dbgs()
                << "replacing " << addrOp << " with " << newOp << '\n');
     replaceOp(addrOp, newOp.getResult());
