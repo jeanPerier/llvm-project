@@ -68,11 +68,8 @@ public:
                   mlir::PatternRewriter &rewriter) const override {
     rewriter.startRootUpdate(op);
     auto result = fir::NameUniquer::deconstruct(op.sym_name());
-    if (fir::NameUniquer::isExternalFacingUniquedName(result)) {
-      auto newName = mangleExternalName(result);
-      op.sym_nameAttr(rewriter.getStringAttr(newName));
-      SymbolTable::setSymbolName(op, newName);
-    }
+    if (fir::NameUniquer::isExternalFacingUniquedName(result))
+      op.sym_nameAttr(rewriter.getStringAttr(mangleExternalName(result)));
     rewriter.finalizeRootUpdate(op);
     return success();
   }
