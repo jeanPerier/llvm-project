@@ -22,9 +22,9 @@ public:
   void runOnOperation() override;
 };
 
-class DummyRewriter : public PatternRewriter {
+class DummyRewriter : public mlir::PatternRewriter {
 public:
-  DummyRewriter(MLIRContext *ctx) : PatternRewriter(ctx) {}
+  DummyRewriter(mlir::MLIRContext *ctx) : mlir::PatternRewriter(ctx) {}
 };
 
 } // namespace
