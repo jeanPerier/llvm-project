@@ -40,9 +40,23 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 8e1f47b596b28fbc88cf32e8f46eb2fecb145fb2
+with llvm-project commit df6087ee379488b0251805c491f6b0b6b8c6ed1d
 
 Log of cherry-picked commits in reverse order (latest first):
+17853928a69b6efe7c3b2db8aba631edd3aa2ed8 Peter K.: [runtime] Correct implementation of WAIT with no ID
+575c9d6d4a20dd272113f9aa2f9e601d297b79b1 Valentin C.: [NFC] Fix some formatting
+60e359943bfc22155cd239c9b40b3e4c41026915 PeixinQiao: Fix one regression failure related to BIND(C) statement
+9441003b5258c7e206b5a3b7324a0eedee705160 PeixinQiao: [OpenMP] Add one semantic check for data-sharing clauses
+3151fb5ef7249d5d0a293daea6af756856800005 PeixinQiao: Change C889 from error into warning
+2eeafa2022d2928e970cdd06b8dbb18973e2fa4e Katherine R.: Add failed_images to list of intrinsics and add test
+473d780692ee06683cdd82999bf31fcbea065061 Katherine R.: Add team_type to num_images intrinsic call
+3260d423987aa946528b713841c853032849a380 Valentin C.: Avoid losing type parameter information
+ac64c7b987f15bcce09b616c1ee0deaf2b7b587e Jean P.: Support PDT declaration with initial comp value in internal procedure
+9de831aa2cbc6ab94265ff8136fb36d9b6c1cfae Jean P.: lowering TODO for bindings returning derived types or arrays
+dafd3cf8b1cc9dae0ae1fabc2fd1ad4379119d11 PeixinQiao:  Complement one-to-one association check of bind name and entity name
+c6d8aa27c5fe6aca56c3f95ee61c35265d4fe6b9 PeixinQiao: Add semantic check for multiple part-ref with nonzero rank for TBP
+f5b970c9ef87891b6c710110f4d645ae2892c23d Eric S.: Fix type mismatch in verification error
+0c1cf585c06dfbca5596eb11664f8445d22d128b Eric S.: [NFC] Add source location information to report unsupported complex types
 f1c84d0ff0510d360d261ff13c7ac1014657e19e Valentin C.: [NFC] Add TODOs for KIND = 2
 c030f467036403bee2d640e910154281377c6f39 Kiran C.: [OpenMP] Avoid double privatisation of loop variables
 e16d13322b2617843511aebb29a502166824b07a Mogball: (NFC) Clean up bazel and CMake target names
