@@ -23,9 +23,7 @@ namespace Fortran::runtime {
 
 using common::TypeCategory;
 
-template <TypeCategory CAT, int KIND> struct CppTypeForHelper {
-  using type = void;
-};
+template <TypeCategory CAT, int KIND> struct CppTypeForHelper {};
 template <TypeCategory CAT, int KIND>
 using CppTypeFor = typename CppTypeForHelper<CAT, KIND>::type;
 
