@@ -378,7 +378,6 @@ Cookie IONAME(BeginOpenNewUnit)( // OPEN(NEWUNIT=j)
 
 Cookie IONAME(BeginWait)(ExternalUnit unitNumber, AsynchronousId id,
     const char *sourceFile, int sourceLine) {
-  Terminator terminator{sourceFile, sourceLine};
   if (ExternalFileUnit * unit{ExternalFileUnit::LookUp(unitNumber)}) {
     if (unit->Wait(id)) {
       return &unit->BeginIoStatement<ExternalMiscIoStatementState>(
@@ -388,6 +387,7 @@ Cookie IONAME(BeginWait)(ExternalUnit unitNumber, AsynchronousId id,
           IostatBadWaitId, unit, sourceFile, sourceLine);
     }
   } else {
+    Terminator terminator{sourceFile, sourceLine};
     auto &io{
         New<NoopStatementState>{terminator}(sourceFile, sourceLine, unitNumber)
             .release()
@@ -423,11 +423,14 @@ Cookie IONAME(BeginFlush)(
     return &unit->BeginIoStatement<ExternalMiscIoStatementState>(
         *unit, ExternalMiscIoStatementState::Flush, sourceFile, sourceLine);
   } else {
-    // FLUSH(UNIT=unknown) is a no-op
-    Terminator oom{sourceFile, sourceLine};
-    return &New<NoopStatementState>{oom}(sourceFile, sourceLine, unitNumber)
-                .release()
-                ->ioStatementState();
+    // FLUSH(UNIT=bad or unconnected unit) is an error
+    Terminator terminator{sourceFile, sourceLine};
+    auto &io{
+        New<NoopStatementState>{terminator}(sourceFile, sourceLine, unitNumber)
+            .release()
+            ->ioStatementState()};
+    io.GetIoErrorHandler().SetPendingError(IostatBadFlushUnit);
+    return &io;
   }
 }
 
