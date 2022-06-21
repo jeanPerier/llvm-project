@@ -400,13 +400,6 @@ void subsetTests(int pass, Rounding rounding, std::uint32_t opds) {
       FLT fcheck{std::sqrt(fj)};
       auto actualFlags{FlagsToBits(fpenv.CurrentFlags())};
       u.f = fcheck;
-#if 0 // pmk
-#ifndef __clang__
-      if (IsNaN(u.ui)) {
-        actualFlags |= InvalidArgument; // x86 std::trunc(NaN) workaround
-      }
-#endif
-#endif
       UINT rcheck{NormalizeNaN(u.ui)};
       UINT check = root.value.RawBits().ToUInt64();
       MATCH(rcheck, check)
