@@ -28,22 +28,13 @@
 #include "mlir/Conversion/OpenMPToLLVM/ConvertOpenMPToLLVM.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Pass/Pass.h"
-#include "mlir/Target/LLVMIR/Import.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/Config/abi-breaking.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/raw_ostream.h"
 
 #define DEBUG_TYPE "flang-codegen"
 
@@ -57,8 +48,6 @@
 /// some FIR operations will pass through to the Tilikum bridge.  This may be
 /// necessary to preserve the semantics of the Fortran program.
 //===----------------------------------------------------------------------===//
-
-using namespace llvm;
 
 using OperandTy = ArrayRef<mlir::Value>;
 
@@ -1231,14 +1220,14 @@ struct EmboxCommonConversion : public FIROpConversion<OP> {
               this->genConstantOffset(loc, rewriter, typeCode)};
     };
     auto doCharacter =
-        [&](unsigned bitWidth,
+        [&](unsigned width,
             mlir::Value len) -> std::tuple<mlir::Value, mlir::Value> {
-      auto typeCode = fir::characterBitsToTypeCode(bitWidth);
+      auto typeCode = fir::characterBitsToTypeCode(width);
       auto typeCodeVal = this->genConstantOffset(loc, rewriter, typeCode);
-      if (bitWidth == 8)
+      if (width == 8)
         return {len, typeCodeVal};
       auto i64Ty = mlir::IntegerType::get(&this->lowerTy().getContext(), 64);
-      auto byteWidth = genConstantIndex(loc, i64Ty, rewriter, bitWidth / 8);
+      auto byteWidth = genConstantIndex(loc, i64Ty, rewriter, width / 8);
       auto len64 = FIROpConversion<OP>::integerCast(loc, rewriter, i64Ty, len);
       auto size =
           rewriter.create<mlir::LLVM::MulOp>(loc, i64Ty, byteWidth, len64);
@@ -1247,7 +1236,6 @@ struct EmboxCommonConversion : public FIROpConversion<OP> {
     auto getKindMap = [&]() -> fir::KindMapping & {
       return this->lowerTy().getKindMap();
     };
-
     // Pointer-like types.
     if (auto eleTy = fir::dyn_cast_ptrEleTy(boxEleTy))
       boxEleTy = eleTy;
@@ -2171,11 +2159,12 @@ struct XArrayCoorOpConversion
     assert(coor.shape().empty() || coor.shape().size() == rank);
     assert(coor.shift().empty() || coor.shift().size() == rank);
     assert(coor.slice().empty() || coor.slice().size() == 3 * rank);
-    auto indexOps = coor.indices().begin();
-    auto shapeOps = coor.shape().begin();
-    auto shiftOps = coor.shift().begin();
-    auto sliceOps = coor.slice().begin();
     mlir::Type idxTy = lowerTy().indexType();
+    unsigned indexOffset = coor.indicesOffset();
+    unsigned shapeOffset = coor.shapeOffset();
+    unsigned shiftOffset = coor.shiftOffset();
+    unsigned sliceOffset = coor.sliceOffset();
+    auto sliceOps = coor.slice().begin();
     mlir::Value one = genConstantIndex(loc, idxTy, rewriter, 1);
     mlir::Value prevExt = one;
     mlir::Value zero = genConstantIndex(loc, idxTy, rewriter, 0);
@@ -2185,26 +2174,30 @@ struct XArrayCoorOpConversion
     const bool baseIsBoxed = coor.memref().getType().isa<fir::BoxType>();
 
     // For each dimension of the array, generate the offset calculation.
-    for (unsigned i = 0; i < rank;
-         ++i, ++indexOps, ++shapeOps, ++shiftOps, sliceOps += 3) {
-      mlir::Value index = integerCast(loc, rewriter, idxTy, *indexOps);
+    for (unsigned i = 0; i < rank; ++i, ++indexOffset, ++shapeOffset,
+                  ++shiftOffset, sliceOffset += 3, sliceOps += 3) {
+      mlir::Value index =
+          integerCast(loc, rewriter, idxTy, operands[indexOffset]);
       mlir::Value lb =
-          isShifted ? integerCast(loc, rewriter, idxTy, *shiftOps) : one;
+          isShifted ? integerCast(loc, rewriter, idxTy, operands[shiftOffset])
+                    : one;
       mlir::Value step = one;
       bool normalSlice = isSliced;
       // Compute zero based index in dimension i of the element, applying
       // potential triplets and lower bounds.
       if (isSliced) {
-        mlir::Value ub = *(sliceOps + 1);
-        normalSlice = !mlir::isa_and_nonnull<fir::UndefOp>(ub.getDefiningOp());
+        mlir::Value originalUb = *(sliceOps + 1);
+        normalSlice =
+            !mlir::isa_and_nonnull<fir::UndefOp>(originalUb.getDefiningOp());
         if (normalSlice)
-          step = integerCast(loc, rewriter, idxTy, *(sliceOps + 2));
+          step = integerCast(loc, rewriter, idxTy, operands[sliceOffset + 2]);
       }
       auto idx = rewriter.create<mlir::LLVM::SubOp>(loc, idxTy, index, lb);
       mlir::Value diff =
           rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, idx, step);
       if (normalSlice) {
-        mlir::Value sliceLb = integerCast(loc, rewriter, idxTy, *sliceOps);
+        mlir::Value sliceLb =
+            integerCast(loc, rewriter, idxTy, operands[sliceOffset]);
         auto adj = rewriter.create<mlir::LLVM::SubOp>(loc, idxTy, sliceLb, lb);
         diff = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, diff, adj);
       }
@@ -2221,7 +2214,7 @@ struct XArrayCoorOpConversion
         offset = rewriter.create<mlir::LLVM::AddOp>(loc, idxTy, sc, offset);
         // Compute next stride assuming contiguity of the base array
         // (in element number).
-        auto nextExt = integerCast(loc, rewriter, idxTy, *shapeOps);
+        auto nextExt = integerCast(loc, rewriter, idxTy, operands[shapeOffset]);
         prevExt =
             rewriter.create<mlir::LLVM::MulOp>(loc, idxTy, prevExt, nextExt);
       }
@@ -2240,20 +2233,22 @@ struct XArrayCoorOpConversion
       auto addr = rewriter.create<mlir::LLVM::GEPOp>(loc, voidPtrTy, args);
       if (coor.subcomponent().empty()) {
         rewriter.replaceOpWithNewOp<mlir::LLVM::BitcastOp>(coor, ty, addr);
-      } else {
-        auto casted = rewriter.create<mlir::LLVM::BitcastOp>(loc, baseTy, addr);
-        llvm::SmallVector<mlir::Value> args = {casted, zero};
-        if (!coor.lenParams().empty()) {
-          // If type parameters are present, then we don't want to use a GEPOp
-          // as below, as the LLVM struct type cannot be statically defined.
-          TODO(loc, "derived type with type parameters");
-        }
-        // FIXME: array offset subcomponents must be converted to LLVM's
-        // row-major layout here.
-        for (auto i = coor.subcomponentOffset(); i != coor.indicesOffset(); ++i)
-          args.push_back(operands[i]);
-        rewriter.replaceOpWithNewOp<mlir::LLVM::GEPOp>(coor, ty, args);
+        return mlir::success();
       }
+      auto casted = rewriter.create<mlir::LLVM::BitcastOp>(loc, baseTy, addr);
+      args.clear();
+      args.push_back(casted);
+      args.push_back(zero);
+      if (!coor.lenParams().empty()) {
+        // If type parameters are present, then we don't want to use a GEPOp
+        // as below, as the LLVM struct type cannot be statically defined.
+        TODO(loc, "derived type with type parameters");
+      }
+      // FIXME: array offset subcomponents must be converted to LLVM's
+      // row-major layout here.
+      for (auto i = coor.subcomponentOffset(); i != coor.indicesOffset(); ++i)
+        args.push_back(operands[i]);
+      rewriter.replaceOpWithNewOp<mlir::LLVM::GEPOp>(coor, ty, args);
       return mlir::success();
     }
 
@@ -2282,10 +2277,10 @@ struct XArrayCoorOpConversion
     } else {
       // operands[0] must have a pointer type. For subcomponent slicing, we
       // want to cast away the array type and have a plain struct type.
-      auto ty0 = operands[0].getType();
+      mlir::Type ty0 = operands[0].getType();
       auto ptrTy = ty0.dyn_cast<mlir::LLVM::LLVMPointerType>();
       assert(ptrTy && "expected pointer type");
-      auto eleTy = ptrTy.getElementType();
+      mlir::Type eleTy = ptrTy.getElementType();
       while (auto arrTy = eleTy.dyn_cast<mlir::LLVM::LLVMArrayType>())
         eleTy = arrTy.getElementType();
       auto newTy = mlir::LLVM::LLVMPointerType::get(eleTy);
@@ -3375,15 +3370,15 @@ struct NegcOpConversion : public FIROpConversion<fir::NegcOp> {
 /// operations is used by other operation. At this point they should not have
 /// anymore uses.
 /// These operations are normally dead after the pre-codegen pass.
-template <typename OP>
-struct MustBeDeadConversion : public FIROpConversion<OP> {
+template <typename FromOp>
+struct MustBeDeadConversion : public FIROpConversion<FromOp> {
   explicit MustBeDeadConversion(mlir::MLIRContext *ctx,
                                 fir::LLVMTypeConverter &lowering,
                                 const fir::FIRToLLVMPassOptions &options)
-      : FIROpConversion<OP>(ctx, lowering, options) {}
+      : FIROpConversion<FromOp>(ctx, lowering, options) {}
 
   mlir::LogicalResult
-  matchAndRewrite(OP op, OperandTy operands,
+  matchAndRewrite(FromOp op, OperandTy operands,
                   mlir::ConversionPatternRewriter &rewriter) const final {
     if (!op->getUses().empty())
       return rewriter.notifyMatchFailure(op, "op must be dead");
@@ -3439,10 +3434,10 @@ public:
         ConvertOpConversion, CoordinateOpConversion, DispatchOpConversion,
         DispatchTableOpConversion, DTEntryOpConversion, DivcOpConversion,
         EmboxOpConversion, EmboxCharOpConversion, EmboxProcOpConversion,
-        FieldIndexOpConversion, FirEndOpConversion, ExtractValueOpConversion,
-        IsPresentOpConversion, FreeMemOpConversion, GenTypeDescOpConversion,
-        GlobalLenOpConversion, GlobalOpConversion, HasValueOpConversion,
-        InsertOnRangeOpConversion, InsertValueOpConversion,
+        ExtractValueOpConversion, FieldIndexOpConversion, FirEndOpConversion,
+        FreeMemOpConversion, GenTypeDescOpConversion, GlobalLenOpConversion,
+        GlobalOpConversion, HasValueOpConversion, InsertOnRangeOpConversion,
+        InsertValueOpConversion, IsPresentOpConversion,
         LenParamIndexOpConversion, LoadOpConversion, MulcOpConversion,
         NegcOpConversion, NoReassocOpConversion, SelectCaseOpConversion,
         SelectOpConversion, SelectRankOpConversion, SelectTypeOpConversion,
@@ -3485,8 +3480,7 @@ private:
 struct LLVMIRLoweringPass
     : public mlir::PassWrapper<LLVMIRLoweringPass,
                                mlir::OperationPass<mlir::ModuleOp>> {
-  using Printer = fir::LLVMIRLoweringPrinter;
-  LLVMIRLoweringPass(raw_ostream &output, Printer p)
+  LLVMIRLoweringPass(raw_ostream &output, fir::LLVMIRLoweringPrinter p)
       : output{output}, printer{p} {}
 
   mlir::ModuleOp getModule() { return getOperation(); }

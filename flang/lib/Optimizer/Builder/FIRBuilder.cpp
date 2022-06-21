@@ -76,7 +76,7 @@ mlir::Type fir::FirOpBuilder::getRealType(int kind) {
   case llvm::Type::TypeID::FP128TyID:
     return mlir::FloatType::getF128(getContext());
   default:
-    fir::emitFatalError(UnknownLoc::get(getContext()),
+    fir::emitFatalError(mlir::UnknownLoc::get(getContext()),
                         "unsupported type !fir.real<kind>");
   }
 }
@@ -455,21 +455,23 @@ mlir::Value fir::FirOpBuilder::createSlice(mlir::Location loc,
 
 mlir::Value fir::FirOpBuilder::createBox(mlir::Location loc,
                                          const fir::ExtendedValue &exv) {
-  auto itemAddr = fir::getBase(exv);
+  mlir::Value itemAddr = fir::getBase(exv);
   if (itemAddr.getType().isa<fir::BoxType>())
     return itemAddr;
   auto elementType = fir::dyn_cast_ptrEleTy(itemAddr.getType());
-  if (!elementType)
+  if (!elementType) {
     mlir::emitError(loc, "internal: expected a memory reference type ")
         << itemAddr.getType();
-  auto boxTy = fir::BoxType::get(elementType);
+    llvm_unreachable("not a memory reference type");
+  }
+  mlir::Type boxTy = fir::BoxType::get(elementType);
   return exv.match(
       [&](const fir::ArrayBoxValue &box) -> mlir::Value {
-        auto s = createShape(loc, exv);
+        mlir::Value s = createShape(loc, exv);
         return create<fir::EmboxOp>(loc, boxTy, itemAddr, s);
       },
       [&](const fir::CharArrayBoxValue &box) -> mlir::Value {
-        auto s = createShape(loc, exv);
+        mlir::Value s = createShape(loc, exv);
         if (fir::factory::CharacterExprHelper::hasConstantLengthInType(exv))
           return create<fir::EmboxOp>(loc, boxTy, itemAddr, s);
 
@@ -1217,7 +1219,7 @@ mlir::Value fir::factory::createZeroValue(fir::FirOpBuilder &builder,
 }
 
 llvm::Optional<std::int64_t> fir::factory::getIntIfConstant(mlir::Value value) {
-  if (auto definingOp = value.getDefiningOp())
+  if (auto *definingOp = value.getDefiningOp())
     if (auto cst = mlir::dyn_cast<mlir::arith::ConstantOp>(definingOp))
       if (auto intAttr = cst.value().dyn_cast<mlir::IntegerAttr>())
         return intAttr.getInt();

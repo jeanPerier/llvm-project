@@ -545,7 +545,9 @@ mlir::Value fir::runtime::genMaxval(fir::FirOpBuilder &builder,
   auto eleTy = arrTy.cast<fir::SequenceType>().getEleTy();
   auto dim = builder.createIntegerConstant(loc, builder.getIndexType(), 0);
 
-  if (eleTy.isF32())
+  if (eleTy.isF16() || eleTy.isBF16())
+    TODO(loc, "half-precision MAXVAL");
+  else if (eleTy.isF32())
     func = fir::runtime::getRuntimeFunc<mkRTKey(MaxvalReal4)>(loc, builder);
   else if (eleTy.isF64())
     func = fir::runtime::getRuntimeFunc<mkRTKey(MaxvalReal8)>(loc, builder);
@@ -553,8 +555,6 @@ mlir::Value fir::runtime::genMaxval(fir::FirOpBuilder &builder,
     func = fir::runtime::getRuntimeFunc<ForcedMaxvalReal10>(loc, builder);
   else if (eleTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedMaxvalReal16>(loc, builder);
-  else if (eleTy.isF16() || eleTy.isBF16())
-    TODO(loc, "half-precision MAXVAL");
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(1)))
     func = fir::runtime::getRuntimeFunc<mkRTKey(MaxvalInteger1)>(loc, builder);
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(2)))
@@ -661,7 +661,9 @@ mlir::Value fir::runtime::genMinval(fir::FirOpBuilder &builder,
   auto eleTy = arrTy.cast<fir::SequenceType>().getEleTy();
   auto dim = builder.createIntegerConstant(loc, builder.getIndexType(), 0);
 
-  if (eleTy.isF32())
+  if (eleTy.isF16() || eleTy.isBF16())
+    TODO(loc, "half-precision MINVAL");
+  else if (eleTy.isF32())
     func = fir::runtime::getRuntimeFunc<mkRTKey(MinvalReal4)>(loc, builder);
   else if (eleTy.isF64())
     func = fir::runtime::getRuntimeFunc<mkRTKey(MinvalReal8)>(loc, builder);
@@ -669,8 +671,6 @@ mlir::Value fir::runtime::genMinval(fir::FirOpBuilder &builder,
     func = fir::runtime::getRuntimeFunc<ForcedMinvalReal10>(loc, builder);
   else if (eleTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedMinvalReal16>(loc, builder);
-  else if (eleTy.isF16() || eleTy.isBF16())
-    TODO(loc, "half-precision MINVAL");
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(1)))
     func = fir::runtime::getRuntimeFunc<mkRTKey(MinvalInteger1)>(loc, builder);
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(2)))
@@ -715,7 +715,9 @@ mlir::Value fir::runtime::genProduct(fir::FirOpBuilder &builder,
   auto eleTy = arrTy.cast<fir::SequenceType>().getEleTy();
   auto dim = builder.createIntegerConstant(loc, builder.getIndexType(), 0);
 
-  if (eleTy.isF32())
+  if (eleTy.isF16() || eleTy.isBF16())
+    TODO(loc, "half-precision PRODUCT");
+  else if (eleTy.isF32())
     func = fir::runtime::getRuntimeFunc<mkRTKey(ProductReal4)>(loc, builder);
   else if (eleTy.isF64())
     func = fir::runtime::getRuntimeFunc<mkRTKey(ProductReal8)>(loc, builder);
@@ -723,8 +725,6 @@ mlir::Value fir::runtime::genProduct(fir::FirOpBuilder &builder,
     func = fir::runtime::getRuntimeFunc<ForcedProductReal10>(loc, builder);
   else if (eleTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedProductReal16>(loc, builder);
-  else if (eleTy.isF16() || eleTy.isBF16())
-    TODO(loc, "half-precision PRODUCT");
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(1)))
     func = fir::runtime::getRuntimeFunc<mkRTKey(ProductInteger1)>(loc, builder);
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(2)))
@@ -782,7 +782,9 @@ mlir::Value fir::runtime::genDotProduct(fir::FirOpBuilder &builder,
   auto arrTy = fir::dyn_cast_ptrOrBoxEleTy(ty);
   auto eleTy = arrTy.cast<fir::SequenceType>().getEleTy();
 
-  if (eleTy.isF32())
+  if (eleTy.isF16() || eleTy.isBF16())
+    TODO(loc, "half-precision DOTPRODUCT");
+  else if (eleTy.isF32())
     func = fir::runtime::getRuntimeFunc<mkRTKey(DotProductReal4)>(loc, builder);
   else if (eleTy.isF64())
     func = fir::runtime::getRuntimeFunc<mkRTKey(DotProductReal8)>(loc, builder);
@@ -790,8 +792,6 @@ mlir::Value fir::runtime::genDotProduct(fir::FirOpBuilder &builder,
     func = fir::runtime::getRuntimeFunc<ForcedDotProductReal10>(loc, builder);
   else if (eleTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedDotProductReal16>(loc, builder);
-  else if (eleTy.isF16() || eleTy.isBF16())
-    TODO(loc, "half-precision DOTPRODUCT");
   else if (eleTy == fir::ComplexType::get(builder.getContext(), 4))
     func = fir::runtime::getRuntimeFunc<mkRTKey(CppDotProductComplex4)>(
         loc, builder);
@@ -867,7 +867,9 @@ mlir::Value fir::runtime::genSum(fir::FirOpBuilder &builder, mlir::Location loc,
   auto eleTy = arrTy.cast<fir::SequenceType>().getEleTy();
   auto dim = builder.createIntegerConstant(loc, builder.getIndexType(), 0);
 
-  if (eleTy.isF32())
+  if (eleTy.isF16() || eleTy.isBF16())
+    TODO(loc, "half-precision SUM");
+  else if (eleTy.isF32())
     func = fir::runtime::getRuntimeFunc<mkRTKey(SumReal4)>(loc, builder);
   else if (eleTy.isF64())
     func = fir::runtime::getRuntimeFunc<mkRTKey(SumReal8)>(loc, builder);
@@ -875,8 +877,6 @@ mlir::Value fir::runtime::genSum(fir::FirOpBuilder &builder, mlir::Location loc,
     func = fir::runtime::getRuntimeFunc<ForcedSumReal10>(loc, builder);
   else if (eleTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedSumReal16>(loc, builder);
-  else if (eleTy.isF16() || eleTy.isBF16())
-    TODO(loc, "half-precision SUM");
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(1)))
     func = fir::runtime::getRuntimeFunc<mkRTKey(SumInteger1)>(loc, builder);
   else if (eleTy.isInteger(builder.getKindMap().getIntegerBitsize(2)))

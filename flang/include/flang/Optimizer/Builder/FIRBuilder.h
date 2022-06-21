@@ -399,9 +399,9 @@ private:
 
 namespace fir::factory {
 
-//===--------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 // ExtendedValue inquiry helpers
-//===--------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 
 /// Read or get character length from \p box that must contain a character
 /// entity. If the length value is contained in the ExtendedValue, this will
@@ -446,9 +446,9 @@ getNonDefaultLowerBounds(fir::FirOpBuilder &builder, mlir::Location loc,
 llvm::SmallVector<mlir::Value>
 getNonDeferredLenParams(const fir::ExtendedValue &exv);
 
-//===--------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 // String literal helper helpers
-//===--------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 
 /// Create a !fir.char<1> string literal global and returns a fir::CharBoxValue
 /// with its address en length.

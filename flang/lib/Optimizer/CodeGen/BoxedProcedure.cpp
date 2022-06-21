@@ -186,14 +186,14 @@ public:
       getModule().walk([&](mlir::Operation *op) {
         typeConverter.setLocation(op->getLoc());
         if (auto addr = mlir::dyn_cast<BoxAddrOp>(op)) {
-          auto ty = addr.val().getType();
+          auto ty = addr.getVal().getType();
           if (typeConverter.needsConversion(ty) ||
               ty.isa<mlir::FunctionType>()) {
             // Rewrite all `fir.box_addr` ops on values of type `!fir.boxproc`
             // or function type to be `fir.convert` ops.
             rewriter.setInsertionPoint(addr);
             rewriter.replaceOpWithNewOp<ConvertOp>(
-                addr, typeConverter.convertType(addr.getType()), addr.val());
+                addr, typeConverter.convertType(addr.getType()), addr.getVal());
           }
         } else if (auto func = mlir::dyn_cast<mlir::FuncOp>(op)) {
           mlir::FunctionType ty = func.getType();
@@ -218,7 +218,7 @@ public:
           // as required.
           mlir::Type toTy = embox.getType().cast<BoxProcType>().getEleTy();
           rewriter.setInsertionPoint(embox);
-          if (embox.host()) {
+          if (embox.getHost()) {
             // Create the thunk.
             auto module = embox->getParentOfType<mlir::ModuleOp>();
             FirOpBuilder builder(rewriter, getKindMapping(module));
@@ -228,9 +228,10 @@ public:
             mlir::Type buffTy = SequenceType::get({32}, i8Ty);
             auto buffer = builder.create<AllocaOp>(loc, buffTy);
             mlir::Value closure =
-                builder.createConvert(loc, i8Ptr, embox.host());
+                builder.createConvert(loc, i8Ptr, embox.getHost());
             mlir::Value tramp = builder.createConvert(loc, i8Ptr, buffer);
-            mlir::Value func = builder.createConvert(loc, i8Ptr, embox.func());
+            mlir::Value func =
+                builder.createConvert(loc, i8Ptr, embox.getFunc());
             builder.create<fir::CallOp>(
                 loc, factory::getLlvmInitTrampoline(builder),
                 llvm::ArrayRef<mlir::Value>{tramp, func, closure});
@@ -241,23 +242,24 @@ public:
                                                    adjustCall.getResult(0));
           } else {
             // Just forward the function as a pointer.
-            rewriter.replaceOpWithNewOp<ConvertOp>(embox, toTy, embox.func());
+            rewriter.replaceOpWithNewOp<ConvertOp>(embox, toTy,
+                                                   embox.getFunc());
           }
         } else if (auto mem = mlir::dyn_cast<AllocaOp>(op)) {
           auto ty = mem.getType();
           if (typeConverter.needsConversion(ty)) {
             rewriter.setInsertionPoint(mem);
             auto toTy = typeConverter.convertType(unwrapRefType(ty));
-            bool isPinned = mem.pinned();
+            bool isPinned = mem.getPinned();
             llvm::StringRef uniqName;
-            if (mem.uniq_name().hasValue())
-              uniqName = mem.uniq_name().getValue();
+            if (mem.getUniqName().hasValue())
+              uniqName = mem.getUniqName().getValue();
             llvm::StringRef bindcName;
-            if (mem.bindc_name().hasValue())
-              bindcName = mem.bindc_name().getValue();
+            if (mem.getBindcName().hasValue())
+              bindcName = mem.getBindcName().getValue();
             rewriter.replaceOpWithNewOp<AllocaOp>(
-                mem, toTy, uniqName, bindcName, isPinned, mem.typeparams(),
-                mem.shape());
+                mem, toTy, uniqName, bindcName, isPinned, mem.getTypeparams(),
+                mem.getShape());
           }
         } else if (auto mem = mlir::dyn_cast<AllocMemOp>(op)) {
           auto ty = mem.getType();
@@ -265,46 +267,47 @@ public:
             rewriter.setInsertionPoint(mem);
             auto toTy = typeConverter.convertType(unwrapRefType(ty));
             llvm::StringRef uniqName;
-            if (mem.uniq_name().hasValue())
-              uniqName = mem.uniq_name().getValue();
+            if (mem.getUniqName().hasValue())
+              uniqName = mem.getUniqName().getValue();
             llvm::StringRef bindcName;
-            if (mem.bindc_name().hasValue())
-              bindcName = mem.bindc_name().getValue();
+            if (mem.getBindcName().hasValue())
+              bindcName = mem.getBindcName().getValue();
             rewriter.replaceOpWithNewOp<AllocMemOp>(
-                mem, toTy, uniqName, bindcName, mem.typeparams(), mem.shape());
+                mem, toTy, uniqName, bindcName, mem.getTypeparams(),
+                mem.getShape());
           }
         } else if (auto coor = mlir::dyn_cast<CoordinateOp>(op)) {
           auto ty = coor.getType();
-          mlir::Type baseTy = coor.baseType();
+          mlir::Type baseTy = coor.getBaseType();
           if (typeConverter.needsConversion(ty) ||
               typeConverter.needsConversion(baseTy)) {
             rewriter.setInsertionPoint(coor);
             auto toTy = typeConverter.convertType(ty);
             auto toBaseTy = typeConverter.convertType(baseTy);
-            rewriter.replaceOpWithNewOp<CoordinateOp>(coor, toTy, coor.ref(),
-                                                      coor.coor(), toBaseTy);
+            rewriter.replaceOpWithNewOp<CoordinateOp>(coor, toTy, coor.getRef(),
+                                                      coor.getCoor(), toBaseTy);
           }
         } else if (auto index = mlir::dyn_cast<FieldIndexOp>(op)) {
           auto ty = index.getType();
-          mlir::Type onTy = index.on_type();
+          mlir::Type onTy = index.getOnType();
           if (typeConverter.needsConversion(ty) ||
               typeConverter.needsConversion(onTy)) {
             rewriter.setInsertionPoint(index);
             auto toTy = typeConverter.convertType(ty);
             auto toOnTy = typeConverter.convertType(onTy);
             rewriter.replaceOpWithNewOp<FieldIndexOp>(
-                index, toTy, index.field_id(), toOnTy, index.typeparams());
+                index, toTy, index.getFieldId(), toOnTy, index.getTypeparams());
           }
         } else if (auto index = mlir::dyn_cast<LenParamIndexOp>(op)) {
           auto ty = index.getType();
-          mlir::Type onTy = index.on_type();
+          mlir::Type onTy = index.getOnType();
           if (typeConverter.needsConversion(ty) ||
               typeConverter.needsConversion(onTy)) {
             rewriter.setInsertionPoint(index);
             auto toTy = typeConverter.convertType(ty);
             auto toOnTy = typeConverter.convertType(onTy);
             rewriter.replaceOpWithNewOp<LenParamIndexOp>(
-                mem, toTy, index.field_id(), toOnTy, index.typeparams());
+                mem, toTy, index.getFieldId(), toOnTy, index.getTypeparams());
           }
         } else if (op->getDialect() == firDialect) {
           rewriter.startRootUpdate(op);
