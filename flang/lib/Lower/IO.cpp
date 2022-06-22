@@ -527,17 +527,17 @@ static mlir::FuncOp getInputFunc(mlir::Location loc, fir::FirOpBuilder &builder,
                ? getIORuntimeFunc<mkIOKey(InputLogical)>(loc, builder)
                : getIORuntimeFunc<mkIOKey(InputInteger)>(loc, builder);
   if (auto ty = type.dyn_cast<mlir::FloatType>()) {
-    if (auto width = ty.getWidth(); width <= 32)
+    if (auto width = ty.getWidth(); width == 32)
       return getIORuntimeFunc<mkIOKey(InputReal32)>(loc, builder);
-    else if (width <= 64)
+    else if (width == 64)
       return getIORuntimeFunc<mkIOKey(InputReal64)>(loc, builder);
   }
   auto kindMap = fir::getKindMapping(builder.getModule());
   if (auto ty = type.dyn_cast<fir::ComplexType>()) {
     auto width = kindMap.getRealBitsize(ty.getFKind());
-    if (width <= 32)
+    if (width == 32)
       return getIORuntimeFunc<mkIOKey(InputComplex32)>(loc, builder);
-    else if (width <= 64)
+    else if (width == 64)
       return getIORuntimeFunc<mkIOKey(InputComplex64)>(loc, builder);
   }
   if (type.isa<fir::LogicalType>())
