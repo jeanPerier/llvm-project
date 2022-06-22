@@ -1833,9 +1833,10 @@ struct SymbolVisitor {
           if (std::optional<Fortran::evaluate::ExtentExpr> length =
                   dynamicType->GetCharLength())
             visitExpr(*length);
-        } else if (const Fortran::semantics::DerivedTypeSpec *derivedTypeSpec =
-                       Fortran::evaluate::GetDerivedTypeSpec(dynamicType)) {
-          for (const auto &[_, param] : derivedTypeSpec->parameters())
+        } else if (dynamicType->category() == common::TypeCategory::Derived) {
+          const Fortran::semantics::DerivedTypeSpec &derivedTypeSpec =
+              dynamicType->GetDerivedTypeSpec();
+          for (const auto &[_, param] : derivedTypeSpec.parameters())
             if (const Fortran::semantics::MaybeIntExpr &expr =
                     param.GetExplicit())
               visitExpr(expr.value());
