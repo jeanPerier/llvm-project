@@ -247,16 +247,16 @@ mlir::Value Fortran::lower::genInitialDataTarget(
                                         op->getAttrs());
   auto embox = mlir::cast<fir::EmboxOp>(*op);
   auto ptrType = boxType.cast<fir::BoxType>().getEleTy();
-  mlir::Value memref = builder.createConvert(loc, ptrType, embox.memref());
+  mlir::Value memref = builder.createConvert(loc, ptrType, embox.getMemref());
   if (targetLen == fir::CharacterType::unknownLen())
     // Drop the length argument.
-    return builder.create<fir::EmboxOp>(loc, boxType, memref, embox.shape(),
-                                        embox.slice());
+    return builder.create<fir::EmboxOp>(loc, boxType, memref, embox.getShape(),
+                                        embox.getSlice());
   // targetLen is constant and ptrLen is unknown. Add a length argument.
   mlir::Value targetLenValue =
       builder.createIntegerConstant(loc, builder.getIndexType(), targetLen);
-  return builder.create<fir::EmboxOp>(loc, boxType, memref, embox.shape(),
-                                      embox.slice(),
+  return builder.create<fir::EmboxOp>(loc, boxType, memref, embox.getShape(),
+                                      embox.getSlice(),
                                       mlir::ValueRange{targetLenValue});
 }
 
@@ -359,7 +359,7 @@ static mlir::Value genDefaultInitializerValue(
 
 /// Does this global already have an initializer ?
 static bool globalIsInitialized(fir::GlobalOp global) {
-  return !global.getRegion().empty() || global.initVal();
+  return !global.getRegion().empty() || global.getInitVal();
 }
 
 /// Call \p genInit to generate code inside \p global initializer region.
@@ -670,7 +670,7 @@ getAggregateType(Fortran::lower::AbstractConverter &converter,
 static fir::GlobalOp defineGlobalAggregateStore(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::lower::pft::Variable::AggregateStore &aggregate,
-    StringRef aggName, mlir::StringAttr linkage) {
+    llvm::StringRef aggName, mlir::StringAttr linkage) {
   assert(aggregate.isGlobal() && "not a global interval");
   fir::FirOpBuilder &builder = converter.getFirOpBuilder();
   fir::GlobalOp global = builder.getNamedGlobal(aggName);
@@ -717,7 +717,7 @@ static fir::GlobalOp defineGlobalAggregateStore(
 static fir::GlobalOp declareGlobalAggregateStore(
     Fortran::lower::AbstractConverter &converter, mlir::Location loc,
     const Fortran::lower::pft::Variable::AggregateStore &aggregate,
-    StringRef aggName, mlir::StringAttr linkage) {
+    llvm::StringRef aggName, mlir::StringAttr linkage) {
   assert(aggregate.isGlobal() && "not a global interval");
   fir::FirOpBuilder &builder = converter.getFirOpBuilder();
   if (fir::GlobalOp global = builder.getNamedGlobal(aggName))
@@ -1403,7 +1403,7 @@ void Fortran::lower::mapSymbolAttributes(
           auto expr = Fortran::lower::SomeExpr{*low};
           lb = builder.createConvert(loc, idxTy, genValue(expr));
         } else {
-          TODO(loc, "support for assumed rank entities");
+          TODO(loc, "assumed rank lowering");
         }
         lbounds.emplace_back(lb);
 

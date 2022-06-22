@@ -45,7 +45,6 @@
 #include "flang/Semantics/symbol.h"
 #include "flang/Semantics/tools.h"
 #include "flang/Semantics/type.h"
-#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -214,7 +213,7 @@ arrayLoadExtValue(fir::FirOpBuilder &builder, mlir::Location loc,
                   fir::ArrayLoadOp load, llvm::ArrayRef<mlir::Value> path,
                   mlir::Value newBase, mlir::Value newLen = {}) {
   // Recover the extended value from the load.
-  if (load.slice())
+  if (load.getSlice())
     fir::emitFatalError(loc, "array_load with slice is not allowed");
   mlir::Type arrTy = load.getType();
   if (!path.empty()) {
@@ -226,11 +225,11 @@ arrayLoadExtValue(fir::FirOpBuilder &builder, mlir::Location loc,
         mlir::Value len = newLen;
         if (!len)
           len = fir::factory::CharacterExprHelper{builder, loc}.getLength(
-              load.memref());
+              load.getMemref());
         if (!len) {
-          assert(load.typeparams().size() == 1 &&
+          assert(load.getTypeparams().size() == 1 &&
                  "length must be in array_load");
-          len = load.typeparams()[0];
+          len = load.getTypeparams()[0];
         }
         return fir::CharBoxValue{newBase, len};
       }
@@ -247,24 +246,25 @@ arrayLoadExtValue(fir::FirOpBuilder &builder, mlir::Location loc,
       mlir::Value len = newLen;
       if (!len)
         len = fir::factory::CharacterExprHelper{builder, loc}.getLength(
-            load.memref());
+            load.getMemref());
       if (!len) {
-        assert(load.typeparams().size() == 1 && "length must be in array_load");
-        len = load.typeparams()[0];
+        assert(load.getTypeparams().size() == 1 &&
+               "length must be in array_load");
+        len = load.getTypeparams()[0];
       }
       return fir::CharArrayBoxValue(newBase, len, extents, origins);
     }
     return fir::ArrayBoxValue(newBase, extents, origins);
   };
   // Use the shape op, if there is one.
-  mlir::Value shapeVal = load.shape();
+  mlir::Value shapeVal = load.getShape();
   if (shapeVal) {
     if (!mlir::isa<fir::ShiftOp>(shapeVal.getDefiningOp())) {
       auto extents = fir::factory::getExtents(shapeVal);
       auto origins = fir::factory::getOrigins(shapeVal);
       return arrayToExtendedValue(extents, origins);
     }
-    if (!fir::isa_box_type(load.memref().getType()))
+    if (!fir::isa_box_type(load.getMemref().getType()))
       fir::emitFatalError(loc, "shift op is invalid in this context");
   }
 
@@ -272,8 +272,8 @@ arrayLoadExtValue(fir::FirOpBuilder &builder, mlir::Location loc,
   // not have any type parameters, then read the extents from the original box.
   // The origin may be either from the box or a shift operation. Create and
   // return the array extended value.
-  if (path.empty() && load.typeparams().empty()) {
-    auto oldBox = load.memref();
+  if (path.empty() && load.getTypeparams().empty()) {
+    auto oldBox = load.getMemref();
     fir::ExtendedValue exv = fir::factory::readBoxValue(builder, loc, oldBox);
     auto extents = fir::factory::getExtents(loc, builder, exv);
     auto origins = fir::factory::getNonDefaultLowerBounds(builder, loc, exv);
@@ -507,7 +507,7 @@ argumentHostAssocs(Fortran::lower::AbstractConverter &converter,
                    mlir::Value arg) {
   if (auto addr = mlir::dyn_cast_or_null<fir::AddrOfOp>(arg.getDefiningOp())) {
     auto &builder = converter.getFirOpBuilder();
-    if (auto funcOp = builder.getNamedFunction(addr.symbol()))
+    if (auto funcOp = builder.getNamedFunction(addr.getSymbol()))
       if (fir::anyFuncArgsHaveAttr(funcOp, fir::getHostAssocAttrName()))
         return converter.hostAssocTupleValue();
   }
@@ -1678,7 +1678,8 @@ public:
              &con) {
     if (con.Rank() > 0)
       return genArrayLit(con);
-    auto opt = con.GetScalarValue();
+    std::optional<Fortran::evaluate::Scalar<Fortran::evaluate::Type<TC, KIND>>>
+        opt = con.GetScalarValue();
     assert(opt.has_value() && "constant has no value");
     if constexpr (TC == Fortran::common::TypeCategory::Character) {
       return genScalarLit<KIND>(opt.value(), con.LEN());
@@ -1698,7 +1699,8 @@ public:
 
   template <typename A>
   ExtValue genval(const Fortran::evaluate::ArrayConstructor<A> &) {
-    fir::emitFatalError(getLoc(), "array constructor: should not reach here");
+    fir::emitFatalError(getLoc(),
+                        "array constructor: lowering should not reach here");
   }
 
   ExtValue gen(const Fortran::evaluate::ComplexPart &x) {
@@ -1879,7 +1881,7 @@ public:
         return genval(*sub);
       return genIntegerConstant<8>(builder.getContext(), 1);
     }
-    TODO(getLoc(), "non explicit semantics::Bound implementation");
+    TODO(getLoc(), "non explicit semantics::Bound lowering");
   }
 
   static bool isSlice(const Fortran::evaluate::ArrayRef &aref) {
@@ -3002,7 +3004,7 @@ public:
       }
       const auto *expr = actual->UnwrapExpr();
       if (!expr)
-        TODO(loc, "assumed type actual argument");
+        TODO(loc, "assumed type actual argument lowering");
 
       if (arg.passBy == PassBy::Value) {
         ExtValue argVal = genval(*expr);
@@ -3368,10 +3370,11 @@ static fir::ExtendedValue arrayModifyToExv(fir::FirOpBuilder &builder,
   mlir::Type eleTy = fir::unwrapPassByRefType(elementAddr.getType());
   if (fir::isa_char(eleTy)) {
     auto len = fir::factory::CharacterExprHelper{builder, loc}.getLength(
-        load.memref());
+        load.getMemref());
     if (!len) {
-      assert(load.typeparams().size() == 1 && "length must be in array_load");
-      len = load.typeparams()[0];
+      assert(load.getTypeparams().size() == 1 &&
+             "length must be in array_load");
+      len = load.getTypeparams()[0];
     }
     return fir::CharBoxValue{elementAddr, len};
   }
@@ -3391,16 +3394,16 @@ createDerivedArrayAmend(mlir::Location loc, fir::ArrayLoadOp destLoad,
                         fir::FirOpBuilder &builder, fir::ArrayAccessOp destAcc,
                         const fir::ExtendedValue &elementExv, mlir::Type eleTy,
                         mlir::Value innerArg) {
-  if (destLoad.typeparams().empty()) {
+  if (destLoad.getTypeparams().empty()) {
     fir::factory::genRecordAssignment(builder, loc, destAcc, elementExv);
   } else {
     auto boxTy = fir::BoxType::get(eleTy);
     auto toBox = builder.create<fir::EmboxOp>(loc, boxTy, destAcc.getResult(),
                                               mlir::Value{}, mlir::Value{},
-                                              destLoad.typeparams());
+                                              destLoad.getTypeparams());
     auto fromBox = builder.create<fir::EmboxOp>(
         loc, boxTy, fir::getBase(elementExv), mlir::Value{}, mlir::Value{},
-        destLoad.typeparams());
+        destLoad.getTypeparams());
     fir::factory::genRecordAssignment(builder, loc, fir::BoxValue(toBox),
                                       fir::BoxValue(fromBox));
   }
@@ -3526,8 +3529,8 @@ public:
       builder.create<fir::ResultOp>(loc, fir::getBase(exv));
     } else {
       builder.create<fir::ArrayMergeStoreOp>(
-          loc, destination, fir::getBase(exv), destination.memref(),
-          destination.slice(), destination.typeparams());
+          loc, destination, fir::getBase(exv), destination.getMemref(),
+          destination.getSlice(), destination.getTypeparams());
     }
   }
 
@@ -3685,8 +3688,8 @@ public:
       builder.create<fir::ResultOp>(loc, fir::getBase(exv));
     } else {
       builder.create<fir::ArrayMergeStoreOp>(
-          loc, destination, fir::getBase(exv), destination.memref(),
-          destination.slice(), destination.typeparams());
+          loc, destination, fir::getBase(exv), destination.getMemref(),
+          destination.getSlice(), destination.getTypeparams());
     }
     fir::factory::finalizeRealloc(builder, loc, mutableBox, lbounds,
                                   takeLboundsIfRealloc, realloc);
@@ -3728,12 +3731,12 @@ public:
     ael.determineShapeOfDest(expr);
     ExtValue loopRes = ael.lowerArrayExpression(expr);
     fir::ArrayLoadOp dest = ael.destination;
-    mlir::Value tempRes = dest.memref();
+    mlir::Value tempRes = dest.getMemref();
     fir::FirOpBuilder &builder = converter.getFirOpBuilder();
     mlir::Location loc = converter.getCurrentLocation();
     builder.create<fir::ArrayMergeStoreOp>(loc, dest, fir::getBase(loopRes),
-                                           tempRes, dest.slice(),
-                                           dest.typeparams());
+                                           tempRes, dest.getSlice(),
+                                           dest.getTypeparams());
 
     auto arrTy =
         fir::dyn_cast_ptrEleTy(tempRes.getType()).cast<fir::SequenceType>();
@@ -3809,7 +3812,7 @@ public:
           loc, builder, castTo.getType(), shape, iters.iterVec());
       auto eleAddr = builder.create<fir::ArrayCoorOp>(
           loc, builder.getRefType(eleTy), castTo, shape,
-          /*slice=*/mlir::Value{}, indices, destination.typeparams());
+          /*slice=*/mlir::Value{}, indices, destination.getTypeparams());
       mlir::Value eleVal =
           builder.createConvert(loc, eleTy, iters.getElement());
       builder.create<fir::StoreOp>(loc, eleVal, eleAddr);
@@ -3871,8 +3874,8 @@ public:
       builder.create<fir::ResultOp>(loc, fir::getBase(exv));
     } else {
       builder.create<fir::ArrayMergeStoreOp>(
-          loc, destination, fir::getBase(exv), destination.memref(),
-          destination.slice(), destination.typeparams());
+          loc, destination, fir::getBase(exv), destination.getMemref(),
+          destination.getSlice(), destination.getTypeparams());
     }
   }
 
@@ -3918,7 +3921,7 @@ public:
     // in which case there is no array to thread.
     auto loc = getLoc();
     auto createResult = [&](auto op) {
-      mlir::Value oldInnerArg = op.sequence();
+      mlir::Value oldInnerArg = op.getSequence();
       std::size_t offset = explicitSpace->argPosition(oldInnerArg);
       explicitSpace->setInnerArg(offset, fir::getBase(lexv));
       finalizeElementCtx();
@@ -3968,7 +3971,7 @@ public:
     // 3) Insert the call
     if (auto modifyOp = mlir::dyn_cast<fir::ArrayModifyOp>(
             fir::getBase(lexv).getDefiningOp())) {
-      mlir::Value oldInnerArg = modifyOp.sequence();
+      mlir::Value oldInnerArg = modifyOp.getSequence();
       std::size_t offset = explicitSpace->argPosition(oldInnerArg);
       explicitSpace->setInnerArg(offset, fir::getBase(lexv));
       fir::ExtendedValue exv = arrayModifyToExv(
@@ -4212,7 +4215,7 @@ private:
       auto ele = convertElementForUpdate(loc, eleTy, fir::getBase(exv));
       auto update = builder.create<fir::ArrayUpdateOp>(
           loc, arrTy, innerArg, ele, iterSpace.iterVec(),
-          destination.typeparams());
+          destination.getTypeparams());
       return abstractArrayExtValue(update);
     };
   }
@@ -4246,7 +4249,7 @@ private:
   llvm::SmallVector<mlir::Value> computeSliceShape(mlir::Value slice) {
     llvm::SmallVector<mlir::Value> slicedShape;
     auto slOp = mlir::cast<fir::SliceOp>(slice.getDefiningOp());
-    mlir::Operation::operand_range triples = slOp.triples();
+    mlir::Operation::operand_range triples = slOp.getTriples();
     mlir::IndexType idxTy = builder.getIndexType();
     mlir::Location loc = getLoc();
     for (unsigned i = 0, end = triples.size(); i < end; i += 3) {
@@ -4277,8 +4280,8 @@ private:
 
   /// Get the shape from an ArrayLoad.
   llvm::SmallVector<mlir::Value> getShape(fir::ArrayLoadOp arrayLoad) {
-    return getShape(
-        ArrayOperand{arrayLoad.memref(), arrayLoad.shape(), arrayLoad.slice()});
+    return getShape(ArrayOperand{arrayLoad.getMemref(), arrayLoad.getShape(),
+                                 arrayLoad.getSlice()});
   }
 
   /// Returns the first array operand that may not be absent. If all
@@ -4363,9 +4366,9 @@ private:
       // Compute and gather the extents.
       llvm::SmallVector<mlir::Value> extents;
       for (auto doLoop : loopStack[i])
-        extents.push_back(builder.genExtentFromTriplet(loc, doLoop.lowerBound(),
-                                                       doLoop.upperBound(),
-                                                       doLoop.step(), i64Ty));
+        extents.push_back(builder.genExtentFromTriplet(
+            loc, doLoop.getLowerBound(), doLoop.getUpperBound(),
+            doLoop.getStep(), i64Ty));
       if constexpr (withAllocation) {
         fir::runtime::genRaggedArrayAllocate(
             loc, builder, header, /*asHeader=*/true, byteSize, extents);
@@ -4375,8 +4378,8 @@ private:
       llvm::SmallVector<mlir::Value> offsets;
       for (auto doLoop : loopStack[i]) {
         auto m = builder.create<mlir::arith::SubIOp>(
-            loc, doLoop.getInductionVar(), doLoop.lowerBound());
-        auto n = builder.create<mlir::arith::DivSIOp>(loc, m, doLoop.step());
+            loc, doLoop.getInductionVar(), doLoop.getLowerBound());
+        auto n = builder.create<mlir::arith::DivSIOp>(loc, m, doLoop.getStep());
         mlir::Value one = builder.createIntegerConstant(loc, n.getType(), 1);
         offsets.push_back(builder.create<mlir::arith::AddIOp>(loc, n, one));
       }
@@ -4597,18 +4600,18 @@ private:
               loc, mlir::TypeRange{innerArg.getType()}, fir::getBase(cond),
               /*withElseRegion=*/true);
           builder.create<fir::ResultOp>(loc, ifOp.getResult(0));
-          builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+          builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
           builder.create<fir::ResultOp>(loc, innerArg);
-          builder.setInsertionPointToStart(&ifOp.elseRegion().front());
+          builder.setInsertionPointToStart(&ifOp.getElseRegion().front());
         };
         auto genTrueBlock = [&](const auto *e, auto &&cond) {
           auto ifOp = builder.create<fir::IfOp>(
               loc, mlir::TypeRange{innerArg.getType()}, fir::getBase(cond),
               /*withElseRegion=*/true);
           builder.create<fir::ResultOp>(loc, ifOp.getResult(0));
-          builder.setInsertionPointToStart(&ifOp.elseRegion().front());
+          builder.setInsertionPointToStart(&ifOp.getElseRegion().front());
           builder.create<fir::ResultOp>(loc, innerArg);
-          builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+          builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
         };
         for (std::remove_const_t<decltype(size)> i = 0; i < size; ++i)
           if (const auto *e = maskExprs[i])
@@ -4837,7 +4840,7 @@ private:
           // a potentially absent argument to something else than a value (apart
           // from character MAX/MIN that are handled elsewhere.)
           if (argRules.lowerAs != Fortran::lower::LowerIntrinsicArgAs::Value)
-            TODO(loc, "non trivial optional elemental intrinsic array "
+            TODO(loc, "lowering non trivial optional elemental intrinsic array "
                       "argument");
           PushSemantics(ConstituentSemantics::RefTransparent);
           operands.emplace_back(genarrForwardOptionalArgumentToCall(*expr));
@@ -4910,7 +4913,7 @@ private:
       }
       const auto *expr = actual->UnwrapExpr();
       if (!expr)
-        TODO(loc, "assumed type actual argument");
+        TODO(loc, "assumed type actual argument lowering");
 
       LLVM_DEBUG(expr->AsFortran(llvm::dbgs()
                                  << "argument: " << arg.firArgument << " = [")
@@ -5917,7 +5920,7 @@ private:
             fir::isa_ref_type(eleTy) ? eleTy : builder.getRefType(eleTy);
         auto arrModify = builder.create<fir::ArrayModifyOp>(
             loc, mlir::TypeRange{refEleTy, resTy}, innerArg, iters.iterVec(),
-            destination.typeparams());
+            destination.getTypeparams());
         return abstractArrayExtValue(arrModify.getResult(1));
       };
     }
@@ -6019,7 +6022,7 @@ private:
     mlir::Value noSlice;
     auto arrLoad = builder.create<fir::ArrayLoadOp>(
         loc, arrType, memref, shape, noSlice, fir::getTypeParams(exv));
-    mlir::Operation::operand_range arrLdTypeParams = arrLoad.typeparams();
+    mlir::Operation::operand_range arrLdTypeParams = arrLoad.getTypeparams();
     mlir::Value arrLd = arrLoad.getResult();
     // Mark the load to tell later passes it is unsafe to use this array_load
     // shape unconditionally.
@@ -6091,7 +6094,7 @@ private:
       assert(slOp && "expected slice op");
       auto seqTy = arrTy.dyn_cast<fir::SequenceType>();
       assert(seqTy && "expected array type");
-      mlir::Operation::operand_range triples = slOp.triples();
+      mlir::Operation::operand_range triples = slOp.getTriples();
       fir::SequenceType::Shape shape;
       // reduce the rank for each invariant dimension
       for (unsigned i = 1, end = triples.size(); i < end; i += 3)
@@ -6213,7 +6216,7 @@ private:
     auto ifOp = builder.create<fir::IfOp>(loc, mem.getType(), cond,
                                           /*withElseRegion=*/true);
     auto insPt = builder.saveInsertionPoint();
-    builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+    builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
     // Not enough space, resize the buffer.
     mlir::IndexType idxTy = builder.getIndexType();
     mlir::Value two = builder.createIntegerConstant(loc, idxTy, 2);
@@ -6231,7 +6234,7 @@ private:
     mlir::Value castNewMem =
         builder.createConvert(loc, mem.getType(), newMem.getResult(0));
     builder.create<fir::ResultOp>(loc, castNewMem);
-    builder.setInsertionPointToStart(&ifOp.elseRegion().front());
+    builder.setInsertionPointToStart(&ifOp.getElseRegion().front());
     // Otherwise, just forward the buffer.
     builder.create<fir::ResultOp>(loc, mem);
     builder.restoreInsertionPoint(insPt);
@@ -6944,7 +6947,7 @@ private:
             fir::isa_ref_type(eleTy) ? eleTy : builder.getRefType(eleTy);
         auto arrModify = builder.create<fir::ArrayModifyOp>(
             loc, mlir::TypeRange{refEleTy, innerArg.getType()}, innerArg,
-            iters.iterVec(), load.typeparams());
+            iters.iterVec(), load.getTypeparams());
         return arrayLoadExtValue(builder, loc, load, iters.iterVec(),
                                  arrModify.getResult(1));
       };
@@ -7009,7 +7012,7 @@ private:
         }
       }
       auto fetch = builder.create<fir::ArrayFetchOp>(
-          loc, eleTy, load, iters.iterVec(), load.typeparams());
+          loc, eleTy, load, iters.iterVec(), load.getTypeparams());
       return arrayLoadExtValue(builder, loc, load, iters.iterVec(), fetch);
     };
     return [=](IterSpace iters) mutable { return lambda(pc(iters)); };
@@ -7602,8 +7605,9 @@ void Fortran::lower::createArrayMergeStores(
   for (auto i : llvm::enumerate(esp.getOuterLoop().getResults()))
     if (llvm::Optional<fir::ArrayLoadOp> ldOpt = esp.getLhsLoad(i.index())) {
       fir::ArrayLoadOp load = ldOpt.getValue();
-      builder.create<fir::ArrayMergeStoreOp>(
-          loc, load, i.value(), load.memref(), load.slice(), load.typeparams());
+      builder.create<fir::ArrayMergeStoreOp>(loc, load, i.value(),
+                                             load.getMemref(), load.getSlice(),
+                                             load.getTypeparams());
     }
   if (esp.loopCleanup.hasValue()) {
     esp.loopCleanup.getValue()(builder);

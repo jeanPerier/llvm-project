@@ -623,7 +623,7 @@ public:
   }
 
   void appendHostAssocTupleArg(mlir::Type tupTy) {
-    MLIRContext *ctxt = tupTy.getContext();
+    mlir::MLIRContext *ctxt = tupTy.getContext();
     addFirOperand(tupTy, nextPassedArgPosition(), Property::BaseAddress,
                   {mlir::NamedAttribute{
                       mlir::Identifier::get(fir::getHostAssocAttrName(), ctxt),
@@ -790,7 +790,7 @@ private:
     if (cat == Fortran::common::TypeCategory::Derived) {
       if (dynamicType.IsPolymorphic())
         TODO(interface.converter.getCurrentLocation(),
-             "support for polymorphic types");
+             "[translateDynamicType] polymorphic types");
       return getConverter().genType(dynamicType.GetDerivedTypeSpec());
     }
     // CHARACTER with compile time constant length.
