@@ -3593,7 +3593,8 @@ IntrinsicLibrary::genUbound(mlir::Type resultType,
     mlir::Value resultIrBox =
         fir::factory::getMutableIRBox(builder, loc, resultMutableBox);
 
-    fir::runtime::genUbound(builder, loc, resultIrBox, fir::getBase(args[0]),
+    fir::ExtendedValue box = createBoxForLBOUND(loc, builder, args[0]);
+    fir::runtime::genUbound(builder, loc, resultIrBox, fir::getBase(box),
                             kind);
 
     return readAndAddCleanUp(resultMutableBox, resultType, "UBOUND");
