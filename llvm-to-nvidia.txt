@@ -40,9 +40,27 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit df6087ee379488b0251805c491f6b0b6b8c6ed1d
+with llvm-project commit ff5301dde9815beee7c4410b3a01d137df636364
 
 Log of cherry-picked commits in reverse order (latest first):
+1906188f0708eb1a517b5c093cbac43679293dda Valentin C.: Add FIR tests missing from fir-dev
+b09426ff266fefb2aee34a3d811562d802264937 Valentin C.: Cleanup code and add test from fir-dev
+c67a87444f5585aafa659c52544ac912f283e7e3 Valentin C.: Add more diagnostics to fir.coordinate_of
+ed8fceaa09cd66324c6efc1070f962731a62e2dc Kazu H.:Don't use Optional::getValue (NFC)
+c858f4dbd5d06b227ff87bbe5ebd787d04148749 Shraiysh V.:[OpenMP] Fix firstprivate with barrier
+0916d96d12fda355933a8f66ed2a1ccc855cab9c Kazu H.:Don't use Optional::hasValue (NFC)
+064a08cd955019da9130f1109bfa534e79b8ec7c Kazu H.:Don't use Optional::hasValue (NFC)
+5413bf1bac2abb9e06901686cdc959e92940143a Kazu H.:Don't use Optional::hasValue (NFC)
+331145e6e979ddb115e3bfd44d282828994d4e23 Valentin C.:[NFC] Unify todo messages
+8ac4eb918c71c23bb1d03f94e4db3f22d9598f8b Valentin C.:[NFC] Fix file name typos
+8b68da2c7d97ef0e2dde4d9eb867020bde2f5fe2 Alex Z.: move SCF headers to SCF/{IR,Transforms} respectively
+4f1fa558c816095e4f01179a3bc674a4622f2efe Daniil D.:[NFC] Small refactor for `IsProcedurePointer`
+26041e17006cf30e9c2d06706fe6bd3fa818e356 Diana P.:link job for flang on windows
+30c675878c21be9973faabddc38ebf1b4c603b7d Kazu H.:value_or instead of getValueOr (NFC)
+c05b99971fa042ae75c1848e6597c068392d693b Nimish M.:[OpenMP][NFC] Refactor code related to OpenMP atomic memory order clause semantics
+8df54a6a03a6d07e3053eff9806b450ec9193772 Jacques P.: Update accessors to prefixed form (NFC)
+914b9eec04b5759884ae6ac4995d8293e21efc7e Kiran C.: Fixes for XArrayCoorOp
+6c89c5314476452e2189cc80715032857a49c4e5 Eric S.: Fix bug in character casting. Add missing sext/trunc in code gen.
 17853928a69b6efe7c3b2db8aba631edd3aa2ed8 Peter K.: [runtime] Correct implementation of WAIT with no ID
 575c9d6d4a20dd272113f9aa2f9e601d297b79b1 Valentin C.: [NFC] Fix some formatting
 60e359943bfc22155cd239c9b40b3e4c41026915 PeixinQiao: Fix one regression failure related to BIND(C) statement
