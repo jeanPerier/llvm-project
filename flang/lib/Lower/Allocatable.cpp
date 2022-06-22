@@ -17,9 +17,9 @@
 #include "flang/Lower/PFTBuilder.h"
 #include "flang/Lower/Runtime.h"
 #include "flang/Lower/StatementContext.h"
-#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/Runtime/RTBuilder.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Support/FatalError.h"
@@ -83,7 +83,7 @@ struct ErrorManager {
           loc, mlir::arith::CmpIPredicate::eq, statValue, zero);
       auto ifOp = builder.create<fir::IfOp>(loc, cmp,
                                             /*withElseRegion=*/false);
-      builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+      builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
     }
   }
 
@@ -462,13 +462,13 @@ private:
   }
 
   void genSourceAllocation(const Allocation &, const fir::MutableBoxValue &) {
-    TODO(loc, "SOURCE allocation");
+    TODO(loc, "SOURCE allocation lowering");
   }
   void genMoldAllocation(const Allocation &, const fir::MutableBoxValue &) {
-    TODO(loc, "MOLD allocation");
+    TODO(loc, "MOLD allocation lowering");
   }
   void genSetType(const Allocation &, const fir::MutableBoxValue &) {
-    TODO(loc, "polymorphic entity allocation");
+    TODO(loc, "polymorphic entity allocation lowering");
   }
 
   /// Returns a pointer to the DeclTypeSpec if a type-spec is provided in the

@@ -229,7 +229,7 @@ static void makeNextConditionalOn(fir::FirOpBuilder &builder,
     resTy = builder.getI1Type();
   auto ifOp = builder.create<fir::IfOp>(loc, resTy, ok,
                                         /*withElseRegion=*/inLoop);
-  builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+  builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
 }
 
 /// Retrieve or generate a runtime description of NAMELIST group `symbol`.
@@ -704,7 +704,7 @@ static void genIoLoop(Fortran::lower::AbstractConverter &converter,
     genItemList(ioImpliedDo);
     builder.setInsertionPointToEnd(doLoopOp.getBody());
     mlir::Value result = builder.create<mlir::arith::AddIOp>(
-        loc, doLoopOp.getInductionVar(), doLoopOp.step());
+        loc, doLoopOp.getInductionVar(), doLoopOp.getStep());
     builder.create<fir::ResultOp>(loc, result);
     builder.setInsertionPointAfter(doLoopOp);
     // The loop control variable may be used after the loop.
@@ -729,9 +729,9 @@ static void genIoLoop(Fortran::lower::AbstractConverter &converter,
   genItemList(ioImpliedDo);
   // Unwind nested IO call scopes, filling in true and false ResultOp's.
   for (mlir::Operation *op = builder.getBlock()->getParentOp();
-       isa<fir::IfOp>(op); op = op->getBlock()->getParentOp()) {
+       mlir::isa<fir::IfOp>(op); op = op->getBlock()->getParentOp()) {
     auto ifOp = dyn_cast<fir::IfOp>(op);
-    mlir::Operation *lastOp = &ifOp.thenRegion().front().back();
+    mlir::Operation *lastOp = &ifOp.getThenRegion().front().back();
     builder.setInsertionPointAfter(lastOp);
     // The primary ifOp result is the result of an IO call or loop.
     if (mlir::isa<fir::CallOp, fir::IfOp>(*lastOp))
@@ -739,14 +739,14 @@ static void genIoLoop(Fortran::lower::AbstractConverter &converter,
     else
       builder.create<fir::ResultOp>(loc, ok); // loop result
     // The else branch propagates an early exit false result.
-    builder.setInsertionPointToStart(&ifOp.elseRegion().front());
+    builder.setInsertionPointToStart(&ifOp.getElseRegion().front());
     builder.create<fir::ResultOp>(loc, falseValue);
   }
   builder.setInsertionPointToEnd(iterWhileOp.getBody());
   mlir::OpResult iterateResult = builder.getBlock()->back().getResult(0);
   mlir::Value inductionResult0 = iterWhileOp.getInductionVar();
   auto inductionResult1 = builder.create<mlir::arith::AddIOp>(
-      loc, inductionResult0, iterWhileOp.step());
+      loc, inductionResult0, iterWhileOp.getStep());
   auto inductionResult = builder.create<mlir::SelectOp>(
       loc, iterateResult, inductionResult1, inductionResult0);
   llvm::SmallVector<mlir::Value> results = {inductionResult, iterateResult};
@@ -1542,8 +1542,9 @@ static mlir::Value genIOUnitNumber(Fortran::lower::AbstractConverter &converter,
                                    Fortran::lower::StatementContext &stmtCtx) {
   auto &builder = converter.getFirOpBuilder();
   auto rawUnit = fir::getBase(converter.genExprValue(loc, iounit, stmtCtx));
-  unsigned rawUnitWidth = rawUnit.getType().cast<IntegerType>().getWidth();
-  unsigned runtimeArgWidth = ty.cast<IntegerType>().getWidth();
+  unsigned rawUnitWidth =
+      rawUnit.getType().cast<mlir::IntegerType>().getWidth();
+  unsigned runtimeArgWidth = ty.cast<mlir::IntegerType>().getWidth();
   // The IO runtime supports `int` unit numbers, if the unit number may
   // overflow when passed to the IO runtime, check that the unit number is
   // in range before calling the BeginXXX.
@@ -1580,9 +1581,9 @@ static mlir::Value genIOUnitNumber(Fortran::lower::AbstractConverter &converter,
           loc, mlir::arith::CmpIPredicate::eq, iostat, zero);
       auto ifOp = builder.create<fir::IfOp>(loc, iostatTy, unitIsOK,
                                             /*withElseRegion=*/true);
-      builder.setInsertionPointToStart(&ifOp.elseRegion().front());
+      builder.setInsertionPointToStart(&ifOp.getElseRegion().front());
       builder.create<fir::ResultOp>(loc, iostat);
-      builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+      builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
       stmtCtx.pushScope();
       csi.bigUnitIfOp = ifOp;
     }

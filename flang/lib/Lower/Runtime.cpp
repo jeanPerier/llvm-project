@@ -9,9 +9,9 @@
 #include "flang/Lower/Runtime.h"
 #include "flang/Lower/Bridge.h"
 #include "flang/Lower/StatementContext.h"
-#include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/Runtime/RTBuilder.h"
+#include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Parser/parse-tree.h"
 #include "flang/Runtime/misc-intrinsic.h"
@@ -25,14 +25,6 @@
 #define DEBUG_TYPE "flang-lower-runtime"
 
 using namespace Fortran::runtime;
-
-// TODO: We don't have runtime library support for various features. When they
-// are encountered, we emit an error message and exit immediately.
-static void noRuntimeSupport(mlir::Location loc, llvm::StringRef stmt) {
-  mlir::emitError(loc, "There is no runtime support for ")
-      << stmt << " statement.\n";
-  std::exit(1);
-}
 
 /// Runtime calls that do not return to the caller indicate this condition by
 /// terminating the current basic block with an unreachable op.
@@ -102,7 +94,7 @@ void Fortran::lower::genStopStatement(
   // Third operand indicates QUIET (default to false).
   if (const auto &quiet =
           std::get<std::optional<Fortran::parser::ScalarLogicalExpr>>(stmt.t)) {
-    auto expr = Fortran::semantics::GetExpr(*quiet);
+    const SomeExpr *expr = Fortran::semantics::GetExpr(*quiet);
     assert(expr && "failed getting typed expression");
     mlir::Value q = fir::getBase(converter.genExprValue(*expr, stmtCtx));
     operands.push_back(
@@ -129,57 +121,49 @@ void Fortran::lower::genFailImageStatement(
 void Fortran::lower::genEventPostStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::EventPostStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "EVENT POST");
+  TODO(converter.getCurrentLocation(), "EVENT POST runtime");
 }
 
 void Fortran::lower::genEventWaitStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::EventWaitStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "EVENT WAIT");
+  TODO(converter.getCurrentLocation(), "EVENT WAIT runtime");
 }
 
 void Fortran::lower::genLockStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::LockStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "LOCK");
+  TODO(converter.getCurrentLocation(), "LOCK runtime");
 }
 
 void Fortran::lower::genUnlockStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::UnlockStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "UNLOCK");
+  TODO(converter.getCurrentLocation(), "UNLOCK runtime");
 }
 
 void Fortran::lower::genSyncAllStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::SyncAllStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "SYNC ALL");
+  TODO(converter.getCurrentLocation(), "SYNC ALL runtime");
 }
 
 void Fortran::lower::genSyncImagesStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::SyncImagesStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "SYNC IMAGES");
+  TODO(converter.getCurrentLocation(), "SYNC IMAGES runtime");
 }
 
 void Fortran::lower::genSyncMemoryStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::SyncMemoryStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "SYNC MEMORY");
+  TODO(converter.getCurrentLocation(), "SYNC MEMORY runtime");
 }
 
 void Fortran::lower::genSyncTeamStatement(
     Fortran::lower::AbstractConverter &converter,
     const Fortran::parser::SyncTeamStmt &) {
-  // FIXME: There is no runtime call to make for this yet.
-  noRuntimeSupport(converter.getCurrentLocation(), "SYNC TEAM");
+  TODO(converter.getCurrentLocation(), "SYNC TEAM runtime");
 }
 
 void Fortran::lower::genPauseStatement(
@@ -364,7 +348,7 @@ void Fortran::lower::genSystemClock(fir::FirOpBuilder &builder,
           /*withElseRegion=*/false);
     }
     if (ifOp)
-      builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+      builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
     mlir::Type kindTy = func.getType().getInput(0);
     int integerKind = 8;
     if (auto intType = fir::unwrapRefType(type).dyn_cast<mlir::IntegerType>())
