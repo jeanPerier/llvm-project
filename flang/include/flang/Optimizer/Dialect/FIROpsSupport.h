@@ -17,17 +17,17 @@ namespace fir {
 
 /// Return true iff the Operation is a non-volatile LoadOp or ArrayLoadOp.
 inline bool nonVolatileLoad(mlir::Operation *op) {
-  if (auto load = dyn_cast<fir::LoadOp>(op))
+  if (auto load = mlir::dyn_cast<fir::LoadOp>(op))
     return !load->getAttr("volatile");
-  if (auto arrLoad = dyn_cast<fir::ArrayLoadOp>(op))
+  if (auto arrLoad = mlir::dyn_cast<fir::ArrayLoadOp>(op))
     return !arrLoad->getAttr("volatile");
   return false;
 }
 
 /// Return true iff the Operation is a call.
 inline bool isaCall(mlir::Operation *op) {
-  return isa<fir::CallOp>(op) || isa<fir::DispatchOp>(op) ||
-         isa<mlir::CallOp>(op) || isa<mlir::CallIndirectOp>(op);
+  return mlir::isa<fir::CallOp>(op) || mlir::isa<fir::DispatchOp>(op) ||
+         mlir::isa<mlir::CallOp>(op) || mlir::isa<mlir::CallIndirectOp>(op);
 }
 
 /// Return true iff the Operation is a fir::CallOp, fir::DispatchOp,
@@ -69,18 +69,18 @@ static constexpr llvm::StringRef getOptionalAttrName() {
 /// Attribute to mark Fortran entities with the TARGET attribute.
 static constexpr llvm::StringRef getTargetAttrName() { return "fir.target"; }
 
+/// Attribute to mark that a function argument is a character dummy procedure.
+/// Character dummy procedure have special ABI constraints.
+static constexpr llvm::StringRef getCharacterProcedureDummyAttrName() {
+  return "fir.char_proc";
+}
+
 /// Attribute to keep track of Fortran scoping information for a symbol.
 static constexpr llvm::StringRef getSymbolAttrName() { return "fir.bindc_name"; }
 
 /// Attribute to mark a function that takes a host associations argument.
 static constexpr llvm::StringRef getHostAssocAttrName() {
   return "fir.host_assoc";
-}
-
-/// Attribute to mark that a function argument is a character dummy procedure.
-/// Character dummy procedure have special ABI constraints.
-static constexpr llvm::StringRef getCharacterProcedureDummyAttrName() {
-  return "fir.char_proc";
 }
 
 /// Does the function, \p func, have a host-associations tuple argument?

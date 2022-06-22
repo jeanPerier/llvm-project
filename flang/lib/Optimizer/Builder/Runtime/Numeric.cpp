@@ -289,7 +289,7 @@ mlir::Value fir::runtime::genNearest(fir::FirOpBuilder &builder,
   else if (fltTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedNearest16>(loc, builder);
   else
-    fir::emitFatalError(loc, "unsupported REAL KIND in NEAREST");
+    fir::emitFatalError(loc, "unsupported REAL kind in NEAREST");
 
   auto funcTy = func.getType();
 
@@ -325,7 +325,7 @@ mlir::Value fir::runtime::genRRSpacing(fir::FirOpBuilder &builder,
   else if (fltTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedRRSpacing16>(loc, builder);
   else
-    fir::emitFatalError(loc, "unsupported REAL KIND in RRSPACING");
+    fir::emitFatalError(loc, "unsupported REAL kind in RRSPACING");
 
   auto funcTy = func.getType();
   llvm::SmallVector<mlir::Value> args = {
@@ -352,7 +352,7 @@ mlir::Value fir::runtime::genScale(fir::FirOpBuilder &builder,
   else if (fltTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedScale16>(loc, builder);
   else
-    fir::emitFatalError(loc, "unsupported REAL KIND in SCALE");
+    fir::emitFatalError(loc, "unsupported REAL kind in SCALE");
 
   auto funcTy = func.getType();
   auto args = fir::runtime::createArguments(builder, loc, funcTy, x, i);
@@ -378,7 +378,7 @@ mlir::Value fir::runtime::genSetExponent(fir::FirOpBuilder &builder,
   else if (fltTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedSetExponent16>(loc, builder);
   else
-    fir::emitFatalError(loc, "unsupported REAL KIND in FRACTION");
+    fir::emitFatalError(loc, "unsupported REAL kind in FRACTION");
 
   auto funcTy = func.getType();
   auto args = fir::runtime::createArguments(builder, loc, funcTy, x, i);
@@ -403,7 +403,7 @@ mlir::Value fir::runtime::genSpacing(fir::FirOpBuilder &builder,
   else if (fltTy.isF128())
     func = fir::runtime::getRuntimeFunc<ForcedSpacing16>(loc, builder);
   else
-    fir::emitFatalError(loc, "unsupported REAL KIND in SPACING");
+    fir::emitFatalError(loc, "unsupported REAL kind in SPACING");
 
   auto funcTy = func.getType();
   llvm::SmallVector<mlir::Value> args = {

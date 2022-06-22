@@ -116,7 +116,7 @@ void genCharacterCopy(mlir::Value src, mlir::Value srcLen, mlir::Value dst,
   auto cond = builder.template create<mlir::arith::CmpIOp>(
       loc, mlir::arith::CmpIPredicate::slt, loop.getInductionVar(), slen);
   auto ifOp = builder.template create<fir::IfOp>(loc, cond, /*withElse=*/true);
-  builder.setInsertionPointToStart(&ifOp.thenRegion().front());
+  builder.setInsertionPointToStart(&ifOp.getThenRegion().front());
   auto csrcTy = toArrayTy(srcTy);
   auto csrc = builder.template create<fir::ConvertOp>(loc, csrcTy, src);
   auto in = builder.template create<fir::CoordinateOp>(
@@ -132,7 +132,7 @@ void genCharacterCopy(mlir::Value src, mlir::Value srcLen, mlir::Value dst,
           : builder.template create<fir::ConvertOp>(loc, toEleTy(cdstTy), load)
                 .getResult();
   builder.template create<fir::StoreOp>(loc, cast, out);
-  builder.setInsertionPointToStart(&ifOp.elseRegion().front());
+  builder.setInsertionPointToStart(&ifOp.getElseRegion().front());
   auto space = builder.template create<fir::StringLitOp>(
       loc, toEleTy(cdstTy), llvm::ArrayRef<char>{' '});
   auto cdst2 = builder.template create<fir::ConvertOp>(loc, cdstTy, dst);
