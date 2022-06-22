@@ -26,14 +26,6 @@
 
 using namespace Fortran::runtime;
 
-// TODO: We don't have runtime library support for various features. When they
-// are encountered, we emit an error message and exit immediately.
-static void noRuntimeSupport(mlir::Location loc, llvm::StringRef stmt) {
-  mlir::emitError(loc, "There is no runtime support for ")
-      << stmt << " statement.\n";
-  std::exit(1);
-}
-
 /// Runtime calls that do not return to the caller indicate this condition by
 /// terminating the current basic block with an unreachable op.
 static void genUnreachable(fir::FirOpBuilder &builder, mlir::Location loc) {
