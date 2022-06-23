@@ -882,7 +882,7 @@ private:
     if (exprType.isSignlessInteger()) {
       // Arithmetic expression has Integer type.  Generate a SelectCaseOp
       // with ranges {(-inf:-1], 0=default, [1:inf)}.
-      MLIRContext *context = builder->getContext();
+      mlir::MLIRContext *context = builder->getContext();
       llvm::SmallVector<mlir::Attribute> attrList;
       llvm::SmallVector<mlir::Value> valueList;
       llvm::SmallVector<mlir::Block *> blockList;
@@ -1110,6 +1110,7 @@ private:
       if (expr)
         return builder->createConvert(loc, controlType,
                                       createFIRExpr(loc, expr, stmtCtx));
+
       if (info.hasRealControl)
         return builder->createRealConstant(loc, controlType, 1u);
       return builder->createIntegerConstant(loc, controlType, 1); // step
@@ -1123,7 +1124,6 @@ private:
         const Fortran::semantics::Symbol &hostSym = hostDetails->symbol();
         (void)hostSym;
         TODO(loc, "do concurrent locality specs not implemented");
-        // assign sym = hostSym
       }
       // Handle shared locality spec
       for (const Fortran::semantics::Symbol *sym : info.sharedSymList) {
@@ -1159,7 +1159,7 @@ private:
               builder->createConvert(loc, builder->getI1Type(), maskCond);
           auto ifOp = builder->create<fir::IfOp>(loc, maskCondCast,
                                                  /*withElseRegion=*/false);
-          builder->setInsertionPointToStart(&ifOp.thenRegion().front());
+          builder->setInsertionPointToStart(&ifOp.getThenRegion().front());
         }
         handleLocalitySpec(info);
         continue;
@@ -1239,7 +1239,7 @@ private:
         if (!info.isUnordered) {
           builder->setInsertionPointToEnd(info.doLoop.getBody());
           mlir::Value result = builder->create<mlir::arith::AddIOp>(
-              loc, info.doLoop.getInductionVar(), info.doLoop.step());
+              loc, info.doLoop.getInductionVar(), info.doLoop.getStep());
           builder->create<fir::ResultOp>(loc, result);
         }
         builder->setInsertionPointAfter(info.doLoop);
@@ -1285,7 +1285,7 @@ private:
       for (Fortran::lower::pft::Evaluation &e : eval.getNestedEvaluations()) {
         auto genIfOp = [&](mlir::Value cond) {
           auto ifOp = builder->create<fir::IfOp>(loc, cond, /*withElse=*/true);
-          builder->setInsertionPointToStart(&ifOp.thenRegion().front());
+          builder->setInsertionPointToStart(&ifOp.getThenRegion().front());
           return ifOp;
         };
         if (auto *s = e.getIf<Fortran::parser::IfThenStmt>()) {
@@ -1293,10 +1293,12 @@ private:
         } else if (auto *s = e.getIf<Fortran::parser::IfStmt>()) {
           topIfOp = currentIfOp = genIfOp(genIfCondition(s, e.negateCondition));
         } else if (auto *s = e.getIf<Fortran::parser::ElseIfStmt>()) {
-          builder->setInsertionPointToStart(&currentIfOp.elseRegion().front());
+          builder->setInsertionPointToStart(
+              &currentIfOp.getElseRegion().front());
           currentIfOp = genIfOp(genIfCondition(s));
         } else if (e.isA<Fortran::parser::ElseStmt>()) {
-          builder->setInsertionPointToStart(&currentIfOp.elseRegion().front());
+          builder->setInsertionPointToStart(
+              &currentIfOp.getElseRegion().front());
         } else if (e.isA<Fortran::parser::EndIfStmt>()) {
           builder->setInsertionPointAfter(topIfOp);
         } else {
@@ -1462,9 +1464,9 @@ private:
             loc, explicitIterSpace.innerArgTypes(), cond,
             /*withElseRegion=*/true);
         builder->create<fir::ResultOp>(loc, ifOp.getResults());
-        builder->setInsertionPointToStart(&ifOp.elseRegion().front());
+        builder->setInsertionPointToStart(&ifOp.getElseRegion().front());
         builder->create<fir::ResultOp>(loc, explicitIterSpace.getInnerArgs());
-        builder->setInsertionPointToStart(&ifOp.thenRegion().front());
+        builder->setInsertionPointToStart(&ifOp.getThenRegion().front());
       }
     };
     // Push the lambda to gen the loop nest context.
@@ -1561,7 +1563,7 @@ private:
     localSymbols.pushScope();
     genOpenMPConstruct(*this, getEval(), omp);
 
-    const auto *ompLoop =
+    const Fortran::parser::OpenMPLoopConstruct *ompLoop =
         std::get_if<Fortran::parser::OpenMPLoopConstruct>(&omp.u);
 
     // If loop is part of an OpenMP Construct then the OpenMP dialect
@@ -1578,7 +1580,7 @@ private:
           Fortran::lower::getCollapseValue(wsLoopOpClauseList);
 
       curEval = &curEval->getFirstNestedEvaluation();
-      for (int i = 1; i < collapseValue; i++) {
+      for (int64_t i = 1; i < collapseValue; i++) {
         curEval = &*std::next(curEval->getNestedEvaluations().begin());
       }
     }
@@ -1628,7 +1630,7 @@ private:
   /// The type may be CHARACTER, INTEGER, or LOGICAL.
   void genFIR(const Fortran::parser::SelectCaseStmt &stmt) {
     Fortran::lower::pft::Evaluation &eval = getEval();
-    MLIRContext *context = builder->getContext();
+    mlir::MLIRContext *context = builder->getContext();
     mlir::Location loc = toLocation();
     Fortran::lower::StatementContext stmtCtx;
     const Fortran::lower::SomeExpr *expr = Fortran::semantics::GetExpr(
@@ -1831,56 +1833,56 @@ private:
 
   void genFIR(const Fortran::parser::BlockConstruct &blockConstruct) {
     setCurrentPositionAt(blockConstruct);
-    TODO(toLocation(), "BlockConstruct implementation");
+    TODO(toLocation(), "BlockConstruct lowering");
   }
   void genFIR(const Fortran::parser::BlockStmt &) {
-    TODO(toLocation(), "BlockStmt implementation");
+    TODO(toLocation(), "BlockStmt lowering");
   }
   void genFIR(const Fortran::parser::EndBlockStmt &) {
-    TODO(toLocation(), "EndBlockStmt implementation");
+    TODO(toLocation(), "EndBlockStmt lowering");
   }
 
   void genFIR(const Fortran::parser::ChangeTeamConstruct &construct) {
-    genChangeTeamConstruct(*this, getEval(), construct);
+    TODO(toLocation(), "ChangeTeamConstruct lowering");
   }
   void genFIR(const Fortran::parser::ChangeTeamStmt &stmt) {
-    genChangeTeamStmt(*this, getEval(), stmt);
+    TODO(toLocation(), "ChangeTeamStmt lowering");
   }
   void genFIR(const Fortran::parser::EndChangeTeamStmt &stmt) {
-    genEndChangeTeamStmt(*this, getEval(), stmt);
+    TODO(toLocation(), "EndChangeTeamStmt lowering");
   }
 
   void genFIR(const Fortran::parser::CriticalConstruct &criticalConstruct) {
     setCurrentPositionAt(criticalConstruct);
-    TODO(toLocation(), "CriticalConstruct implementation");
+    TODO(toLocation(), "CriticalConstruct lowering");
   }
   void genFIR(const Fortran::parser::CriticalStmt &) {
-    TODO(toLocation(), "CriticalStmt implementation");
+    TODO(toLocation(), "CriticalStmt lowering");
   }
   void genFIR(const Fortran::parser::EndCriticalStmt &) {
-    TODO(toLocation(), "EndCriticalStmt implementation");
+    TODO(toLocation(), "EndCriticalStmt lowering");
   }
 
   void genFIR(const Fortran::parser::SelectRankConstruct &selectRankConstruct) {
     setCurrentPositionAt(selectRankConstruct);
-    TODO(toLocation(), "SelectRankConstruct implementation");
+    TODO(toLocation(), "SelectRankConstruct lowering");
   }
   void genFIR(const Fortran::parser::SelectRankStmt &) {
-    TODO(toLocation(), "SelectRankStmt implementation");
+    TODO(toLocation(), "SelectRankStmt lowering");
   }
   void genFIR(const Fortran::parser::SelectRankCaseStmt &) {
-    TODO(toLocation(), "SelectRankCaseStmt implementation");
+    TODO(toLocation(), "SelectRankCaseStmt lowering");
   }
 
   void genFIR(const Fortran::parser::SelectTypeConstruct &selectTypeConstruct) {
     setCurrentPositionAt(selectTypeConstruct);
-    TODO(toLocation(), "SelectTypeConstruct implementation");
+    TODO(toLocation(), "SelectTypeConstruct lowering");
   }
   void genFIR(const Fortran::parser::SelectTypeStmt &) {
-    TODO(toLocation(), "SelectTypeStmt implementation");
+    TODO(toLocation(), "SelectTypeStmt lowering");
   }
   void genFIR(const Fortran::parser::TypeGuardStmt &) {
-    TODO(toLocation(), "TypeGuardStmt implementation");
+    TODO(toLocation(), "TypeGuardStmt lowering");
   }
 
   //===--------------------------------------------------------------------===//
@@ -2793,7 +2795,7 @@ private:
       const std::function<void()> &createGlobals) {
     // FIXME: get rid of the bogus function context and instantiate the
     // globals directly into the module.
-    MLIRContext *context = &getMLIRContext();
+    mlir::MLIRContext *context = &getMLIRContext();
     mlir::FuncOp func = fir::FirOpBuilder::createFunction(
         mlir::UnknownLoc::get(context), getModuleOp(),
         fir::NameUniquer::doGenerated("Sham"),
@@ -3184,7 +3186,7 @@ Fortran::lower::LoweringBridge::LoweringBridge(
     default:
       break;
     }
-    if (!diag.getLocation().isa<UnknownLoc>())
+    if (!diag.getLocation().isa<mlir::UnknownLoc>())
       os << diag.getLocation() << ": ";
     os << diag << '\n';
     os.flush();
