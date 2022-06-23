@@ -1210,6 +1210,24 @@ static mlir::Value genExtentValue(fir::FirOpBuilder &builder,
   return builder.create<fir::UndefOp>(loc, idxTy);
 }
 
+/// If a symbol is an array, it may have been declared with unknown extent
+/// parameters (e.g., `*`), but if it has an initial value then the actual size
+/// may be available from the initial array value's type.
+inline static llvm::SmallVector<std::int64_t>
+recoverShapeVector(llvm::ArrayRef<std::int64_t> shapeVec, mlir::Value initVal) {
+  llvm::SmallVector<std::int64_t> result;
+  if (initVal) {
+    if (auto seqTy = fir::unwrapUntilSeqType(initVal.getType())) {
+      for (auto [fst, snd] : llvm::zip(shapeVec, seqTy.getShape()))
+        result.push_back(fst == fir::SequenceType::getUnknownExtent() ? snd
+                                                                      : fst);
+      return result;
+    }
+  }
+  result.assign(shapeVec.begin(), shapeVec.end());
+  return result;
+}
+
 /// Lower specification expressions and attributes of variable \p var and
 /// add it to the symbol map.  For a global or an alias, the address must be
 /// pre-computed and provided in \p preAlloc.  A dummy argument for the current
@@ -1529,7 +1547,7 @@ void Fortran::lower::mapSymbolAttributes(
         if (x.lboundAllOnes()) {
           // if lower bounds are all ones, build simple shaped object
           llvm::SmallVector<mlir::Value> shape;
-          for (int64_t i : x.shapes)
+          for (int64_t i : recoverShapeVector(x.shapes, preAlloc))
             shape.push_back(genExtentValue(builder, loc, idxTy, i));
           mlir::Value local =
               isDummy ? addr : createNewLocal(converter, loc, var, preAlloc);
@@ -1540,7 +1558,8 @@ void Fortran::lower::mapSymbolAttributes(
         // constructing constants and populating the lbounds and extents.
         llvm::SmallVector<mlir::Value> extents;
         llvm::SmallVector<mlir::Value> lbounds;
-        for (auto [fst, snd] : llvm::zip(x.lbounds, x.shapes)) {
+        for (auto [fst, snd] :
+             llvm::zip(x.lbounds, recoverShapeVector(x.shapes, preAlloc))) {
           lbounds.emplace_back(builder.createIntegerConstant(loc, idxTy, fst));
           extents.emplace_back(genExtentValue(builder, loc, idxTy, snd));
         }
@@ -1629,7 +1648,7 @@ void Fortran::lower::mapSymbolAttributes(
         if (x.lboundAllOnes()) {
           // if lower bounds are all ones, build simple shaped object
           llvm::SmallVector<mlir::Value> shape;
-          for (int64_t i : x.shapes)
+          for (int64_t i : recoverShapeVector(x.shapes, preAlloc))
             shape.push_back(genExtentValue(builder, loc, idxTy, i));
           mlir::Value local =
               isDummy ? addr : createNewLocal(converter, loc, var, preAlloc);
@@ -1641,7 +1660,8 @@ void Fortran::lower::mapSymbolAttributes(
         llvm::SmallVector<mlir::Value> extents;
         llvm::SmallVector<mlir::Value> lbounds;
         // construct constants and populate `bounds`
-        for (auto [fst, snd] : llvm::zip(x.lbounds, x.shapes)) {
+        for (auto [fst, snd] :
+             llvm::zip(x.lbounds, recoverShapeVector(x.shapes, preAlloc))) {
           lbounds.emplace_back(builder.createIntegerConstant(loc, idxTy, fst));
           extents.emplace_back(genExtentValue(builder, loc, idxTy, snd));
         }
@@ -1695,7 +1715,7 @@ void Fortran::lower::mapSymbolAttributes(
         if (x.lboundAllOnes()) {
           // if lower bounds are all ones, build simple shaped object
           llvm::SmallVector<mlir::Value> shape;
-          for (int64_t i : x.shapes)
+          for (int64_t i : recoverShapeVector(x.shapes, preAlloc))
             shape.push_back(genExtentValue(builder, loc, idxTy, i));
           if (isDummy) {
             symMap.addCharSymbolWithShape(sym, addr, len, shape, true);
@@ -1713,7 +1733,8 @@ void Fortran::lower::mapSymbolAttributes(
         llvm::SmallVector<mlir::Value> lbounds;
 
         // construct constants and populate `bounds`
-        for (auto [fst, snd] : llvm::zip(x.lbounds, x.shapes)) {
+        for (auto [fst, snd] :
+             llvm::zip(x.lbounds, recoverShapeVector(x.shapes, preAlloc))) {
           lbounds.emplace_back(builder.createIntegerConstant(loc, idxTy, fst));
           extents.emplace_back(genExtentValue(builder, loc, idxTy, snd));
         }
