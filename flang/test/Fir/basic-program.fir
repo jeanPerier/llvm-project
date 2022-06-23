@@ -12,11 +12,13 @@ func.func @_QQmain() {
 
 // PASSES: Pass statistics report
 
+// PASSES: CSE
 // PASSES-LABEL: 'func.func' Pipeline
 // PASSES: ArrayValueCopy
 // PASSES: CharacterConversion
 // PASSES: Canonicalizer
 // PASSES: SimplifyRegionLite
+// PASSES: CSE
 
 // PASSES-LABEL: 'func.func' Pipeline
 // PASSES: MemoryAllocationOpt
@@ -28,6 +30,7 @@ func.func @_QQmain() {
 // PASSES: SCFToControlFlow
 // PASSES: Canonicalizer
 // PASSES: SimplifyRegionLite
+// PASSES: CSE
 // PASSES: BoxedProcedurePass
 
 // PASSES-LABEL: 'func.func' Pipeline
