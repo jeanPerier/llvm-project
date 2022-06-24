@@ -43,6 +43,7 @@ bool IsDescriptor(const Symbol &);
 namespace Fortran::evaluate {
 
 using common::TypeCategory;
+class TargetCharacteristics;
 
 // Specific intrinsic types are represented by specializations of
 // this class template Type<CATEGORY, KIND>.
@@ -58,7 +59,6 @@ using Ascii = Type<TypeCategory::Character, 1>;
 // A predicate that is true when a kind value is a kind that could possibly
 // be supported for an intrinsic type category on some target instruction
 // set architecture.
-// TODO: specialize for the actual target architecture
 static constexpr bool IsValidKindOfIntrinsicType(
     TypeCategory category, std::int64_t kind) {
   switch (category) {
@@ -153,7 +153,7 @@ public:
   }
   std::optional<Expr<SubscriptInteger>> GetCharLength() const;
 
-  std::size_t GetAlignment(const FoldingContext &) const;
+  std::size_t GetAlignment(const TargetCharacteristics &) const;
   std::optional<Expr<SubscriptInteger>> MeasureSizeInBytes(
       FoldingContext &, bool aligned) const;
 
