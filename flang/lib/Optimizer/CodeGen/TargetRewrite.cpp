@@ -499,7 +499,7 @@ public:
     llvm::SmallVector<mlir::Type> trailingTys;
     for (auto e : llvm::enumerate(funcTy.getInputs())) {
       auto ty = e.value();
-      unsigned index = e.index();
+      unsigned previousArgIndex = e.index();
       llvm::TypeSwitch<mlir::Type>(ty)
           .Case<fir::BoxCharType>([&](fir::BoxCharType boxTy) {
             if (noCharacterConversion) {
@@ -508,11 +508,10 @@ public:
               // Convert a CHARACTER argument type. This can involve separating
               // the pointer and the LEN into two arguments and moving the LEN
               // argument to the end of the arg list.
-              bool sret = functionArgIsSRet(index, func);
+              bool sret = functionArgIsSRet(previousArgIndex, func);
               for (auto e : llvm::enumerate(specifics->boxcharArgumentType(
                        boxTy.getEleTy(), sret))) {
                 auto &tup = e.value();
-                auto index = e.index();
                 auto attr = std::get<fir::CodeGenSpecifics::Attributes>(tup);
                 auto argTy = std::get<mlir::Type>(tup);
                 if (attr.isAppend()) {
@@ -520,7 +519,7 @@ public:
                 } else {
                   if (sret) {
                     fixups.emplace_back(FixupTy::Codes::CharPair,
-                                        newInTys.size(), index);
+                                        newInTys.size(), previousArgIndex);
                   } else {
                     fixups.emplace_back(FixupTy::Codes::Trailing,
                                         newInTys.size(), trailingTys.size());
@@ -553,9 +552,10 @@ public:
             }
           })
           .Default([&](mlir::Type ty) { newInTys.push_back(ty); });
-      if (func.getArgAttrOfType<mlir::UnitAttr>(index,
+      if (func.getArgAttrOfType<mlir::UnitAttr>(previousArgIndex,
                                                 fir::getHostAssocAttrName())) {
-        func.setArgAttr(index, "llvm.nest", rewriter->getUnitAttr());
+        assert(newInTys.size()>0 && "at least one arg should have been pushed for the host association tuple");
+        func.setArgAttr(newInTys.size() - 1, "llvm.nest", rewriter->getUnitAttr());
       }
     }
 
