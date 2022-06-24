@@ -5499,17 +5499,8 @@ private:
     if (destShape.empty())
       TODO(getLoc(), "expected vector to have an extent");
     assert(destShape.size() == 1 && "vector has rank > 1");
-    if (destShape[0] != savedDestShape[dim]) {
-      // Not the same, so choose the smaller value.
-      mlir::Location loc = getLoc();
-      auto cmp = builder.create<mlir::arith::CmpIOp>(
-          loc, mlir::arith::CmpIPredicate::sgt, destShape[0],
-          savedDestShape[dim]);
-      auto sel = builder.create<mlir::SelectOp>(loc, cmp, savedDestShape[dim],
-                                                destShape[0]);
-      savedDestShape[dim] = sel;
-      destShape = savedDestShape;
-    }
+    savedDestShape[dim] = destShape[0];
+    destShape = savedDestShape;
     return result;
   }
 
