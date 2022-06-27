@@ -411,11 +411,3 @@ contains
     r = x(1)
   end
 end
-
-program p
-! call ss1
-! call ss2(2650000)
-! call ss3(2650000)
-! call ss4(2650000)
-! call tt1
-end
