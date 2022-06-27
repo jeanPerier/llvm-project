@@ -477,6 +477,7 @@ public:
     llvm::SmallVector<mlir::Type> newResTys;
     llvm::SmallVector<mlir::Type> newInTys;
     llvm::SmallVector<FixupTy> fixups;
+    std::optional<std::size_t> setNestAttributeOnArg;
 
     // Convert return value(s)
     for (auto ty : funcTy.getResults())
@@ -512,6 +513,7 @@ public:
               for (auto e : llvm::enumerate(specifics->boxcharArgumentType(
                        boxTy.getEleTy(), sret))) {
                 auto &tup = e.value();
+                auto index = e.index();
                 auto attr = std::get<fir::CodeGenSpecifics::Attributes>(tup);
                 auto argTy = std::get<mlir::Type>(tup);
                 if (attr.isAppend()) {
@@ -519,7 +521,7 @@ public:
                 } else {
                   if (sret) {
                     fixups.emplace_back(FixupTy::Codes::CharPair,
-                                        newInTys.size(), previousArgIndex);
+                                        newInTys.size(), index);
                   } else {
                     fixups.emplace_back(FixupTy::Codes::Trailing,
                                         newInTys.size(), trailingTys.size());
@@ -555,7 +557,7 @@ public:
       if (func.getArgAttrOfType<mlir::UnitAttr>(previousArgIndex,
                                                 fir::getHostAssocAttrName())) {
         assert(newInTys.size()>0 && "at least one arg should have been pushed for the host association tuple");
-        func.setArgAttr(newInTys.size() - 1, "llvm.nest", rewriter->getUnitAttr());
+        setNestAttributeOnArg = newInTys.size() - 1;
       }
     }
 
@@ -715,6 +717,8 @@ public:
         mlir::FunctionType::get(func.getContext(), newInTys, newResTys);
     LLVM_DEBUG(llvm::dbgs() << "new func: " << newFuncTy << '\n');
     func.setType(newFuncTy);
+    if (setNestAttributeOnArg)
+        func.setArgAttr(*setNestAttributeOnArg, "llvm.nest", rewriter->getUnitAttr());
 
     for (auto &fixup : fixups)
       if (fixup.finalizer)
