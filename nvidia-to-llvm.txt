@@ -41,11 +41,20 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
+37ee3f3253a38 #825 D: 
 
 In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+e7d263571b4592704b333f28a991f268574f7584 #g0  D128396: [runtime] Improve G0 output editing
+589b3f4e6c4e3651095f5d1e3c618f9d9c6ca5ea #861 D128395: Make SQRT folding exact
+68284940ac3362a74986b6d9de6a07dc19c6811c #914 D128394: Fix wording of warning message
+8775124fa8eb28f16a09619460b06220e5a01a3f #832 D128392: [runtime] FLUSH(bad or unconnected unit number) is an error
+57fd71933e0b217634df23d0c78355d55308b49e #910 D128391: Fix bogus errors from SIZE/SHAPE/UBOUND on assumed-shape
+3fb29eba49cf98c5026c3fa3854a42b9591daa88 #774 D128390: [runtime] Handle READ of non-UTF-8 data into multi-byte CHARACTER
+10e976bf5f3d2dbc386d542c98bc378a43099d76 #772 D128389: [runtime] Respect PAD='NO' on READ/WRITE
+16bc20e0c230f42f5751123a44085cde48866a72 #682 D128388: [runtime] Fix READ/WRITE with POS= on stream units, with refactoring
 9db90e469558e42bd78b3fcee639b20f2dadc87b #901 D127793: [runtime] Make ASSOCIATED() conform with standard
 ebcdb5de61da3155407ab776f0281652d450e80b #744 D127785: NINT(-.4999) is 0, not overflow
 3f962d222b9fb65df6f2ae4381163e280134df8d #741 D127784: Handle module subprogram with interface in same (sub)module when writing module file

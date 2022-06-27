@@ -40,9 +40,26 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit ff5301dde9815beee7c4410b3a01d137df636364
+with llvm-project commit 5fa4629581f6938cc175be5d4a3fccdfbf9fc227
 
 Log of cherry-picked commits in reverse order (latest first):
+3fa62efdbb6c2b639cc47823c4a5f39fc1240792 PeixinQiao: Add semantic check for C1520 -- WITH FIXUP
+703b1054e93b7fb1ce88a797f3f63feab6b5a4f7 Kiran C.: enable fir.is_present and fir.absent with function types
+27afb362b1e85dac21744b95ed9b48f7e9fd016c PeixinQiao: [OpenMP] Initial support the lowering of copyin clause
+aeb2cd3176b03c3f186ca5d3ae6bd08d2ba77227 Valentin C.: Keep PURE in IEEE functions
+753b766deaa2d9baab2e7dad7ce02ae2e08a0a24 Valentin C.: Fix forall issue with substring operation
+1ef5e6de7605434cb6316847a46eb01c23c70715 Peter K.: Edit to: Make SQRT folding exact
+734ad031f16653f1b650d2ea8b7d83e8910925b3 Valentin C.: Handle boxed characters that are values when doing a conversion
+124338dd8016dc7589685d9fc731b178f2b5d379 Val D.: Increase support for intrinsic module procedures
+ab89c132b547951945788fc2a0969cf64b0df4cd Valentin C.: Add lowering TODO for separate module procedures
+ea3874437274e5d37e51819dd0109a66b087c251 Valentin C.: Lowering passing variables to OPTIONAL VALUE
+c995038c27891fd776375bd7f20e16181d86d573 Kiran C.: Call the CSE pass in the pass pipeline
+b690597936c96f9dcebaeca9cf76223023a52d01 Valentin C.: Fixes several bugs relating to initialization expressions. An (#1493)
+24e8cf45a3c7175659afb1c2654672856aea9800 Valentin C.: Capture result interface of functions called in internal procedures
+1c7889ca4d82137b22eab3e7f5d704716ba75a59 Valentin C.: Remove some auto
+10b23ae880f9ee0188d7ee97b7fc25243aa0c854 Valentin C.: Handle BINC(C) variables and add TODO for corner cases
+430841605d49f515b6a671ec772135cf67ca9506 PeixinQiao: [Driver] Refine _when_ driver diagnostics are formatted
+f31ec689b22ae874398fc44c8950e5671cedfa20 PeixinQiao: [NFC] Add the test case for D125371
 1906188f0708eb1a517b5c093cbac43679293dda Valentin C.: Add FIR tests missing from fir-dev
 b09426ff266fefb2aee34a3d811562d802264937 Valentin C.: Cleanup code and add test from fir-dev
 c67a87444f5585aafa659c52544ac912f283e7e3 Valentin C.: Add more diagnostics to fir.coordinate_of
@@ -71,7 +88,7 @@ c05b99971fa042ae75c1848e6597c068392d693b Nimish M.:[OpenMP][NFC] Refactor code r
 3260d423987aa946528b713841c853032849a380 Valentin C.: Avoid losing type parameter information
 ac64c7b987f15bcce09b616c1ee0deaf2b7b587e Jean P.: Support PDT declaration with initial comp value in internal procedure
 9de831aa2cbc6ab94265ff8136fb36d9b6c1cfae Jean P.: lowering TODO for bindings returning derived types or arrays
-dafd3cf8b1cc9dae0ae1fabc2fd1ad4379119d11 PeixinQiao:  Complement one-to-one association check of bind name and entity name
+dafd3cf8b1cc9dae0ae1fabc2fd1ad4379119d11 PeixinQiao: Complement one-to-one association check of bind name and entity name
 c6d8aa27c5fe6aca56c3f95ee61c35265d4fe6b9 PeixinQiao: Add semantic check for multiple part-ref with nonzero rank for TBP
 f5b970c9ef87891b6c710110f4d645ae2892c23d Eric S.: Fix type mismatch in verification error
 0c1cf585c06dfbca5596eb11664f8445d22d128b Eric S.: [NFC] Add source location information to report unsupported complex types
@@ -88,7 +105,7 @@ a405db9c375fbdc341b7c968bf2355eb9b4c8471 Valentin C.: [NFC] Fix typo
 84b9ae662419ce97b3cb13879be431f6a0c9eaa4 Mats P.: Add support for do concurrent
 b826d551fcd2eb0c4f13fd57471bd3142d26d3ba PeixinQiao: Move flang OpenMP semantic tests under one single directory
 494cd9b6fc7ff3e9d9bfad08cfd329763b799749 Andrzej W.: [lowering] Ignore compiler directives
-46f08a4ee0e9169fdc153e2e4f9a5bb695372b27 Diana P.:  Fix RUN line in test from 3e782ba
+46f08a4ee0e9169fdc153e2e4f9a5bb695372b27 Diana P.: Fix RUN line in test from 3e782ba
 99fe38a13a2d111fbb0b7848415d4ba3cab11437 Markus M.: [runtime] Remove dependency on C++ <mutex> on Windows
 cc3c6b61095a47687858b21e93d1a2fc3a6e192b Andrzej W.: [driver] Make `flang-new -fc1` accept MLIR files
 3e782ba21be4b88c761d3b0854df130d7ca08a56 Andrzej W.: [driver] Fix support for `-x`
@@ -171,7 +188,7 @@ ea18987094eff5a5835135da1f472d2e7bf6c68e Andrzej W.: Fix driver method names ove
 1e462fafdf8be70137c8eaf856f4eb886f8b4d4c Andrzej W.: Switch to the MLIR coding style in the driver (nfc)
 27478872fd153b3edd123d586dd86210b3f59f2c Chris L.: Fix warning in flang build, incorporate feedback from River.
 a2ac0bb2f141520150c823eb28896f45feb59832 PeixinQiao: Warn for the limit on name length
-6822ed035f188aa55f9ac283d2eb20dcc7a9ca07 Eric S.:  Fixes a performance problem with lowering of forall loops and creating...
+6822ed035f188aa55f9ac283d2eb20dcc7a9ca07 Eric S.: Fixes a performance problem with lowering of forall loops and creating...
 d4609ae47d16a8f5ccd761fa1b61cf52505b1a08 Pete S.: Change "bad kind" messages in the runtime to "not yet implemented"
 940871dd289c9f92ee32d899d58538c57c76c16d Peter K.: edits to: [flang] Enforce limit on rank + corank
 71728360ada3e0f6c21d4c09d33424f6150afcc9 Peter K.: edits to: [flang] Fold real-valued MODULO() and MOD()
@@ -221,7 +238,7 @@ b6b8d34554a4d85ec064463b54a27e073c42beeb PeixinQiao: [flang] Add lowering stubs 
 d8b4ea486a5c152ba1ceb656a3d6638defe40fe1 Mike K.: [flang] Fix UBOUND() folding for constant arrays
 acd75440c67acc31d9a5b0afdd64b5700be8960e Kiran C.: [Flang] Lower the FailImage Statement
 d902dd011c9403ff746613a73c5d83e13db93fe5 Andrzej W.: [flang][driver] NFC: Make code more in line with LLVM style
-8dc8e59eba4930980fa42232dbcafa969f79477a Eric S.:  Upstream test for wide character literals.
+8dc8e59eba4930980fa42232dbcafa969f79477a Eric S.: Upstream test for wide character literals.
 44e58509be72b49c3abc7b4c5a7ffa81a754fe1c Eric S.: [NFC] More synching of sources for upstreaming.
 e1836123a7ecb57dcb9a4630c6960478df829fc5 Peter K.: [flang] Get ppc64le build bot back up
 1f31795cb38949bec45786dc7e125ddac6d54564 Eric S.: [NFC] Cleanup code to get back in synch for upstreaming.
@@ -235,7 +252,7 @@ f1dbf8e4ada7761ba296400acbf0190e6e203dc6 Peter K.: Edits to: [flang][runtime] Fi
 2186a4aea0e3e50e51b121d304889349c4e033ef Andrzej W.: [flang] Make the plugin API independent of the driver internals
 6c81b4a01e4956d70dac1a5733c063014e4fbe38 Jean P.: [flang] Fold transformational bessels when host runtime has bessels
 488b9fd1030b1e75a6c3580d0a632009315e31f5 Daniil D.: [flang] Do not ICE on recursive function definition in function result
-00c511b35195616430112e5d537588dfdae42cba Nimish M.:  Added lowering support for atomic read and write constructs
+00c511b35195616430112e5d537588dfdae42cba Nimish M.: Added lowering support for atomic read and write constructs
 88bb2521b0063f4b1569fd483cb0bf223f839d33 Shraiysh V.: [mlir][OpenMP] Add checks and tests for hint clause and fix empty hint
 39ee23ed5ab3f411b6945a3acbbdf22cd8a0a6cb Mike K.: [flang] Set LBOUND() folding for (x) expression as ones
 bd5371e4fc607aae1a77f29273fd130b59e72409 Mike K.: [flang] Fix LBOUND() folding for constant arrays
@@ -272,7 +289,7 @@ fa4b1e1e95d0dda8476aead84b9f4bb4bb416e49 Shraiysh V.: [flang][OpenMP] Added allo
 4535bb9b80ce61aab89603b7fde6fe56e8f87121 Jean P.: [flang] Handle dynamically optional argument in EXIT
 f1cfa461f28ed5bf77ca2e8f26cbf66fa09481a0 Jean P.: [flang][NFC] rename isAbsent to isStaticallyAbsent in IntrinsicCall.cpp
 0c789db541c236abf47265331a2f2b0945aa7b93 Markus B.: [mlir] Add support for operation-produced successor arguments in BranchOpInterface
-af371f9f98dab48b6374c182f3bc6a18e4faa5fb River R.:  Reland [GreedPatternRewriter] Preprocess constants while building worklist when not processing top down
+af371f9f98dab48b6374c182f3bc6a18e4faa5fb River R.: Reland [GreedPatternRewriter] Preprocess constants while building worklist when not processing top down
 02da9643506dee4a82353e0f911513279634d846 Valentin C.: [mlir][CSE] Remove duplicated operations with MemRead side-effect
 c58c64d05c51b75df3d803d293d386d8e7ae02b4 Jean P.: [flang] Add runtime API to catch unit number out of range
 0601a0dc0135fea422e2c794fb392efef8857b3a Jean P.: [flang] Fix fir.embox codegen with constant interior shape
@@ -284,19 +301,19 @@ fbdcb3ce6b7b0bac45e06aeac0ca02607f54a0a7 PeixinQiao: [flang] Add one semantic ch
 d333b382701e9ba7c72dc893f3bf5f9a702879b5 Valentin C.: [flang][NFC] Add tests for array-value-copy pass with array with pointers
 b8e8f62d5e72c7f4fc61985406fb27714e2c2f7c Jean P.: [flang] Fold instantiated PDT character component length when needed
 7dc492ed3443751a1de079a0f7eeeeeb862483c4 Valentin C.: [flang][NFC] Add tests for fir.address_of
-0000030b18c1e60e5e4f7444e30694bac9ffc14e Kiran C.:  Revert "[Flang][OpenMP] Add semantic check for OpenMP Private, Firstprivate and Lastprivate clauses."
+0000030b18c1e60e5e4f7444e30694bac9ffc14e Kiran C.: Revert "[Flang][OpenMP] Add semantic check for OpenMP Private, Firstprivate and Lastprivate clauses."
 3bcc928b1ba8253064ad1083c82e0e002969f19f Valentin C.: [flang][NFC] Add tests for fir.array_modify in array-value-copy pass
 0371f3e2329f683aadd85ec91132cd0d12f97396 Valentin C.: [flang][NFC] Add more test cases for the array-value-copy pass
 602dd6bd32ab6f4ae8acebff0eacef8e2261fe49 Valentin C.: [flang][NFC] Add tests for fir.is_present
 e0c782bdc0e9b9bb6ff69e224121adaba8aab843 Valentin C.: [flang] Add global and global box initialization tests
 2fb57d628c6fb71fcd53364c451a018cb65fd2ba Valentin C.: [flang][NFC] Add tests for select constructs
 7c158e3e554ad7e961480f080571cafab9c5760f Jean P.: [flang] add evaluate::IsAllocatableDesignator helper
-ba43d6f85c339d8d4e8e5759103cd7dfb4a3361f Mehdi A.:  Revert "[GreedPatternRewriter] Preprocess constants while building worklist when not processing top down"
+ba43d6f85c339d8d4e8e5759103cd7dfb4a3361f Mehdi A.: Revert "[GreedPatternRewriter] Preprocess constants while building worklist when not processing top down"
 868c212f42f80582fc6fb4adbd088e55b2d64111 Valentin C.: [flang] Keep fully qualified !fir.heap type for fir.freemem op
 59bbc7a0851b6e0054bb3ed47df0958822f08880 River R.: [GreedPatternRewriter] Preprocess constants while building worklist when not processing top down
 88d4b85f596450746a1f65a076732434df6df6f6 Jean P.: [flang] Allow user to recover from bad edit descriptor with INTEGER
 14c7754a35da9bf6b346e2a6ce4b3d8c3b00b434 Jean P.: [flang] Skip `D` when including D debug line
-c531171d995728f55e5775d354a21dceed03edce serge-sans-paille:  Fix invalid overflow check in flang
+c531171d995728f55e5775d354a21dceed03edce serge-sans-paille: Fix invalid overflow check in flang
 ec13942e71daad88267d73ff57b854b816c2a722 Jean P.: [flang] prevent undefined behavior in character MAXLOC folding
 1fe4b968c5fad5959ab9d371cc3324d9c7062eb3 Shraiysh V.: [flang][OpenMP] Added parallel sections translation
 577827cbbf1033612d6ce15169f33ee5709abbfc Emil K.: [flang][driver] Make --version and -version consistent with clang
@@ -342,7 +359,7 @@ c1e7296354de04ffc4c0d1e1765ecd72c7cb6c45 Valentin C.: [flang][NFC] Add character
 e28e1b4b6d541f15f31d056e3da5de03b8eb0827 Valentin C.: [flang][NFC] Add call lowering tests
 ac4c0d6431423628898b212667268405a4cd1869 Valentin C.: [flang][NFC] Add misc lowering tests
 dfb31a28ff8b3931196cf1f3e91511ccae0573c6 Valentin C.: [flang] Add lowering C interoperability test
-a749e3295df4aee18a0ad723875a6501f30ac744 Danny M.:  Replace links to archived mailing lists by links to Discourse forums
+a749e3295df4aee18a0ad723875a6501f30ac744 Danny M.: Replace links to archived mailing lists by links to Discourse forums
 2985d1c267de69384f7be419d9cb01955537d6f2 Valentin C.: [flang][NFC] Fix lowering tests indent
 51433662e2cc8329892a70838095de414cfaaacc Shraiysh V.: [flang] Flush and master constructs
 b244bba582495470087c8a4d132ca956f74473b4 Shraiysh V.: [mlir][OpenMP] Added assembly format for omp.wsloop and remove parseClauses
@@ -408,7 +425,7 @@ a7c08bcf777ee0712c140052d0814f55a02dd27b Andrzej W.: [flang][driver] Add support
 10766b75ceb39d35d9d278bff0aa5be0ab3a680f Valentin C.: [flang] Lower adjustl and adjustr intrinsics
 a16eddb2b40d7d81b4c3f86127db35dace58024a Valentin C.: [flang] Lower transfer instrinsic
 63bbac1065594a6151ed2772e707b278c36e47ba Andrzej W.: [flang][lowering] Add support for lowering of the `ibset` intrinsic
-75acad41bcd6cbe688e0609cbd7649ea8a533195 Sam M.:  Use lit_config.substitute instead of foo % lit_config.params everywhere
+75acad41bcd6cbe688e0609cbd7649ea8a533195 Sam M.: Use lit_config.substitute instead of foo % lit_config.params everywhere
 264d96623219e4829bf2a2637410ca0762c2f0b9 Valentin C.: [flang] Lower system_clock intrinsic
 9daf5765838336dfef94ee8439b0d755d963c6c3 Valentin C.: [flang] Lower date_and_time and cpu_time intrinsics
 7783de7fe32ad852b1921a2d2d0ae49b160865b1 Valentin C.: [flang] Move null entry at the correct place
