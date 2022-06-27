@@ -1,19 +1,19 @@
-  ! RUN: bbc %s -o - | tco | FileCheck %s
+! RUN: bbc %s -o - | tco | FileCheck %s
 
-  character(LEN=128, KIND=4), PARAMETER :: conarr(3) = &
-       [ character(128,4) :: "now is the time", "for all good men to come", &
-       "to the aid of the country" ]       
-  character(LEN=10, KIND=4) :: arr(3) = &
-       [ character(10,4) :: "good buddy", "best buddy", " " ]
-  call action_on_char4(conarr)
-  call action_on_char4(arr)
-  end program
+character(LEN=128, KIND=4), PARAMETER :: conarr(3) = &
+     [ character(128,4) :: "now is the time", "for all good men to come", &
+     "to the aid of the country" ]       
+character(LEN=10, KIND=4) :: arr(3) = &
+     [ character(10,4) :: "good buddy", "best buddy", " " ]
+call action_on_char4(conarr)
+call action_on_char4(arr)
+end program
 
-  subroutine sub1
-    integer, parameter :: k = 4
-    character(63,k), parameter :: wiggle = k_"wiggle"
-    call sub2(wiggle)
-  end subroutine sub1
+subroutine sub1
+  integer, parameter :: k = 4
+  character(63,k), parameter :: wiggle = k_"wiggle"
+  call sub2(wiggle)
+end subroutine sub1
 
 ! CHECK-LABEL: @_QFEarr = internal global [3 x [10 x i32]] [
 ! CHECK-SAME: [10 x i32] [i32 103, i32 111, i32 111, i32 100, i32 32, i32 98, i32 117, i32 100, i32 100, i32 121],
