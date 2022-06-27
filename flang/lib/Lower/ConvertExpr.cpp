@@ -3825,7 +3825,7 @@ public:
     // be needed afterwards.
     stmtCtx.pushScope();
     [[maybe_unused]] ExtValue loopRes = lowerArrayExpression(expr);
-    stmtCtx.finalize(/*popScope=*/true);
+    stmtCtx.finalize(Fortran::lower::StatementContext::Mode::Pop);
     assert(fir::getBase(loopRes));
   }
 
@@ -4729,7 +4729,7 @@ private:
   /// fir::ResultOp at the end of the innermost loop.
   void finalizeElementCtx() {
     if (elementCtx) {
-      stmtCtx.finalize(/*popScope=*/true);
+      stmtCtx.finalize(Fortran::lower::StatementContext::Mode::Pop);
       elementCtx = false;
     }
   }
@@ -6441,7 +6441,7 @@ private:
         builder.create<fir::StoreOp>(loc, castLen, charLen.getValue());
       }
     }
-    stmtCtx.finalize(/*popScope=*/true);
+    stmtCtx.finalize(Fortran::lower::StatementContext::Mode::Pop);
 
     builder.create<fir::ResultOp>(loc, mem);
     builder.restoreInsertionPoint(insPt);

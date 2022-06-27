@@ -33,11 +33,18 @@ public:
 
   ~StatementContext() {
     if (!cufs.empty())
-      finalize(/*popScope=*/true);
+      finalize(Mode::Pop);
     assert(cufs.empty() && "invalid StatementContext destructor call");
   }
 
   using CleanupFunction = std::function<void()>;
+
+  /// Context calls in a scope can be retained or deleted.
+  enum class Mode {
+    Repeat, // scope calls will be visited again
+    Clear,  // clear scope calls; leave scope open (default)
+    Pop     // clear scope calls and delete scope
+  };
 
   /// Push a context subscope.
   void pushScope() {
@@ -60,17 +67,17 @@ public:
   }
 
   /// Make cleanup calls.  Pop or reset the stack top list.
-  void finalize(bool popScope = false) {
+  void finalize(Mode mode = Mode::Clear) {
     assert(!cufs.empty() && "invalid finalize statement context");
     if (cufs.back())
       (*cufs.back())();
-    if (popScope)
+    if (mode == Mode::Pop)
       cufs.pop_back();
-    else
+    else if (mode == Mode::Clear)
       cufs.back().reset();
   }
 
-  bool nothingToGen() const {
+  bool workListIsEmpty() const {
     return cufs.empty() || llvm::all_of(cufs, [](auto &opt) -> bool {
              return !opt.hasValue();
            });
