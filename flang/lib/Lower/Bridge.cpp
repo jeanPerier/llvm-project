@@ -1738,6 +1738,8 @@ private:
     bool skipFinalization = false;
     for (const auto attr : llvm::enumerate(attrList)) {
       if (attr.value().isa<mlir::UnitAttr>()) {
+        if (attrList.size() == 1)
+          stmtCtx.finalize();
         genFIRBranch(*caseBlock++);
         break;
       }
@@ -1765,7 +1767,7 @@ private:
         fir::IfOp ifOp = builder->create<fir::IfOp>(loc, result,
                                                     /*withElseRegion=*/false);
         builder->setInsertionPointToStart(&ifOp.getThenRegion().front());
-        stmtCtx.finalize(Fortran::lower::StatementContext::Mode::Repeat);
+        stmtCtx.finalizeAndKeep();
         builder->setInsertionPointAfter(ifOp);
         return result;
       };
