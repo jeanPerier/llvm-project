@@ -40,9 +40,40 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 5fa4629581f6938cc175be5d4a3fccdfbf9fc227
+with llvm-project commit 9c860598546c6a2516b51629ac1b59376aebccfc
 
 Log of cherry-picked commits in reverse order (latest first):
+649439e7aeeb3b30f54297b3c6f7d6549fb2f85a Valentin C.: Fix lowering issue with character temp
+62e907e9f9e3c1762e6ce1f24f98f4b0ddc82353 Valentin C.: fix some types in error message
+be80c6d1b16922ad324c0dea0db9dca836fd3c50 Valentin C.: [NFC] Cosmetic changes to make the file more homogenous
+7c65e62a519941e7dcce252d6b3e291621800876 Valentin C.: Switch attr name to bindc_name
+051dea8221522ba320235c9c07bea5dbed2cc0ce Kiran C.: [OpenMP] Remove TODO for shared and two values of default clause
+feb44ccc913b3de6ec5ab9f74011e99614991439 Valentin C.: [NFC] Fix some typos
+9d4a2baaa2c304066199ec6644da80aca7638dc6 Fangrui S.: [test] Remove RUN COMMANDS/EXPECTED OUTPUT/INPUT markers from test/Driver
+b405407a489902c0acfcf936bfda9821a1deb170 Andrzej W.: [flang] Disable defaulting to `-fpie` for LLVM Flang
+1795f8cd2e7525c1c2617e09aba3e38e0998ccc8 Peixin-Q.: [OpenMP] Fix worksharing-loop
+794b3bf7767c184d953d0554c4041edb31a3194d Peixin-Q.: [flang] Add the missed `constexpr`
+779d2470a45393b981eff706662922f320859681 Peixin-Q.: Support check for BIND statement entity
+9f35657983c5f8370f276156f0351f98ae5296bf Slava Z.: Lower Fortran math intrinsic operations into MLIR ops or libm calls.
+cfd474e0d036877ee6c83d236df71aa8fe0729bf Peter K.: Edit to: Enforce C1552, no binding labels allowed for internal procedures
+ae35635f346a1846959c913e29e60e2398ffb0e0 Valentin C.: Fix bugs relating to support for characters of different kinds
+e2f313df8fc3c5bdc60de30ffa7c829191eea4f4 Valentin C.: Make sure that conversions are applied in FORALL degenerate contexts
+3348c08359d39b4903f13be7e1bfa32dc27f748e Valentin C.: Add lowering tests
+48eb2bc608e2db4258f9a5432be6458b33e8f551 Andrzej W.: [driver] Use `-O{0|1|2|3}` to define LLVM backend pass pipeline
+bd90155df4a4634be7e49594f35315df3772a942 Valentin C.: [NFC] Add IO lowering tests
+656b8d6c0193ca5e7ac0504d51dd67c953963fa1 Valentin C.: [NFC] Add array lowering tests
+869385b11c32032d02f5f24fcd21c694fb073850 Andrzej W.: [driver] Add support for `-O{0|1|2|3}`
+88c4a4a6beb57c10dfa9de8bd8bb886fd1a08093 Andrzej W.: Update the release notes
+dc97886fa36df582ed8957d13e4e51321507dc18 Kazu H.: Restore Optional::value() (NFC)
+575eb2133be7a97aae0fb5f70b409a156872eb7d Valentin C.: Use descriptors for real/complex input other than kinds 4 and 8
+d7ab38f8f4d4a21cd09f62aed897cc02d174d57b Valentin C.: [OpenACC] Lower parallel loop
+56c81d2554baa208ca697b3ea958613d48a7b963 Valentin C.: [lowering] handle MERGE with different FSOURCE and TSOURCE types
+d45d707434f0298883cc9b8219902f8f93b358ec Valentin C.: Explicitly map host associated symbols
+4489ef8e34fefcbbf4fe44d1307b0cc41a12cfa8 Valentin C.: Fix LBOUND with assumed size array and non constant DIM
+aeb2cd3176b03c3f186ca5d3ae6bd08d2ba77227 Valentin C.: Keep PURE in IEEE functions
+124338dd8016dc7589685d9fc731b178f2b5d379 Val D.: Increase support for intrinsic module procedures
+b690597936c96f9dcebaeca9cf76223023a52d01 Valentin C.: Fixes several bugs relating to initialization expressions. An (#1493)
+24e8cf45a3c7175659afb1c2654672856aea9800 Valentin C.: Capture result interface of functions called in internal procedures
 3fa62efdbb6c2b639cc47823c4a5f39fc1240792 PeixinQiao: Add semantic check for C1520 -- WITH FIXUP
 703b1054e93b7fb1ce88a797f3f63feab6b5a4f7 Kiran C.: enable fir.is_present and fir.absent with function types
 27afb362b1e85dac21744b95ed9b48f7e9fd016c PeixinQiao: [OpenMP] Initial support the lowering of copyin clause

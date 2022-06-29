@@ -41,12 +41,15 @@ For each change to merge:
   git branch -D $BRANCH
 
 To do (oldest last):
-37ee3f3253a38 #825 D: 
 
 In review:
 9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
 
 Done (oldest last, omitting no-ops):
+a4e322a4610265b2aecf8f702563d299aadaf035 #g0 D128761: [runtime] Emit "0.0E+0" for (1PG0.0) editing of 0.0
+f76be6e628f0e1ac00d35086fce0d20a61124867 #55198 D128760: Better error recovery for bad submodules
+feef184e0d495c243b94fd019626ea6a4ecd19e7 #len D128759: Fix folding of LEN(f(...))
+37ee3f3253a38 #825 D128676: Enforce C1552, no binding labels allowed for internal procs; also clean up merge with D127725.
 e7d263571b4592704b333f28a991f268574f7584 #g0  D128396: [runtime] Improve G0 output editing
 589b3f4e6c4e3651095f5d1e3c618f9d9c6ca5ea #861 D128395: Make SQRT folding exact
 68284940ac3362a74986b6d9de6a07dc19c6811c #914 D128394: Fix wording of warning message
