@@ -40,9 +40,21 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 9c860598546c6a2516b51629ac1b59376aebccfc
+with llvm-project commit 670eee08cecfcfe170fb0e7daa88df8c2a150dbe
 
 Log of cherry-picked commits in reverse order (latest first):
+11c43cd2de5a8f9c152ab6f8967ff0781ec727b7 Valentin C.:  Fix "not yet implemented" message for CHARACTER MIN/MAX
+13f9089ac92b1f800b6752d031c287781f215575 Peixin Q.:  Fix one corner case in reshape intrinsic
+a19c2132122e78051bfc98c304afb528b7ca14ec Valentin C.: [NFC] Fix warning
+540a76f07483bc202f48c01477e6efc87c79f7a5 Valentin C.:  Convert assertion to a TODO
+411f839ae36f0f56ce0b6c5f4e37039c54bdd9f7 Valentin C.:  Fix for array upper bounds with *
+c628e9eb5e959c043103eb0c760c796d1396e50f Valentin C.: [NFC] Add FIR array test
+06d103ff9553197f6d4d545366f4fa2996a82a10 Valentin C.:  Correct bug in literal CHARACTER constant names
+1e55ec6666fa687b1a86bdaa95ea814557855fd1 Valentin C.:  SELECT CASE constructs with character selectors that require a temp
+ac1bda21c9022e9dd1febf01efedfa664007fbc2 Valentin C.:  Fix error message in test
+6c487002045bf142893fed9b8ccee4f462685ddd Valentin C.: [NFC] Revert message to not implemented yet
+3f17dc89d3f24e6c9e41f25dd88488beeaf5f3f5 Fangrui S.: [test] Remove RUN COMMAND/EXPECTED OUTPUT/INPUT markers from other directories
+d5d420bb3bcc2eea926fb70fc3e6818c32e1eecc Fangrui S.: [test] Remove RUN LINES?/EXPECTED OUTPUT.*/INPUT markers from test/Driver
 649439e7aeeb3b30f54297b3c6f7d6549fb2f85a Valentin C.: Fix lowering issue with character temp
 62e907e9f9e3c1762e6ce1f24f98f4b0ddc82353 Valentin C.: fix some types in error message
 be80c6d1b16922ad324c0dea0db9dca836fd3c50 Valentin C.: [NFC] Cosmetic changes to make the file more homogenous
