@@ -254,8 +254,39 @@ bool DummyDataObject::operator==(const DummyDataObject &that) const {
       coshape == that.coshape;
 }
 
+// When comparing shapes of dummy arguments to dummy procedures, ignore
+// descriptor inquiries into dummy arguments -- they will necessarily be
+// distinct, but it doesn't matter.
+static MaybeExtentExpr IgnoreDummyDescriptorInquiry(
+    const MaybeExtentExpr &expr) {
+  if (expr) {
+    if (const auto *inquiry{std::get_if<DescriptorInquiry>(&expr->u)}) {
+      if (inquiry->base().IsSymbol() &&
+          IsDummy(inquiry->base().GetLastSymbol())) {
+        return std::nullopt;
+      }
+    }
+  }
+  return expr;
+}
+
+static bool AreCompatibleDummyDataObjectShapes(const Shape &x, const Shape &y) {
+  if (std::size_t rank{x.size()}; rank == y.size()) {
+    for (std::size_t j{0}; j < rank; ++j) {
+      if (!(IgnoreDummyDescriptorInquiry(x[j]) ==
+              IgnoreDummyDescriptorInquiry(y[j]))) {
+        return false;
+      }
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
 bool DummyDataObject::IsCompatibleWith(const DummyDataObject &actual) const {
-  return type.shape() == actual.type.shape() &&
+  return AreCompatibleDummyDataObjectShapes(
+             type.shape(), actual.type.shape()) &&
       type.type().IsTkCompatibleWith(actual.type.type()) &&
       attrs == actual.attrs && intent == actual.intent &&
       coshape == actual.coshape;
