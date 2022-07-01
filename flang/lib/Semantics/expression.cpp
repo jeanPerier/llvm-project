@@ -3163,6 +3163,11 @@ bool ExpressionAnalyzer::CheckIntrinsicKind(
   if (foldingContext_.targetCharacteristics().IsTypeEnabled(
           category, kind)) { // C712, C714, C715, C727
     return true;
+  } else if (foldingContext_.targetCharacteristics().CanSupportType(
+                 category, kind)) {
+    Say("%s(KIND=%jd) is not an enabled type for this targe"_warn_en_US,
+        ToUpperCase(EnumToString(category)), kind);
+    return true;
   } else {
     Say("%s(KIND=%jd) is not a supported type"_err_en_US,
         ToUpperCase(EnumToString(category)), kind);
@@ -3172,20 +3177,29 @@ bool ExpressionAnalyzer::CheckIntrinsicKind(
 
 bool ExpressionAnalyzer::CheckIntrinsicSize(
     TypeCategory category, std::int64_t size) {
+  std::int64_t kind{size};
   if (category == TypeCategory::Complex) {
     // COMPLEX*16 == COMPLEX(KIND=8)
-    if (size % 2 == 0 &&
-        foldingContext_.targetCharacteristics().IsTypeEnabled(
-            category, size / 2)) {
-      return true;
+    if (size % 2 == 0) {
+      kind = size / 2;
+    } else {
+      Say("COMPLEX*%jd is not a supported type"_err_en_US, size);
+      return false;
     }
-  } else if (foldingContext_.targetCharacteristics().IsTypeEnabled(
-                 category, size)) {
-    return true;
   }
-  Say("%s*%jd is not a supported type"_err_en_US,
-      ToUpperCase(EnumToString(category)), size);
-  return false;
+  if (foldingContext_.targetCharacteristics().IsTypeEnabled(
+          category, kind)) { // C712, C714, C715, C727
+    return true;
+  } else if (foldingContext_.targetCharacteristics().CanSupportType(
+                 category, kind)) {
+    Say("%s*%jd is not an enabled type for this target"_warn_en_US,
+        ToUpperCase(EnumToString(category)), size);
+    return true;
+  } else {
+    Say("%s*%jd is not a supported type"_err_en_US,
+        ToUpperCase(EnumToString(category)), size);
+    return false;
+  }
 }
 
 bool ExpressionAnalyzer::AddImpliedDo(parser::CharBlock name, int kind) {

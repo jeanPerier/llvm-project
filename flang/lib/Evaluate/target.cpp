@@ -27,7 +27,8 @@ TargetCharacteristics::TargetCharacteristics() {
             // non-IEEE 16-bit format (truncated 32-bit)
             byteSize = 2;
           } else if (kind == 10) {
-            // x87 floating-point -- follow gcc precedent for "long double"
+            // x87 floating-point
+            // Follow gcc precedent for "long double"
             byteSize = 16;
           }
         }
@@ -52,12 +53,6 @@ TargetCharacteristics::TargetCharacteristics() {
 
 bool TargetCharacteristics::CanSupportType(
     TypeCategory category, std::int64_t kind) {
-#if !__x86_64__
-  if ((category == TypeCategory::Real || category == TypeCategory::Complex) &&
-      kind == 10) {
-    return false;
-  }
-#endif
   return IsValidKindOfIntrinsicType(category, kind);
 }
 
