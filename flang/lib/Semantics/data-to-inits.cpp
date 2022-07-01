@@ -673,7 +673,8 @@ static std::size_t ComputeMinElementBytes(
       auto size{static_cast<std::size_t>(
           evaluate::ToInt64(dyType->MeasureSizeInBytes(foldingContext, true))
               .value_or(1))};
-      if (std::size_t alignment{dyType->GetAlignment(foldingContext)}) {
+      if (std::size_t alignment{
+              dyType->GetAlignment(foldingContext.targetCharacteristics())}) {
         size = ((size + alignment - 1) / alignment) * alignment;
       }
       if (&s == &first) {

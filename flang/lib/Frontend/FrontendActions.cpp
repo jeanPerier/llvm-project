@@ -107,7 +107,9 @@ bool CodeGenAction::BeginSourceFileAction() {
   fir::KindMapping kindMap(&ci.mlirCtx(),
       llvm::ArrayRef<fir::KindTy>{fir::fromDefaultKinds(defKinds)});
   auto lb = Fortran::lower::LoweringBridge::create(ci.mlirCtx(), defKinds,
-      ci.invocation().semanticsContext().intrinsics(), ci.parsing().allCooked(),
+      ci.invocation().semanticsContext().intrinsics(),
+      ci.invocation().semanticsContext().targetCharacteristics(),
+ci.parsing().allCooked(),
       "", kindMap);
 
   // Create a parse tree and lower it to FIR

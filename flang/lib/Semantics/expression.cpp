@@ -527,11 +527,12 @@ template <typename TYPE>
 Constant<TYPE> ReadRealLiteral(
     parser::CharBlock source, FoldingContext &context) {
   const char *p{source.begin()};
-  auto valWithFlags{Scalar<TYPE>::Read(p, context.rounding())};
+  auto valWithFlags{
+      Scalar<TYPE>::Read(p, context.targetCharacteristics().roundingMode())};
   CHECK(p == source.end());
   RealFlagWarnings(context, valWithFlags.flags, "conversion of REAL literal");
   auto value{valWithFlags.value};
-  if (context.flushSubnormalsToZero()) {
+  if (context.targetCharacteristics().areSubnormalsFlushedToZero()) {
     value = value.FlushSubnormalToZero();
   }
   return {value};
@@ -904,7 +905,8 @@ MaybeExpr ExpressionAnalyzer::Analyze(
             StaticDataObject::Pointer staticData{StaticDataObject::Create()};
             staticData->set_alignment(Result::kind)
                 .set_itemBytes(Result::kind)
-                .Push(cp->GetScalarValue().value());
+                .Push(cp->GetScalarValue().value(),
+                    foldingContext_.targetCharacteristics().isBigEndian());
             Substring substring{std::move(staticData), std::move(lower.value()),
                 std::move(upper.value())};
             return AsGenericExpr(
