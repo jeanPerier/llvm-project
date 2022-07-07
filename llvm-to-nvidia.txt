@@ -40,9 +40,26 @@ To see a description of a commit without its diff:
   git show -s $COMMIT
 
 The out-of-tree build & test of these changes was conducted
-with llvm-project commit 670eee08cecfcfe170fb0e7daa88df8c2a150dbe
+with llvm-project commit bfa2c4200179fbf11f05cc9c2944da4257d668db
 
 Log of cherry-picked commits in reverse order (latest first):
+53804e426d9b552adaa1adb86a2df9014c41d42a Valentin C.: [NFC] Make LEN parameters homogenous
+9ad64cf0203149adb8c8a1e8a7b22b2c13abc7c3 Naje G.: Add semantics test for coshape function
+23c2bedfd93cfacc62009425c464e659a34e92e6 Peter K.: Edits to: Establish a single source of target information for semantics
+2c915e3b2627a4e03341e14b354915c58741d7ec Dominik A.: [OpenMP] Add if clause to OpenMP simd construct
+ab9cdf09f4f03259e7e75c5187139e6628a37815 River R.: [mlir:Parser] Don't use strings for the "ugly" form of Attribute/Type syntax
+b094c737cd85b8bf979c3cc998853b03a20d5c59 Jean P.: Avoid opaque pointer issue with character array substring addressing
+12d26ce9b0ec0bf4245107a669efb4fd62965542 Valentin C.: Make code more homogenous in CodeGen
+d7697c175db96601ad5726111e3ac9057af56756 Valentin C.: Avoid segfault when defining op is not a fir::Convert
+740633ff08ff2d84d1f06088a12d9381b4c83c1b Valentin C.: Add TODO for derived types with final procedure
+b19cbda45a01807db0cd39ada302e27ac8e5ccb5 Valentin C.: [NFC] Add embox test with character
+8c44bef110339be90d25eab095c1330840422879 Valentin C.: File omp_lib.f90 is not a standard intrinsic module
+0dd4fb0408ed980de2c100905e68a4adf9987c61 Valentin C.: Fix for broken/degenerate forall case
+df417c372f315d8798b93ea88cf862fda6295477 Valentin C.: Add correct number of args for wait
+39377d52273edb53a371f32a862df82f6b7f239d Valentin C.: Fix APFloat conversion cases
+e6d29161fb2e49127cdc7428450b79839bd4ff4d Naje G.: Expand semantics test coverage of collective subroutines
+4dc752e6ec095b7b005b231e5c65cefa349c1eee Naje G.: Add new semantics test for team_number function
+06683d5f74f7551f4f36161fa3657146b1091311 Katherine R.: Add semantics test for `get_team`
 11c43cd2de5a8f9c152ab6f8967ff0781ec727b7 Valentin C.:  Fix "not yet implemented" message for CHARACTER MIN/MAX
 13f9089ac92b1f800b6752d031c287781f215575 Peixin Q.:  Fix one corner case in reshape intrinsic
 a19c2132122e78051bfc98c304afb528b7ca14ec Valentin C.: [NFC] Fix warning

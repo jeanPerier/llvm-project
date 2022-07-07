@@ -43,9 +43,17 @@ For each change to merge:
 To do (oldest last):
 
 In review:
-9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build
+9740cccf41c96b66f2eee648c36b04aa17a6cecf C++20 build -- blocked because MLIR doesn't build with g++ 11.x
 
 Done (oldest last, omitting no-ops):
+ab738f55bf3a63198cff6f2e76a10a28ad4c47ff #trim D129024: [runtime] Trim FORMATs echoed to error messages
+2d3e91a9678a8f6f50014228d47e8b5e21aec084 #56272 D129023: Avoid spurious warnings in pedantic mode from FORMAT items
+5e0275597e30780f2395bfd8349c12856506ecbd #878 D129022: Add IsElementalProcedure() predicate
+088b3aaf01e5ab5ce450e578df5a1350965aac97 #804 D129021: [runtime] Fix directed UP/DOWN rounding edge case for Fw.d output
+23d1f5c3c563bd926dfb85c34e1b6011e8a4eac5 #792 D129020: Cope with overflow in real MOD/MODULO
+a319f68d6cfd252cee8b392c6718e1a57b5d8438 #682 D129019: [runtime] Make ENDFILE work after non-advancing READ
+554dce50901bfc89991fb448afcd6e689b266987 + ...
+c9516f1707ea4ac881cca033ab30c682697c39a4 #906 D129018: Establish a single source of target information for semantics
 a4e322a4610265b2aecf8f702563d299aadaf035 #g0 D128761: [runtime] Emit "0.0E+0" for (1PG0.0) editing of 0.0
 f76be6e628f0e1ac00d35086fce0d20a61124867 #55198 D128760: Better error recovery for bad submodules
 feef184e0d495c243b94fd019626ea6a4ecd19e7 #len D128759: Fix folding of LEN(f(...))
