@@ -1,0 +1,816 @@
+Index: flang/lib/Evaluate/fold-logical.cpp
+===================================================================
+--- flang/lib/Evaluate/fold-logical.cpp
++++ flang/lib/Evaluate/fold-logical.cpp
+@@ -12,6 +12,16 @@
+ 
+ namespace Fortran::evaluate {
+ 
++template <typename T>
++static std::optional<Expr<SomeType>> zeroExtend(const Constant<T> &c) {
++  std::vector<Scalar<LargestInt>> exts;
++  for (auto &v : c.values()) {
++    exts.push_back(Scalar<LargestInt>::ConvertUnsigned(v).value);
++  }
++  return AsGenericExpr(
++      Constant<LargestInt>(std::move(exts), ConstantSubscripts(c.shape())));
++}
++
+ // for ALL & ANY
+ template <typename T>
+ static Expr<T> FoldAllAny(FoldingContext &context, FunctionRef<T> &&ref,
+@@ -61,34 +71,53 @@
+     return gotConstant ? Expr<T>{false} : Expr<T>{std::move(funcRef)};
+   } else if (name == "bge" || name == "bgt" || name == "ble" || name == "blt") {
+     static_assert(std::is_same_v<Scalar<LargestInt>, BOZLiteralConstant>);
+-    // Arguments do not have to be of the same integer type. Convert all
+-    // arguments to the biggest integer type before comparing them to
+-    // simplify.
+-    for (int i{0}; i <= 1; ++i) {
+-      if (auto *x{UnwrapExpr<Expr<SomeInteger>>(args[i])}) {
+-        *args[i] = AsGenericExpr(
+-            Fold(context, ConvertToType<LargestInt>(std::move(*x))));
+-      } else if (auto *x{UnwrapExpr<BOZLiteralConstant>(args[i])}) {
+-        *args[i] = AsGenericExpr(Constant<LargestInt>{std::move(*x)});
++
++    // The arguments to these intrinsics can be of different types. In that
++    // case, the shorter of the two would need to be zero-extended to match
++    // the size of the other. If at least one of the operands is not a constant,
++    // the zero-extending will be done during lowering. Otherwise, the folding
++    // must be done here.
++    std::optional<Expr<SomeType>> constArgs[2]{std::nullopt, std::nullopt};
++    for (int i{0}; i <= 1; i++) {
++      if (BOZLiteralConstant *x{UnwrapExpr<BOZLiteralConstant>(args[i])}) {
++        constArgs[i] = AsGenericExpr(Constant<LargestInt>{std::move(*x)});
++      } else if (auto *x{UnwrapExpr<Expr<SomeInteger>>(args[i])}) {
++        std::visit(
++            [&](const auto &ix) {
++              using IntT = typename std::decay_t<decltype(ix)>::Result;
++              if (auto *c{UnwrapConstantValue<IntT>(ix)}) {
++                constArgs[i] = zeroExtend(*c);
++              }
++            },
++            x->u);
+       }
+     }
+-    auto fptr{&Scalar<LargestInt>::BGE};
+-    if (name == "bge") { // done in fptr declaration
+-    } else if (name == "bgt") {
+-      fptr = &Scalar<LargestInt>::BGT;
+-    } else if (name == "ble") {
+-      fptr = &Scalar<LargestInt>::BLE;
+-    } else if (name == "blt") {
+-      fptr = &Scalar<LargestInt>::BLT;
++
++    if (constArgs[0].has_value() and constArgs[1].has_value()) {
++      auto fptr{&Scalar<LargestInt>::BGE};
++      if (name == "bge") { // done in fptr declaration
++      } else if (name == "bgt") {
++        fptr = &Scalar<LargestInt>::BGT;
++      } else if (name == "ble") {
++        fptr = &Scalar<LargestInt>::BLE;
++      } else if (name == "blt") {
++        fptr = &Scalar<LargestInt>::BLT;
++      } else {
++        common::die("missing case to fold intrinsic function %s", name.c_str());
++      }
++
++      for (int i{0}; i <= 1; i++)
++        *args[i] = std::move(constArgs[i].value());
++
++      return FoldElementalIntrinsic<T, LargestInt, LargestInt>(context,
++          std::move(funcRef),
++          ScalarFunc<T, LargestInt, LargestInt>(
++              [&fptr](const Scalar<LargestInt> &i, const Scalar<LargestInt> &j) {
++                return Scalar<T>{std::invoke(fptr, i, j)};
++              }));
+     } else {
+-      common::die("missing case to fold intrinsic function %s", name.c_str());
++      return Expr<T>{std::move(funcRef)};
+     }
+-    return FoldElementalIntrinsic<T, LargestInt, LargestInt>(context,
+-        std::move(funcRef),
+-        ScalarFunc<T, LargestInt, LargestInt>(
+-            [&fptr](const Scalar<LargestInt> &i, const Scalar<LargestInt> &j) {
+-              return Scalar<T>{std::invoke(fptr, i, j)};
+-            }));
+   } else if (name == "btest") {
+     if (const auto *ix{UnwrapExpr<Expr<SomeInteger>>(args[0])}) {
+       return common::visit(
+Index: flang/lib/Lower/IntrinsicCall.cpp
+===================================================================
+--- flang/lib/Lower/IntrinsicCall.cpp
++++ flang/lib/Lower/IntrinsicCall.cpp
+@@ -461,6 +461,12 @@
+       genCommandArgumentCount(mlir::Type, llvm::ArrayRef<fir::ExtendedValue>);
+   fir::ExtendedValue genAssociated(mlir::Type,
+                                    llvm::ArrayRef<fir::ExtendedValue>);
++
++  /// Lower a bitwise comparison intrinsic using the given comparator.
++  template <mlir::arith::CmpIPredicate pred>
++  mlir::Value genBitwiseCompare(mlir::Type resultType,
++                                llvm::ArrayRef<mlir::Value> args);
++
+   mlir::Value genBtest(mlir::Type, llvm::ArrayRef<mlir::Value>);
+   mlir::Value genCeiling(mlir::Type, llvm::ArrayRef<mlir::Value>);
+   fir::ExtendedValue genChar(mlir::Type, llvm::ArrayRef<fir::ExtendedValue>);
+@@ -692,6 +698,10 @@
+      &I::genAssociated,
+      {{{"pointer", asInquired}, {"target", asInquired}}},
+      /*isElemental=*/false},
++    {"bge", &I::genBitwiseCompare<mlir::arith::CmpIPredicate::uge>},
++    {"bgt", &I::genBitwiseCompare<mlir::arith::CmpIPredicate::ugt>},
++    {"ble", &I::genBitwiseCompare<mlir::arith::CmpIPredicate::ule>},
++    {"blt", &I::genBitwiseCompare<mlir::arith::CmpIPredicate::ult>},
+     {"btest", &I::genBtest},
+     {"ceiling", &I::genCeiling},
+     {"char", &I::genChar},
+@@ -2339,6 +2349,39 @@
+   return Fortran::lower::genAssociated(builder, loc, pointerBox, targetBox);
+ }
+ 
++// BGE, BGT, BLE, BLT
++template <mlir::arith::CmpIPredicate pred>
++mlir::Value
++IntrinsicLibrary::genBitwiseCompare(mlir::Type resultType,
++                                    llvm::ArrayRef<mlir::Value> args) {
++  assert(args.size() == 2);
++
++  mlir::Value arg0 = args[0];
++  mlir::Value arg1 = args[1];
++  mlir::Type arg0Ty = arg0.getType();
++  mlir::Type arg1Ty = arg1.getType();
++  unsigned bits0 = arg0Ty.getIntOrFloatBitWidth();
++  unsigned bits1 = arg1Ty.getIntOrFloatBitWidth();
++
++  // Arguments do not have to be of the same integer type. However, if neither
++  // of the arguments is a BOZ literal, then the shorter of the two needs
++  // to be converted to the longer by zero-extending (not sign-extending)
++  // to the left [Fortran 2008, 13.3.2].
++  //
++  // In the case of BOZ literals, the standard describes zero-extension or
++  // truncation depending on the kind of the result [Fortran 2008, 13.3.3].
++  // However, that seems to be relevant for the case where the type of the
++  // result must match the type of the BOZ literal. That is not the case for
++  // these intrinsics, so, again, zero-extend to the larger type.
++  //
++  if (bits0 > bits1)
++    arg1 = builder.create<mlir::arith::ExtUIOp>(loc, arg0Ty, arg1);
++  else if (bits0 < bits1)
++    arg0 = builder.create<mlir::arith::ExtUIOp>(loc, arg1Ty, arg0);
++
++  return builder.create<mlir::arith::CmpIOp>(loc, pred, arg0, arg1);
++}
++
+ // BTEST
+ mlir::Value IntrinsicLibrary::genBtest(mlir::Type resultType,
+                                        llvm::ArrayRef<mlir::Value> args) {
+Index: flang/test/Lower/Intrinsics/bge.f90
+===================================================================
+--- /dev/null
++++ flang/test/Lower/Intrinsics/bge.f90
+@@ -0,0 +1,157 @@
++! RUN: bbc -emit-fir %s -o - | FileCheck %s
++
++! CHECK-LABEL: bge_test
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test(a, b, c)
++  integer :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = bge(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test
++
++! CHECK-LABEL: bge_test1
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i8>{{.*}}, %[[B:.*]]: !fir.ref<i8>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test1(a, b, c)
++  integer(kind=1) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i8>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i8>
++  c = bge(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_VAL]] : i8
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test1
++
++! CHECK-LABEL: bge_test2
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test2(a, b, c)
++  integer(kind=2) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = bge(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_VAL]] : i16
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test2
++
++! CHECK-LABEL: bge_test3
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test3(a, b, c)
++  integer(kind=4) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = bge(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test3
++
++! CHECK-LABEL: bge_test4
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i64>{{.*}}, %[[B:.*]]: !fir.ref<i64>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test4(a, b, c)
++  integer(kind=8) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i64>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i64>
++  c = bge(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_VAL]] : i64
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test4
++
++! CHECK-LABEL: bge_test5
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i128>{{.*}}, %[[B:.*]]: !fir.ref<i128>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test5(a, b, c)
++  integer(kind=16) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i128>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i128>
++  c = bge(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_VAL]] : i128
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test5
++
++! CHECK-LABEL: bge_test6
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test6(a, b, c)
++  integer(kind=2) :: a
++  integer(kind=4) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = bge(a, b)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test6
++
++! CHECK-LABEL: bge_test7
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test7(a, b, c)
++  integer(kind=4) :: a
++  integer(kind=2) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = bge(a, b)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test7
++
++! CHECK-LABEL: bge_test8
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test8(a, c)
++  integer(kind=2) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i32
++  c = bge(a, 42_4)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test8
++
++! CHECK-LABEL: bge_test9
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test9(a, c)
++  integer(kind=4) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i16
++  c = bge(a, 42_2)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi uge, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test9
++
++! CHECK-LABEL: bge_test10
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test10(c)
++  logical :: c
++  c = bge(-1_2, -1_4)
++  ! CHECK: %[[R:.*]] = arith.constant false
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test10
++
++! CHECK-LABEL: bge_test11
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bge_test11(c)
++  logical :: c
++  c = bge(-1_4, -1_2)
++  ! CHECK: %[[R:.*]] = arith.constant true
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bge_test11
+Index: flang/test/Lower/Intrinsics/bgt.f90
+===================================================================
+--- /dev/null
++++ flang/test/Lower/Intrinsics/bgt.f90
+@@ -0,0 +1,157 @@
++! RUN: bbc -emit-fir %s -o - | FileCheck %s
++
++! CHECK-LABEL: bgt_test
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test(a, b, c)
++  integer :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = bgt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test
++
++! CHECK-LABEL: bgt_test1
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i8>{{.*}}, %[[B:.*]]: !fir.ref<i8>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test1(a, b, c)
++  integer(kind=1) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i8>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i8>
++  c = bgt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_VAL]] : i8
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test1
++
++! CHECK-LABEL: bgt_test2
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test2(a, b, c)
++  integer(kind=2) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = bgt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_VAL]] : i16
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test2
++
++! CHECK-LABEL: bgt_test3
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test3(a, b, c)
++  integer(kind=4) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = bgt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test3
++
++! CHECK-LABEL: bgt_test4
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i64>{{.*}}, %[[B:.*]]: !fir.ref<i64>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test4(a, b, c)
++  integer(kind=8) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i64>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i64>
++  c = bgt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_VAL]] : i64
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test4
++
++! CHECK-LABEL: bgt_test5
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i128>{{.*}}, %[[B:.*]]: !fir.ref<i128>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test5(a, b, c)
++  integer(kind=16) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i128>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i128>
++  c = bgt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_VAL]] : i128
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test5
++
++! CHECK-LABEL: bgt_test6
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test6(a, b, c)
++  integer(kind=2) :: a
++  integer(kind=4) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = bgt(a, b)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test6
++
++! CHECK-LABEL: bgt_test7
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test7(a, b, c)
++  integer(kind=4) :: a
++  integer(kind=2) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = bgt(a, b)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test7
++
++! CHECK-LABEL: bgt_test8
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test8(a, c)
++  integer(kind=2) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i32
++  c = bgt(a, 42_4)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test8
++
++! CHECK-LABEL: bgt_test9
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test9(a, c)
++  integer(kind=4) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i16
++  c = bgt(a, 42_2)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ugt, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test9
++
++! CHECK-LABEL: bgt_test10
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test10(c)
++  logical :: c
++  c = bgt(-1_2, -1_4)
++  ! CHECK: %[[R:.*]] = arith.constant false
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test10
++
++! CHECK-LABEL: bgt_test11
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine bgt_test11(c)
++  logical :: c
++  c = bgt(-1_4, -1_2)
++  ! CHECK: %[[R:.*]] = arith.constant true
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine bgt_test11
+Index: flang/test/Lower/Intrinsics/ble.f90
+===================================================================
+--- /dev/null
++++ flang/test/Lower/Intrinsics/ble.f90
+@@ -0,0 +1,157 @@
++! RUN: bbc -emit-fir %s -o - | FileCheck %s
++
++! CHECK-LABEL: ble_test
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test(a, b, c)
++  integer :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = ble(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test
++
++! CHECK-LABEL: ble_test1
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i8>{{.*}}, %[[B:.*]]: !fir.ref<i8>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test1(a, b, c)
++  integer(kind=1) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i8>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i8>
++  c = ble(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_VAL]] : i8
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test1
++
++! CHECK-LABEL: ble_test2
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test2(a, b, c)
++  integer(kind=2) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = ble(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_VAL]] : i16
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test2
++
++! CHECK-LABEL: ble_test3
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test3(a, b, c)
++  integer(kind=4) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = ble(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test3
++
++! CHECK-LABEL: ble_test4
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i64>{{.*}}, %[[B:.*]]: !fir.ref<i64>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test4(a, b, c)
++  integer(kind=8) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i64>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i64>
++  c = ble(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_VAL]] : i64
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test4
++
++! CHECK-LABEL: ble_test5
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i128>{{.*}}, %[[B:.*]]: !fir.ref<i128>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test5(a, b, c)
++  integer(kind=16) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i128>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i128>
++  c = ble(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_VAL]] : i128
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test5
++
++! CHECK-LABEL: ble_test6
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test6(a, b, c)
++  integer(kind=2) :: a
++  integer(kind=4) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = ble(a, b)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test6
++
++! CHECK-LABEL: ble_test7
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test7(a, b, c)
++  integer(kind=4) :: a
++  integer(kind=2) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = ble(a, b)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test7
++
++! CHECK-LABEL: ble_test8
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test8(a, c)
++  integer(kind=2) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i32
++  c = ble(a, 42_4)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test8
++
++! CHECK-LABEL: ble_test9
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test9(a, c)
++  integer(kind=4) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i16
++  c = ble(a, 42_2)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ule, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test9
++
++! CHECK-LABEL: ble_test10
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test10(c)
++  logical :: c
++  c = ble(-1_2, -1_4)
++  ! CHECK: %[[R:.*]] = arith.constant true
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test10
++
++! CHECK-LABEL: ble_test11
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine ble_test11(c)
++  logical :: c
++  c = ble(-1_4, -1_2)
++  ! CHECK: %[[R:.*]] = arith.constant false
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine ble_test11
+Index: flang/test/Lower/Intrinsics/blt.f90
+===================================================================
+--- /dev/null
++++ flang/test/Lower/Intrinsics/blt.f90
+@@ -0,0 +1,158 @@
++
++! RUN: bbc -emit-fir %s -o - | FileCheck %s
++
++! CHECK-LABEL: blt_test
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test(a, b, c)
++  integer :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = blt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test
++
++! CHECK-LABEL: blt_test1
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i8>{{.*}}, %[[B:.*]]: !fir.ref<i8>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test1(a, b, c)
++  integer(kind=1) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i8>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i8>
++  c = blt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_VAL]] : i8
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test1
++
++! CHECK-LABEL: blt_test2
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test2(a, b, c)
++  integer(kind=2) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = blt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_VAL]] : i16
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test2
++
++! CHECK-LABEL: blt_test3
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test3(a, b, c)
++  integer(kind=4) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = blt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test3
++
++! CHECK-LABEL: blt_test4
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i64>{{.*}}, %[[B:.*]]: !fir.ref<i64>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test4(a, b, c)
++  integer(kind=8) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i64>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i64>
++  c = blt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_VAL]] : i64
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test4
++
++! CHECK-LABEL: blt_test5
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i128>{{.*}}, %[[B:.*]]: !fir.ref<i128>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test5(a, b, c)
++  integer(kind=16) :: a, b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i128>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i128>
++  c = blt(a, b)
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_VAL]] : i128
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test5
++
++! CHECK-LABEL: blt_test6
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[B:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test6(a, b, c)
++  integer(kind=2) :: a
++  integer(kind=4) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i32>
++  c = blt(a, b)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test6
++
++! CHECK-LABEL: blt_test7
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[B:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test7(a, b, c)
++  integer(kind=4) :: a
++  integer(kind=2) :: b
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = fir.load %[[B]] : !fir.ref<i16>
++  c = blt(a, b)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test7
++
++! CHECK-LABEL: blt_test8
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i16>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test8(a, c)
++  integer(kind=2) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i16>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i32
++  c = blt(a, 42_4)
++  ! CHECK: %[[A_EXT:.*]] = arith.extui %[[A_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_EXT]], %[[B_VAL]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test8
++
++! CHECK-LABEL: blt_test9
++! CHECK-SAME: %[[A:.*]]: !fir.ref<i32>{{.*}}, %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test9(a, c)
++  integer(kind=4) :: a
++  logical :: c
++  ! CHECK: %[[A_VAL:.*]] = fir.load %[[A]] : !fir.ref<i32>
++  ! CHECK: %[[B_VAL:.*]] = arith.constant 42 : i16
++  c = blt(a, 42_2)
++  ! CHECK: %[[B_EXT:.*]] = arith.extui %[[B_VAL]] : i16 to i32
++  ! CHECK: %[[C_CMP:.*]] = arith.cmpi ult, %[[A_VAL]], %[[B_EXT]] : i32
++  ! CHECK: %[[C_VAL:.*]] = fir.convert %[[C_CMP]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[C_VAL]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test9
++
++! CHECK-LABEL: blt_test10
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test10(c)
++  logical :: c
++  c = blt(-1_2, -1_4)
++  ! CHECK: %[[R:.*]] = arith.constant true
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test10
++
++! CHECK-LABEL: blt_test11
++! CHECK-SAME: %[[C:.*]]: !fir.ref<!fir.logical<4>>{{.*}}
++subroutine blt_test11(c)
++  logical :: c
++  c = blt(-1_4, -1_2)
++  ! CHECK: %[[R:.*]] = arith.constant false
++  ! CHECK: %[[V:.*]] = fir.convert %[[R]] : (i1) -> !fir.logical<4>
++  ! CHECK: fir.store %[[V]] to %[[C]] : !fir.ref<!fir.logical<4>>
++end subroutine blt_test11
