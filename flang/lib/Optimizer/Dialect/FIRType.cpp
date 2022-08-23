@@ -1002,10 +1002,10 @@ mlir::Type BaseBoxType::unwrapInnerType() const {
 
 void FIROpsDialect::registerTypes() {
   addTypes<BoxType, BoxCharType, BoxProcType, CharacterType, ClassType,
-           fir::ComplexType, FieldType, HeapType, fir::IntegerType, LenType,
-           LogicalType, LLVMPointerType, PointerType, RealType, RecordType,
-           ReferenceType, SequenceType, ShapeType, ShapeShiftType, ShiftType,
-           SliceType, TypeDescType, fir::VectorType>();
+           fir::ComplexType, FieldType, HeapType, fir::IntegerType, LenType, LogicalType,
+           LLVMPointerType, PointerType, RealType, RecordType, ReferenceType,
+           SequenceType, ShapeType, ShapeShiftType, ShiftType, SliceType,
+           TypeDescType, fir::VectorType, fir::VarType, fir::ExprType>();
   fir::ReferenceType::attachInterface<PointerLikeModel<fir::ReferenceType>>(
       *getContext());
 
