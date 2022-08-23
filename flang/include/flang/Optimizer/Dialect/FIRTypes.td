@@ -564,6 +564,40 @@ def fir_VoidType : FIR_Type<"Void", "void"> {
   let genStorageClass = 0;
 }
 
+def fir_VarType : FIR_Type<"Var", "var"> {
+  let summary = "The type of a Fortran variable";
+
+  let description = [{
+    This is something that can be assigned to.
+  }];
+
+  let assemblyFormat = "`<` $eleTy `>`";
+
+  let parameters = (ins "mlir::Type":$eleTy);
+
+  let extraClassDeclaration = [{
+    mlir::Type getElementType() const { return getEleTy(); }
+  }];
+
+}
+
+def fir_ExprType : FIR_Type<"Expr", "expr"> {
+  let summary = "The type of a Fortran expression";
+
+  let description = [{
+    This is something of a Fortran expression.
+  }];
+
+  let assemblyFormat = "`<` $eleTy `>`";
+
+  let parameters = (ins "mlir::Type":$eleTy);
+
+  let extraClassDeclaration = [{
+    mlir::Type getElementType() const { return getEleTy(); }
+  }];
+
+}
+
 // Whether a type is a BaseBoxType
 def IsBaseBoxTypePred
         : CPred<"$_self.isa<::fir::BaseBoxType>()">;
