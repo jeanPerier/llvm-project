@@ -543,6 +543,40 @@ def fir_VoidType : FIR_Type<"Void", "void"> {
   let genStorageClass = 0;
 }
 
+def fir_VarType : FIR_Type<"Var", "var"> {
+  let summary = "The type of a Fortran variable";
+
+  let description = [{
+    This is something that can be assigned to.
+  }];
+
+  let assemblyFormat = "`<` $eleTy `>`";
+
+  let parameters = (ins "mlir::Type":$eleTy);
+
+  let extraClassDeclaration = [{
+    mlir::Type getElementType() const { return getEleTy(); }
+  }];
+
+}
+
+def fir_ExprType : FIR_Type<"Expr", "expr"> {
+  let summary = "The type of a Fortran expression";
+
+  let description = [{
+    This is something of a Fortran expression.
+  }];
+
+  let assemblyFormat = "`<` $eleTy `>`";
+
+  let parameters = (ins "mlir::Type":$eleTy);
+
+  let extraClassDeclaration = [{
+    mlir::Type getElementType() const { return getEleTy(); }
+  }];
+
+}
+
 // Generalized FIR and standard dialect types representing intrinsic types
 def AnyIntegerLike : TypeConstraint<Or<[SignlessIntegerLike.predicate,
     AnySignedInteger.predicate, fir_IntegerType.predicate]>, "any integer">;

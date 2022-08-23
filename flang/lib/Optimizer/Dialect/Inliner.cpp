@@ -23,3 +23,8 @@ bool fir::canLegallyInline(mlir::Operation *, mlir::Region *, bool,
 bool fir::canLegallyInline(mlir::Operation *, mlir::Operation *, bool) {
   return aggressivelyInline;
 }
+
+bool fir::canLegallyInline(mlir::Region *, mlir::Region *, bool,
+                           mlir::BlockAndValueMapping &) {
+  return aggressivelyInline;
+}
