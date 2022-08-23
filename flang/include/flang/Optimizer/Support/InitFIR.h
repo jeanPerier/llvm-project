@@ -14,8 +14,10 @@
 #define FORTRAN_OPTIMIZER_SUPPORT_INITFIR_H
 
 #include "flang/Optimizer/Dialect/FIRDialect.h"
+#include "flang/Optimizer/HLFIR/HLFIRDialect.h"
 #include "mlir/Conversion/Passes.h"
 #include "mlir/Dialect/Affine/Passes.h"
+#include "mlir/Dialect/Shape/Transforms/Passes.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
@@ -25,11 +27,12 @@
 namespace fir::support {
 
 #define FLANG_NONCODEGEN_DIALECT_LIST                                          \
-  mlir::AffineDialect, FIROpsDialect, mlir::acc::OpenACCDialect,               \
-      mlir::omp::OpenMPDialect, mlir::scf::SCFDialect,                         \
-      mlir::arith::ArithDialect, mlir::cf::ControlFlowDialect,                 \
-      mlir::func::FuncDialect, mlir::vector::VectorDialect,                    \
-      mlir::math::MathDialect
+  mlir::AffineDialect, FIROpsDialect, hlfir::hlfirDialect,                     \
+      mlir::acc::OpenACCDialect, mlir::omp::OpenMPDialect,                     \
+      mlir::scf::SCFDialect, mlir::arith::ArithDialect,                        \
+      mlir::cf::ControlFlowDialect, mlir::func::FuncDialect,                   \
+      mlir::vector::VectorDialect, mlir::math::MathDialect,                    \
+      mlir::shape::ShapeDialect
 
 // The definitive list of dialects used by flang.
 #define FLANG_DIALECT_LIST                                                     \
@@ -81,6 +84,8 @@ inline void registerMLIRPassesForFortranTools() {
   mlir::registerAffineDataCopyGenerationPass();
 
   mlir::registerConvertAffineToStandardPass();
+
+  mlir::registerShapeToShapeLoweringPass();
 }
 
 /// Register the interfaces needed to lower to LLVM IR.

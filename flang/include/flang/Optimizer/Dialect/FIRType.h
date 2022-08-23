@@ -17,6 +17,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Type.h"
+#include "mlir/Dialect/Shape/IR/ShapeOpsTypes.h.inc"
 
 namespace fir {
 class FIROpsDialect;
