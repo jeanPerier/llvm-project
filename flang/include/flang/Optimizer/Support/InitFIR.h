@@ -21,6 +21,7 @@
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Transforms/LocationSnapshot.h"
 #include "mlir/Transforms/Passes.h"
+#include "mlir/Dialect/Shape/Transforms/Passes.h"
 
 namespace fir::support {
 
@@ -29,7 +30,7 @@ namespace fir::support {
       mlir::omp::OpenMPDialect, mlir::scf::SCFDialect,                         \
       mlir::arith::ArithDialect, mlir::cf::ControlFlowDialect,                 \
       mlir::func::FuncDialect, mlir::vector::VectorDialect,                    \
-      mlir::math::MathDialect
+      mlir::math::MathDialect, mlir::shape::ShapeDialect
 
 // The definitive list of dialects used by flang.
 #define FLANG_DIALECT_LIST                                                     \
@@ -81,6 +82,8 @@ inline void registerMLIRPassesForFortranTools() {
   mlir::registerAffineDataCopyGenerationPass();
 
   mlir::registerConvertAffineToStandardPass();
+
+  mlir::registerShapeToShapeLoweringPass();
 }
 
 /// Register the interfaces needed to lower to LLVM IR.
