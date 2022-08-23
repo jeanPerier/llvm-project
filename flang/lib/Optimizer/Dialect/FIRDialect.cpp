@@ -36,12 +36,23 @@ struct FIRInlinerInterface : public mlir::DialectInlinerInterface {
     return fir::canLegallyInline(op, reg, wouldBeCloned, map);
   }
 
+  bool isLegalToInline(mlir::Region *dest, mlir::Region *src,
+                       bool wouldBeCloned,
+                       mlir::BlockAndValueMapping &map) const final {
+    return fir::canLegallyInline(dest, src, wouldBeCloned, map);
+  }
+
   /// This hook is called when a terminator operation has been inlined.
   /// We handle the return (a Fortran FUNCTION) by replacing the values
   /// previously returned by the call operation with the operands of the
   /// return.
   void handleTerminator(mlir::Operation *op,
                         llvm::ArrayRef<mlir::Value> valuesToRepl) const final {
+    if (auto returnOp = mlir::dyn_cast<fir::ResultOp>(op)) {
+      for (const auto &it : llvm::enumerate(returnOp.getOperands()))
+        valuesToRepl[it.index()].replaceAllUsesWith(it.value());
+      return;
+    }
     auto returnOp = llvm::cast<mlir::func::ReturnOp>(op);
     assert(returnOp.getNumOperands() == valuesToRepl.size());
     for (const auto &it : llvm::enumerate(returnOp.getOperands()))

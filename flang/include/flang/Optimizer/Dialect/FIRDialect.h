@@ -58,6 +58,8 @@ public:
 bool canLegallyInline(mlir::Operation *op, mlir::Region *reg, bool,
                       mlir::BlockAndValueMapping &map);
 bool canLegallyInline(mlir::Operation *, mlir::Operation *, bool);
+bool canLegallyInline(mlir::Region *dest, mlir::Region *src, bool,
+                      mlir::BlockAndValueMapping &map);
 
 } // namespace fir
 

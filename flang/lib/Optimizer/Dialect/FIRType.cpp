@@ -974,7 +974,7 @@ void FIROpsDialect::registerTypes() {
            FieldType, HeapType, fir::IntegerType, LenType, LogicalType,
            LLVMPointerType, PointerType, RealType, RecordType, ReferenceType,
            SequenceType, ShapeType, ShapeShiftType, ShiftType, SliceType,
-           TypeDescType, fir::VectorType>();
+           TypeDescType, fir::VectorType, fir::VarType, fir::ExprType>();
   fir::ReferenceType::attachInterface<PointerLikeModel<fir::ReferenceType>>(
       *getContext());
 
