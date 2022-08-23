@@ -10,8 +10,10 @@ add_flang_library(FIRTransforms
   MemRefDataFlowOpt.cpp
   RewriteLoop.cpp
   SimplifyRegionLite.cpp
+  ShapeInference.cpp
   AlgebraicSimplification.cpp
   SimplifyIntrinsics.cpp
+  ForallSplit.cpp
 
   DEPENDS
   FIRBuilder
@@ -28,5 +30,6 @@ add_flang_library(FIRTransforms
   MLIRMathTransforms
   MLIROpenACCDialect
   MLIROpenMPDialect
+  MLIRShapeDialect
   FIRSupport
 )

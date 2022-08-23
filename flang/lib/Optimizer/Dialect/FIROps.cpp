@@ -2287,9 +2287,15 @@ mlir::LogicalResult fir::ResultOp::verify() {
 
   if (parentOp->getNumResults() != getNumOperands())
     return emitOpError() << "parent of result must have same arity";
-  for (auto e : llvm::zip(results, operands))
-    if (std::get<0>(e).getType() != std::get<1>(e).getType())
-      return emitOpError() << "types mismatch between result op and its parent";
+  if (auto elemOp = mlir::dyn_cast<fir::ElementalOp>(*parentOp)) {
+   return mlir::success();
+    //if (operands[0].getType() != elemOp.getEleTy())
+    //  return emitOpError() << "types mismatch between result op and its parent";
+  } else {
+    for (auto e : llvm::zip(results, operands))
+      if (std::get<0>(e).getType() != std::get<1>(e).getType())
+        return emitOpError() << "types mismatch between result op and its parent";
+  }
   return mlir::success();
 }
 
@@ -3552,6 +3558,143 @@ mlir::Type fir::applyPathToType(mlir::Type eleTy, mlir::ValueRange path) {
                 .Default([&](const auto &) { return mlir::Type{}; });
   }
   return eleTy;
+}
+
+void fir::ElementalOp::build(mlir::OpBuilder &builder,
+                          mlir::OperationState &result,
+                          mlir::Type resultType,
+                          mlir::ValueRange iterArgs, mlir::Value shape,
+                          mlir::ValueRange typeparams,
+                          llvm::ArrayRef<mlir::NamedAttribute> attributes) {
+  result.addOperands(iterArgs);
+  result.addOperands(shape);
+  result.addOperands(typeparams);
+  result.addTypes(resultType);
+  mlir::Region *bodyRegion = result.addRegion();
+  bodyRegion->push_back(new mlir::Block{});
+  unsigned dim = resultType.cast<fir::ExprType>().getEleTy().cast<fir::SequenceType>().getDimension();
+  for (unsigned d = 0; d < dim; ++d)
+    bodyRegion->front().addArgument(builder.getIndexType(), result.location);
+  bodyRegion->front().addArguments(
+      iterArgs.getTypes(),
+      llvm::SmallVector<mlir::Location>(iterArgs.size(), result.location));
+  result.addAttributes(attributes);
+  int iterArgsSize = iterArgs.size();
+  int typeparamsSize = typeparams.size();
+  result.addAttribute("operand_segment_sizes",
+                      builder.getDenseI32ArrayAttr({iterArgsSize,1, typeparamsSize}));
+}
+
+/// fir.elemental (%i, %j) dataArgs(%a1 = e1, %b = c0) %shape typeparams %l1, .... : (arg types) -> fir.expr<T> {
+/// }
+void fir::ElementalOp::print(mlir::OpAsmPrinter &p) {
+  p << " (";
+  llvm::interleaveComma(getIndicies(), p, [&](auto it) { p << it; });
+  p << ")";
+  if (!getIterOperands().empty()) {
+    p << " dataArgs(";
+    llvm::interleaveComma(llvm::zip(getRegionIterArgs(), getIterOperands()), p, [&](auto it) {
+      p << std::get<0>(it) << " = " << std::get<1>(it);
+    });
+    p << ')';
+  }
+  mlir::Value shape = getShape();
+    p << " " << shape;
+  auto typeParams = getTypeparams();
+  if (!typeParams.empty()) {
+    p << " typeparams " ;
+    llvm::interleaveComma(typeParams, p, [&](auto it) { p << it; });
+  }
+  //p.printOptionalAttrDict(getAttrs());
+
+  p << " (";
+  if (!getIterOperands().empty()) {
+    llvm::interleaveComma(getIterOperands(), p, [&](auto it) {
+      p << it.getType();
+    });
+    p << ", ";
+  }
+  p << shape.getType();
+  if (!typeParams.empty()) {
+    p << ", ";
+    llvm::interleaveComma(getTypeparams(), p, [&](auto it) {
+      p << it.getType();
+    });
+  }
+  p << ") -> " << getType();
+  p << ' ';
+  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false,
+                /*printBlockTerminators*/true);
+}
+
+mlir::ParseResult fir::ElementalOp::parse(mlir::OpAsmParser &parser,
+                                       mlir::OperationState &result) {
+  auto &builder = parser.getBuilder();
+  auto indexType = builder.getIndexType();
+  llvm::SmallVector<mlir::OpAsmParser::Argument> regionArgs;
+  llvm::SmallVector<mlir::OpAsmParser::UnresolvedOperand> operands;
+  if (parser.parseLParen() || parser.parseArgumentList(regionArgs) || parser.parseRParen())
+    return mlir::failure();
+  const int numDimension = regionArgs.size();
+  for (auto& arg : regionArgs)
+    arg.type = indexType;
+  if (mlir::succeeded(parser.parseOptionalKeyword("dataArgs")))
+    if (parser.parseAssignmentList(regionArgs, operands))
+      return mlir::failure();
+  const int iterArgSize = operands.size();
+  mlir::OpAsmParser::UnresolvedOperand shape;
+  if (parser.parseOperand(shape))
+    return mlir::failure();
+  operands.push_back(shape);
+  if (mlir::succeeded(parser.parseOptionalKeyword("typeparams")))
+    if (parser.parseOperandList(operands))
+      return mlir::failure();
+  const int typeparamsArgSize = operands.size()-1-iterArgSize;
+     
+//  if (parser.parseKeyword(":"))
+//    return mlir::failure();
+  mlir::Type funcType;
+  if (parser.parseType(funcType))
+    return mlir::failure();
+  if (!funcType.isa<mlir::FunctionType>())
+    return mlir::failure();
+  
+  auto inputTypes = funcType.cast<mlir::FunctionType>().getInputs();
+  auto resultTypes = funcType.cast<mlir::FunctionType>().getResults();
+  if (resultTypes.size() != 1)
+    return mlir::failure();
+
+  result.types.push_back(resultTypes[0]);
+
+
+  if (inputTypes.size() != operands.size())
+    return mlir::failure();
+
+  for (auto operand_type :
+       llvm::zip(operands, inputTypes))
+    if (parser.resolveOperand(std::get<0>(operand_type),
+                              std::get<1>(operand_type), result.operands))
+      return mlir::failure();
+
+  for (unsigned i = numDimension; i < regionArgs.size(); ++i) 
+    regionArgs[i].type = inputTypes[i-numDimension];
+  
+  result.addAttribute("operand_segment_sizes",
+                      builder.getDenseI32ArrayAttr({iterArgSize,1, typeparamsArgSize}));
+
+  auto *body = result.addRegion();
+  if (parser.parseRegion(*body, regionArgs))
+    return mlir::failure();
+  return mlir::success();
+}
+
+mlir::Operation::operand_range fir::ApplyOp::getArgOperands() {
+  // TODO: append data args ?
+  //auto elemCall = mlir::cast<fir::ElementalOp>(expr.getDefiningOp());
+  return getIndices();
+}
+mlir::CallInterfaceCallable fir::ApplyOp::getCallableForCallee() {
+  return getOperand(0);
 }
 
 // Tablegen operators

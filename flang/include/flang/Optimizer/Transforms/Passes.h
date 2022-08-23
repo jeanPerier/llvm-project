@@ -42,6 +42,8 @@ namespace fir {
 #define GEN_PASS_DECL_MEMORYALLOCATIONOPT
 #define GEN_PASS_DECL_SIMPLIFYREGIONLITE
 #define GEN_PASS_DECL_ALGEBRAICSIMPLIFICATION
+#define GEN_PASS_DECL_FORALLSPLIT
+#define GEN_PASS_DECL_SHAPEINFERENCE
 #include "flang/Optimizer/Transforms/Passes.h.inc"
 
 std::unique_ptr<mlir::Pass> createAbstractResultOnFuncOptPass();
@@ -63,6 +65,8 @@ std::unique_ptr<mlir::Pass> createSimplifyRegionLitePass();
 std::unique_ptr<mlir::Pass> createAlgebraicSimplificationPass();
 std::unique_ptr<mlir::Pass>
 createAlgebraicSimplificationPass(const mlir::GreedyRewriteConfig &config);
+std::unique_ptr<mlir::Pass> createShapeInferencePass();
+std::unique_ptr<mlir::Pass> createForallSplitPass();
 
 // declarative passes
 #define GEN_PASS_REGISTRATION

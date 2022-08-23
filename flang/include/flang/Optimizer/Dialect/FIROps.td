@@ -16,6 +16,11 @@
 
 include "flang/Optimizer/Dialect/FIRDialect.td"
 include "flang/Optimizer/Dialect/FIRTypes.td"
+include "flang/Optimizer/Dialect/FIRAttr.td"
+include "flang/Optimizer/Dialect/FortranVariableInterface.td"
+include "mlir/Dialect/Shape/IR/ShapeBase.td"
+include "mlir/IR/BuiltinAttributes.td"
+
 
 // Base class for FIR operations.
 // All operations automatically get a prefix of "fir.".
@@ -1993,7 +1998,7 @@ def fir_LenParamIndexOp : fir_OneResultOp<"len_param_index", [NoMemoryEffect]> {
 
 def fir_ResultOp : fir_Op<"result",
     [NoMemoryEffect, ReturnLike, Terminator,
-     ParentOneOf<["IfOp", "DoLoopOp", "IterWhileOp"]>]> {
+     ParentOneOf<["IfOp", "DoLoopOp", "IterWhileOp", "ElementalOp"]>]> {
   let summary = "special terminator for use in fir region operations";
 
   let description = [{
@@ -2861,6 +2866,233 @@ def fir_IsPresentOp : fir_SimpleOp<"is_present", [NoMemoryEffect]> {
   let arguments = (ins AnyRefOrBoxLike:$val);
 
   let results = (outs BoolLike);
+}
+
+def fir_DeclareOp : fir_Op<"declare", [AttrSizedOperandSegments, DeclareOpInterfaceMethods<DefineFortranVariableOpInterface>]> {
+  let summary = "declare a variable";
+
+  let description = [{
+  }];
+
+  let arguments = (ins
+    AnyRefOrBox:$memref,
+    Optional<AnyShapeOrShiftType>:$shape,
+    Variadic<AnyIntegerType>:$typeparams,
+    Builtin_StringAttr:$uniq_name,
+    OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
+  );
+
+  let results = (outs AnyRefOrBox);
+
+  let assemblyFormat = [{
+    $memref (`(` $shape^ `)`)? (`typeparams` $typeparams^)?
+     attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+def fir_ElementalOp : region_Op<"elemental", [AttrSizedOperandSegments,  CallableOpInterface]> {
+  let summary = "declare elemental operation";
+  let description = [{
+    TBD
+  }];
+
+  let hasVerifier = 0;
+  let hasCustomAssemblyFormat = 1;
+
+  let arguments = (ins
+    Variadic<AnyType>:$initArgs,
+    Shape_ShapeOrExtentTensorType:$shape,
+    Variadic<AnyIntegerType>:$typeparams
+  );
+  let results = (outs fir_ExprType:$results);
+  let regions = (region SizedRegion<1>:$region);
+
+  let skipDefaultBuilders = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType,
+      "mlir::ValueRange":$iterargs,
+      "mlir::Value":$shape,
+      CArg<"mlir::ValueRange", "{}">:$typeparams,
+      CArg<"llvm::ArrayRef<mlir::NamedAttribute>", "{}">:$attributes)>
+  ];
+
+  let extraClassDeclaration = [{
+      fir::ExprType getExprType() {
+        return getType().cast<fir::ExprType>();
+      }
+      mlir::Type getEleTy()  {
+        return getExprType().getEleTy();
+      }
+      unsigned getDimension()  {
+        return getExprType().getRank();
+      }
+      unsigned getNumIterArgs() {
+        return getBody()->getArguments().size() - getDimension();
+      }
+      mlir::Operation::operand_range getIterOperands() {
+       return getOperands().take_front(getNumIterArgs());
+      }
+      mlir::Value getShapeArg() {
+       return getOperands()[getNumIterArgs()];
+      }
+      mlir::Operation::operand_range getTypeParams() {
+       return getOperands().drop_front(getNumIterArgs()+1);
+      }
+      mlir::Block::BlockArgListType getIndicies() {
+       return getBody()->getArguments().take_front(getDimension());
+      }
+      mlir::Block::BlockArgListType getRegionIterArgs() {
+       return getBody()->getArguments().drop_front(getDimension());
+      }
+
+      // CallableOpInterface
+      mlir::Region *getCallableRegion() {
+        return &getRegion();
+      }
+
+      llvm::ArrayRef<mlir::Type> getCallableResults() {
+        // Bad... need to store this somewhere.
+        return {getEleTy()};
+      }
+  }];
+}
+
+def fir_DesignateOp : fir_Op<"designate", [NoMemoryEffect]> {
+  let summary = "designate a variable";
+
+  let description = [{
+    TBD
+  }];
+
+  let arguments = (ins
+    fir_VarType:$var,
+    // scalar and array integers, integer expr/var, field, slice
+    Variadic<AnyType>:$indices
+  );
+
+  let results = (outs fir_VarType);
+
+  let assemblyFormat = [{
+     $var `,` $indices
+     attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+// TBD traits
+def fir_ApplyOp : fir_Op<"apply", [CallOpInterface]> {
+  let summary = "index an expression";
+
+  let description = [{
+    TBD
+  }];
+
+  let arguments = (ins
+    fir_ExprType:$expr,
+    // scalar and array integers, integer expr/var, field, slice
+    Variadic<AnyType>:$indices
+  );
+
+  let results = (outs fir_ExprType);
+
+  let assemblyFormat = [{
+     operands attr-dict `:` functional-type(operands, results)
+  }];
+  let extraClassDeclaration = [{
+      mlir::Operation::operand_range getArgOperands();
+      mlir::CallInterfaceCallable getCallableForCallee();
+  }];
+}
+
+// TBD traits
+def fir_AssignOp : fir_Op<"assign", [MemoryEffects<[MemWrite]>]> {
+  let summary = "Fortran Scalar Assigment";
+
+  let description = [{
+    // TBD
+  }];
+
+  let arguments = (ins AnyType:$value,
+                   Arg<fir_VarType, "", [MemWrite]>:$var);
+
+  let assemblyFormat = [{
+     $value `to` $var attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+// TBD traits
+def fir_AsValueOp : fir_Op<"as_value", [NoMemoryEffect]> {
+  let summary = "glue to value";
+
+  let description = [{
+    TBD
+  }];
+
+  let arguments = (ins
+    // Expr or Var.
+    AnyType:$exprOrVar
+  );
+
+  let results = (outs AnyType);
+
+  let assemblyFormat = [{
+     operands attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+// TBD: what about temps...
+def fir_AsAddrOp : fir_Op<"as_addr", [NoMemoryEffect]> {
+  let summary = "glue to address";
+
+  let description = [{
+    TBD
+  }];
+
+  let arguments = (ins
+    AnyType:$exprOrVar
+  );
+
+  let results = (outs AnyReferenceLike);
+
+  let assemblyFormat = [{
+     operands attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+// TBD: what about temps...
+def fir_AsBoxOp : fir_Op<"as_box", [NoMemoryEffect]> {
+  let summary = "glue to address";
+
+  let description = [{
+    TBD
+  }];
+
+  let arguments = (ins
+    AnyType:$exprOrVar
+  );
+
+  let results = (outs AnyBoxLike);
+
+  let assemblyFormat = [{
+     operands attr-dict `:` functional-type(operands, results)
+  }];
+}
+
+def fir_AsExprOp : fir_Op<"as_expr", [NoMemoryEffect]> {
+  let summary = "glue to expr";
+
+  let description = [{
+    TBD
+  }];
+
+  let arguments = (ins
+    AnyType:$value
+  );
+
+  let results = (outs fir_ExprType);
+
+  let assemblyFormat = [{
+     operands attr-dict `:` functional-type(operands, results)
+  }];
 }
 
 #endif

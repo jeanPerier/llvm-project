@@ -15,6 +15,7 @@
 #include "flang/Lower/CallInterface.h"
 #include "flang/Lower/Coarray.h"
 #include "flang/Lower/ConvertExpr.h"
+#include "flang/Lower/ConvertExprToHLFIR.h"
 #include "flang/Lower/ConvertType.h"
 #include "flang/Lower/ConvertVariable.h"
 #include "flang/Lower/HostAssociations.h"
@@ -30,6 +31,7 @@
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/Character.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Builder/HLFIRTools.h"
 #include "flang/Optimizer/Builder/Runtime/Character.h"
 #include "flang/Optimizer/Builder/Runtime/EnvironmentDefaults.h"
 #include "flang/Optimizer/Builder/Runtime/Ragged.h"
@@ -416,23 +418,80 @@ public:
     return iter->second;
   }
 
-  fir::ExtendedValue genExprAddr(const Fortran::lower::SomeExpr &expr,
-                                 Fortran::lower::StatementContext &context,
-                                 mlir::Location *loc = nullptr) override final {
-    return Fortran::lower::createSomeExtendedAddress(
-        loc ? *loc : toLocation(), *this, expr, localSymbols, context);
+  fir::ExtendedValue
+  genExprAddr(const Fortran::lower::SomeExpr &expr,
+              Fortran::lower::StatementContext &context,
+              mlir::Location *localLoc = nullptr) override final {
+    mlir::Location loc = localLoc ? *localLoc : toLocation();
+    if (bridge.getLoweringOptions().getLowerToHighLevelFIR()) {
+      fir::HlfirValue loweredExpr = Fortran::lower::convertExprToHLFIR(
+          loc, *this, expr, localSymbols, context);
+      fir::HlfirValue var = [&]() {
+        if (loweredExpr.isVariable()) {
+          // TODO: This matches the current genExprAddr behaviour, but should
+          // probably be further delayed to users.
+          auto [var, varCleanup] =
+              fir::factory::copyNonSimplyContiguousIntoTemp(
+                  loc, getFirOpBuilder(), loweredExpr);
+          if (varCleanup)
+            context.attachCleanup(*varCleanup);
+          return var;
+        }
+        auto [var, varCleanup] = fir::factory::storeHlfirValueToTemp(
+            loc, getFirOpBuilder(), loweredExpr);
+        if (varCleanup)
+          context.attachCleanup(*varCleanup);
+        return var;
+      }();
+      auto [exv, exvCleanup] =
+          fir::factory::HlfirValueToExtendedValue(loc, getFirOpBuilder(), var);
+      if (exvCleanup)
+        context.attachCleanup(*exvCleanup);
+      return exv;
+    }
+    return Fortran::lower::createSomeExtendedAddress(loc, *this, expr,
+                                                     localSymbols, context);
   }
   fir::ExtendedValue
   genExprValue(const Fortran::lower::SomeExpr &expr,
                Fortran::lower::StatementContext &context,
-               mlir::Location *loc = nullptr) override final {
-    return Fortran::lower::createSomeExtendedExpression(
-        loc ? *loc : toLocation(), *this, expr, localSymbols, context);
+               mlir::Location *localLoc = nullptr) override final {
+    mlir::Location loc = localLoc ? *localLoc : toLocation();
+    if (bridge.getLoweringOptions().getLowerToHighLevelFIR()) {
+      fir::HlfirValue loweredExpr = Fortran::lower::convertExprToHLFIR(
+          loc, *this, expr, localSymbols, context);
+      auto [value, valueCleanup] = fir::factory::readHlfirVarToValue(
+          loc, getFirOpBuilder(), loweredExpr);
+      if (valueCleanup)
+        context.attachCleanup(*valueCleanup);
+      auto [exv, exvCleanup] = fir::factory::HlfirValueToExtendedValue(
+          loc, getFirOpBuilder(), value);
+      if (exvCleanup)
+        context.attachCleanup(*exvCleanup);
+      return exv;
+    }
+    return Fortran::lower::createSomeExtendedExpression(loc, *this, expr,
+                                                        localSymbols, context);
   }
 
   fir::ExtendedValue
   genExprBox(mlir::Location loc, const Fortran::lower::SomeExpr &expr,
              Fortran::lower::StatementContext &stmtCtx) override final {
+    if (bridge.getLoweringOptions().getLowerToHighLevelFIR()) {
+      fir::HlfirValue loweredExpr = Fortran::lower::convertExprToHLFIR(
+          loc, *this, expr, localSymbols, stmtCtx);
+      auto [var, varCleanup] = fir::factory::storeHlfirValueToTemp(
+          loc, getFirOpBuilder(), loweredExpr);
+      if (varCleanup)
+        stmtCtx.attachCleanup(*varCleanup);
+      auto [exv, exvCleanup] =
+          fir::factory::HlfirValueToExtendedValue(loc, getFirOpBuilder(), var);
+      if (exvCleanup)
+        stmtCtx.attachCleanup(*exvCleanup);
+      if (!exv.getBoxOf<fir::BoxValue>())
+        return fir::BoxValue(getFirOpBuilder().createBox(loc, exv));
+      return exv;
+    }
     return Fortran::lower::createBoxValue(loc, *this, expr, localSymbols,
                                           stmtCtx);
   }
@@ -2866,12 +2925,16 @@ private:
     // is not something that fits well with equivalence lowering.
     for (const Fortran::lower::pft::Variable &altResult :
          deferredFuncResultList) {
-      if (std::optional<Fortran::lower::CalleeInterface::PassedEntity>
-              passedResult = callee.getPassedResult())
-        addSymbol(altResult.getSymbol(), resultArg.getAddr());
       Fortran::lower::StatementContext stmtCtx;
-      Fortran::lower::mapSymbolAttributes(*this, altResult, localSymbols,
-                                          stmtCtx, primaryFuncResultStorage);
+      if (std::optional<Fortran::lower::CalleeInterface::PassedEntity>
+              passedResult = callee.getPassedResult()) {
+        addSymbol(altResult.getSymbol(), resultArg.getAddr());
+        Fortran::lower::mapSymbolAttributes(*this, altResult, localSymbols,
+                                            stmtCtx);
+      } else {
+        Fortran::lower::mapSymbolAttributes(*this, altResult, localSymbols,
+                                            stmtCtx, primaryFuncResultStorage);
+      }
     }
 
     // If this is a host procedure with host associations, then create the tuple
