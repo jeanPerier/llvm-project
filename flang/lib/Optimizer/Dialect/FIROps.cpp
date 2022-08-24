@@ -3582,7 +3582,7 @@ void fir::ElementalOp::build(mlir::OpBuilder &builder,
   int iterArgsSize = iterArgs.size();
   int typeparamsSize = typeparams.size();
   result.addAttribute("operand_segment_sizes",
-                      builder.getI32VectorAttr({iterArgsSize,1, typeparamsSize}));
+                      builder.getDenseI32ArrayAttr({iterArgsSize,1, typeparamsSize}));
 }
 
 /// fir.elemental (%i, %j) dataArgs(%a1 = e1, %b = c0) %shape typeparams %l1, .... : (arg types) -> fir.expr<T> {
@@ -3680,7 +3680,7 @@ mlir::ParseResult fir::ElementalOp::parse(mlir::OpAsmParser &parser,
     regionArgs[i].type = inputTypes[i-numDimension];
   
   result.addAttribute("operand_segment_sizes",
-                      builder.getI32VectorAttr({iterArgSize,1, typeparamsArgSize}));
+                      builder.getDenseI32ArrayAttr({iterArgSize,1, typeparamsArgSize}));
 
   auto *body = result.addRegion();
   if (parser.parseRegion(*body, regionArgs))
