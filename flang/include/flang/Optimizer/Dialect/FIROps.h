@@ -12,9 +12,9 @@
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "mlir/Dialect/Shape/IR/Shape.h"
 
 namespace fir {
 

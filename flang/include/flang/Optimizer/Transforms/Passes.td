@@ -237,4 +237,14 @@ def AlgebraicSimplification : Pass<"flang-algebraic-simplification"> {
   let constructor = "::fir::createAlgebraicSimplificationPass()";
 }
 
+def ShapeInference :  Pass<"flang-shape-inference"> {
+  let summary = "Propagate shape information";
+  let description = [{
+    TBD.
+  }];
+  let constructor =
+      "::fir::createShapeInferencePass()";
+  let dependentDialects = ["mlir::shape::ShapeDialect"];
+}
+
 #endif // FLANG_OPTIMIZER_TRANSFORMS_PASSES
