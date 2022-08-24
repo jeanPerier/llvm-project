@@ -21,11 +21,25 @@
 
 
 namespace {
+struct ShapeDimInfer : public mlir::OpRewritePattern<mlir::shape::DimOp> {
+  using mlir::OpRewritePattern<mlir::shape::DimOp>::OpRewritePattern;
+
+  mlir::LogicalResult matchAndRewrite(mlir::shape::DimOp dimOp, mlir::PatternRewriter &rewriter) const override {
+    return mlir::failure();
+  }
+};
 } // namespace
 
 namespace {
 struct ShapeInferencePass final : public fir::ShapeInferenceBase<ShapeInferencePass> {
-  void runOnOperation() override {}
+  void runOnOperation() override {
+    mlir::RewritePatternSet patterns(&getContext());
+    patterns.add<ShapeDimInfer>(
+      patterns.getContext());
+    if (mlir::failed(mlir::applyPatternsAndFoldGreedily(getOperation()->getRegions(),
+                                            std::move(patterns))))
+      return signalPassFailure();
+  }
 };
 
 } // namespace
