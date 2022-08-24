@@ -16,6 +16,7 @@
 
 include "flang/Optimizer/Dialect/FIRDialect.td"
 include "flang/Optimizer/Dialect/FIRTypes.td"
+include "mlir/Dialect/Shape/IR/ShapeBase.td"
 
 // Base class for FIR operations.
 // All operations automatically get a prefix of "fir.".
@@ -2894,7 +2895,7 @@ def fir_ElementalOp : region_Op<"elemental", [AttrSizedOperandSegments,  Callabl
 
   let arguments = (ins
     Variadic<AnyType>:$initArgs,
-    AnyShapeType:$shape,
+    Shape_ShapeOrExtentTensorType:$shape,
     Variadic<AnyIntegerType>:$typeparams
   );
   let results = (outs fir_ExprType:$results);
@@ -2910,14 +2911,14 @@ def fir_ElementalOp : region_Op<"elemental", [AttrSizedOperandSegments,  Callabl
   ];
 
   let extraClassDeclaration = [{
-      fir::SequenceType getSequenceType() {
-        return getType().cast<fir::ExprType>().getEleTy().cast<fir::SequenceType>();
+      fir::ExprType getExprType() {
+        return getType().cast<fir::ExprType>();
       }
       mlir::Type getEleTy()  {
-        return getSequenceType().getEleTy();
+        return getExprType().getEleTy();
       }
       unsigned getDimension()  {
-        return getSequenceType().getDimension();
+        return getExprType().getRank();
       }
       unsigned getNumIterArgs() {
         return getBody()->getArguments().size() - getDimension();

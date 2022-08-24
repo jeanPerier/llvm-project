@@ -833,6 +833,43 @@ mlir::LogicalResult fir::SequenceType::verify(
   return mlir::success();
 }
 
+
+
+// `expr` `<` `*` | bounds (`x` bounds)* `:` type `>`
+// bounds ::= `?` | int-lit
+mlir::Type fir::ExprType::parse(mlir::AsmParser &parser) {
+  if (parser.parseLess())
+    return {};
+  SequenceType::Shape shape;
+  if (parser.parseOptionalStar()) {
+    if (parser.parseDimensionList(shape, /*allowDynamic=*/true))
+      return {};
+  } else if (parser.parseColon()) {
+    return {};
+  }
+  mlir::Type eleTy;
+  if (parser.parseType(eleTy))
+    return {};
+  if (parser.parseGreater())
+    return {};
+  return ExprType::get(parser.getContext(), shape, eleTy);
+}
+
+void fir::ExprType::print(mlir::AsmPrinter &printer) const {
+  auto shape = getShape();
+  printer << '<';
+  if (shape.size()) {
+    for (const auto &b : shape) {
+      if (b >= 0)
+        printer << b << 'x';
+      else
+        printer << "?x";
+    }
+  }
+  printer << getEleTy();
+  printer << '>';
+}
+
 //===----------------------------------------------------------------------===//
 // ShapeType
 //===----------------------------------------------------------------------===//
