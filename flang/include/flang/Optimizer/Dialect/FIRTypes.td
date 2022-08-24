@@ -14,6 +14,7 @@
 #define FIR_DIALECT_FIR_TYPES
 
 include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/BuiltinTypeInterfaces.td"
 include "flang/Optimizer/Dialect/FIRDialect.td"
 
 //===----------------------------------------------------------------------===//
@@ -581,19 +582,43 @@ def fir_VarType : FIR_Type<"Var", "var"> {
 
 }
 
-def fir_ExprType : FIR_Type<"Expr", "expr"> {
+def fir_ExprType : FIR_Type<"Expr", "expr", [ShapedTypeInterface]> {
   let summary = "The type of a Fortran expression";
 
   let description = [{
     This is something of a Fortran expression.
   }];
 
-  let assemblyFormat = "`<` $eleTy `>`";
 
-  let parameters = (ins "mlir::Type":$eleTy);
+  // TODO: encoding assumed rank ?
+  let parameters = (ins
+    ArrayRefParameter<"int64_t">:$shape,
+    "mlir::Type":$elementType
+  );
+
+  let hasCustomAssemblyFormat = 1;
 
   let extraClassDeclaration = [{
-    mlir::Type getElementType() const { return getEleTy(); }
+      mlir::Type getEleTy() const {return getElementType();}
+    // ShapedTypeInterface
+    bool hasRank() const { return !getShape().empty(); }
+    ExprType cloneWith(llvm::Optional<llvm::ArrayRef<int64_t>> shape,
+                         Type elementType) const {
+      if (shape)
+        return ExprType::get(elementType.getContext(), *shape, elementType);
+      return ExprType::get(elementType.getContext(), getShape(), elementType);
+    }
+
+    // Is this needed ?
+    using mlir::ShapedType::Trait<ExprType>::clone;
+    using mlir::ShapedType::Trait<ExprType>::getElementTypeBitWidth;
+    using mlir::ShapedType::Trait<ExprType>::getRank;
+    using mlir::ShapedType::Trait<ExprType>::getNumElements;
+    using mlir::ShapedType::Trait<ExprType>::isDynamicDim;
+    using mlir::ShapedType::Trait<ExprType>::hasStaticShape;
+    using mlir::ShapedType::Trait<ExprType>::getNumDynamicDims;
+    using mlir::ShapedType::Trait<ExprType>::getDimSize;
+    using mlir::ShapedType::Trait<ExprType>::getDynamicDimIndex;
   }];
 
 }

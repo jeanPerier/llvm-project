@@ -14,6 +14,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "mlir/Dialect/Shape/IR/Shape.h"
 
 namespace fir {
 
