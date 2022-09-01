@@ -13,6 +13,7 @@ add_flang_library(FIRTransforms
   ShapeInference.cpp
   AlgebraicSimplification.cpp
   SimplifyIntrinsics.cpp
+  ForallSplit.cpp
 
   DEPENDS
   FIRBuilder

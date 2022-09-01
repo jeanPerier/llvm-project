@@ -247,4 +247,14 @@ def ShapeInference :  Pass<"flang-shape-inference"> {
   let dependentDialects = ["mlir::shape::ShapeDialect"];
 }
 
+def ForallSplit :  Pass<"flang-lower-forall", "::mlir::func::FuncOp"> {
+  let summary = "Lower forall";
+  let description = [{
+    TBD.
+  }];
+  let constructor =
+      "::fir::createForallSplitPass()";
+  let dependentDialects = [ "fir::FIROpsDialect" ];
+}
+
 #endif // FLANG_OPTIMIZER_TRANSFORMS_PASSES
