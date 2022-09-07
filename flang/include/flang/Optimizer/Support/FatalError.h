@@ -22,6 +22,17 @@ namespace fir {
 /// and immediately abort flang.
 [[noreturn]] inline void emitFatalError(mlir::Location loc,
                                         const llvm::Twine &message) {
+  // Override any handlers that may be registered and buffering messages with
+  // a handler that will print the error before aborting.
+  loc.getContext()->getDiagEngine().registerHandler([](mlir::Diagnostic& diag) {
+    auto &os = llvm::errs();
+    if (!diag.getLocation().isa<mlir::UnknownLoc>())
+      os << diag.getLocation() << ": ";
+    os << "error: ";
+    os << diag << '\n';
+    os.flush();
+    return mlir::success();
+  });
   mlir::emitError(loc, message);
   llvm::report_fatal_error("aborting");
 }

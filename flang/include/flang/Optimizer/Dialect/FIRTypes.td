@@ -579,6 +579,12 @@ def fir_VarType : FIR_Type<"Var", "var"> {
   let extraClassDeclaration = [{
     mlir::Type getElementType() const { return getEleTy(); }
   }];
+  let builders = [
+    TypeBuilderWithInferredContext<(ins
+        "mlir::Type":$eleTy), [{
+      return get(eleTy.getContext(), eleTy);
+    }]>,
+  ];
 
 }
 
