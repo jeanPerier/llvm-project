@@ -2858,9 +2858,10 @@ def fir_DeclareOp : fir_Op<"declare", [NoSideEffect, AttrSizedOperandSegments]> 
   let description = [{
   }];
 
+  // FIX Shape !
   let arguments = (ins
     AnyRefOrBox:$memref,
-    Optional<AnyShapeType>:$shape,
+    Optional<AnyType>:$shape,
     Variadic<AnyIntegerType>:$typeparams
   );
 
