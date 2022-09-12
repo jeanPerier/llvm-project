@@ -20,11 +20,13 @@ namespace Fortran::runtime {
 
 template <typename CHAR>
 inline int CompareToBlankPadding(const CHAR *x, std::size_t chars) {
+  using UNSIGNED_CHAR = std::make_unsigned_t<CHAR>;
+  const auto blank{static_cast<UNSIGNED_CHAR>(' ')};
   for (; chars-- > 0; ++x) {
-    if (*x < ' ') {
+    if (*reinterpret_cast<const UNSIGNED_CHAR *>(x) < blank) {
       return -1;
     }
-    if (*x > ' ') {
+    if (*reinterpret_cast<const UNSIGNED_CHAR *>(x) > blank) {
       return 1;
     }
   }
