@@ -1400,6 +1400,20 @@ bool IsAutomatic(const Symbol &original) {
   return false;
 }
 
+static bool FitsInRegister(const Symbol &original) {
+  const Symbol &symbol{original.GetUltimate()};
+  if (const auto *object{symbol.detailsIf<ObjectEntityDetails>()}) {
+    if (object->shape().empty() && object->coshape().empty()) {
+      if (const auto *declType{symbol.GetType()}) {
+        if (declType->category() != DeclTypeSpec::Character || declType->characterTypeSpec().length().GetExplicit()) {
+          return true;
+        }
+      }
+    }
+  }
+  return false; 
+}
+
 bool IsSaved(const Symbol &original) {
   const Symbol &symbol{GetAssociationRoot(original)};
   const Scope &scope{symbol.owner()};
@@ -1421,6 +1435,8 @@ bool IsSaved(const Symbol &original) {
     // initialization targets and coarrays.
     // BLOCK DATA entities must all be in COMMON,
     // which was checked above.
+    return true;
+  } else if (scopeKind == Scope::Kind::MainProgram && !FitsInRegister(symbol)) {
     return true;
   } else if (scope.context().languageFeatures().IsEnabled(
                  common::LanguageFeature::DefaultSave) &&
