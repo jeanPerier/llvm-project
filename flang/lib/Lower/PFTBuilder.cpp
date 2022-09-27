@@ -24,13 +24,6 @@ static llvm::cl::opt<bool> clDisableStructuredFir(
     "no-structured-fir", llvm::cl::desc("disable generation of structured FIR"),
     llvm::cl::init(false), llvm::cl::Hidden);
 
-static llvm::cl::opt<bool> mainProgramGlobals(
-    "main-program-globals",
-    llvm::cl::desc(
-        "Allocate all variables in the main program as global variables and "
-        "not on the stack regardless of type, kind, and rank."),
-    llvm::cl::init(/*2018 standard=*/false), llvm::cl::Hidden);
-
 using namespace Fortran;
 
 namespace {
@@ -1264,11 +1257,6 @@ bool Fortran::lower::definedInCommonBlock(const semantics::Symbol &sym) {
 
 /// Is the symbol `sym` a global?
 bool Fortran::lower::symbolIsGlobal(const semantics::Symbol &sym) {
-  if (const auto *details = sym.detailsIf<semantics::ObjectEntityDetails>()) {
-    if (mainProgramGlobals &&
-        sym.owner().kind() == Fortran::semantics::Scope::Kind::MainProgram)
-      return true;
-  }
   return semantics::IsSaved(sym) || lower::definedInCommonBlock(sym) ||
          semantics::IsNamedConstant(sym);
 }
