@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
@@ -325,16 +324,16 @@ bool isDefinedIn(mlir::Value value, mlir::Operation* op) {
 /// -> rank (or assumed rank)
 /// -> shape (if not assumed rank, and last extent might be undefined for assumed size arrays)
 /// -> type parameters
-bool isFortranObject(mlir::Value) {
-};
-
-bool isArray(mlir::Value) {
-};
-
-bool hasLengthParameters(mlir::Value) {
-};
-
-bool computeShape(mlir::Value )
+//bool isFortranObject(mlir::Value) {
+//};
+//
+//bool isArray(mlir::Value) {
+//};
+//
+//bool hasLengthParameters(mlir::Value) {
+//};
+//
+//bool computeShape(mlir::Value);
 
 
 /// (i:i+2) -> shape is obviously two.... How can we compute that in the general case and hoist that out of the forall if needed.
@@ -344,32 +343,32 @@ bool computeShape(mlir::Value )
 // Step 2: create type:
 // Step 3: allocate + index
 
-class ForallAllocatableBasedTemp {
-  void create(mlir::Value, mlir::PatternRewriter&);
-  void resetAddressing(mlir::PatternRewriter&);
-  SmallPtrSetImpl<Operation *> storeValueAt(mlir::Value, mlir::ValueRange forallIndices, mlir::PatternRewriter&);  
-  mlir::Value loadValueAt(mlir::ValueRange forallIndices, mlir::PatternRewriter&);  
-  void cleanUpAt(mlir::ValueRange forallIndices);
-  void cleanUp(mlir::PatternRewriter&);
-private:
-  mlir::Value index;
-  mlir::Value boxArrayStorage;
-}
+//class ForallAllocatableBasedTemp {
+//  void create(mlir::Value, mlir::PatternRewriter&);
+//  void resetAddressing(mlir::PatternRewriter&);
+//  SmallPtrSetImpl<mlir::Operation *> storeValueAt(mlir::Value, mlir::ValueRange forallIndices, mlir::PatternRewriter&);  
+//  mlir::Value loadValueAt(mlir::ValueRange forallIndices, mlir::PatternRewriter&);  
+//  void cleanUpAt(mlir::ValueRange forallIndices);
+//  void cleanUp(mlir::PatternRewriter&);
+//private:
+//  mlir::Value index;
+//  mlir::Value boxArrayStorage;
+//};
 
 
-class ForallArrayTemp {
-};
-
-// TODO:
-class ForallPointerTemp {
-};
-
-class ForallTemp {
-public:
-  static ForallTemp createForallTemp(mlir::Value value);
-private:
-  std::variant<>
-};
+//class ForallArrayTemp {
+//};
+//
+//// TODO:
+//class ForallPointerTemp {
+//};
+//
+//class ForallTemp {
+//public:
+//  static ForallTemp createForallTemp(mlir::Value value);
+//private:
+//  std::variant<>
+//};
 
 
 llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& assignmentAnalysis, mlir::Operation* outterForall, mlir::PatternRewriter& rewriter) {

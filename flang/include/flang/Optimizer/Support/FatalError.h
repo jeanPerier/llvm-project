@@ -15,6 +15,7 @@
 
 #include "mlir/IR/Diagnostics.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace fir {
 
