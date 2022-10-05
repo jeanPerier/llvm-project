@@ -396,6 +396,22 @@ private:
   const KindMapping &kindMap;
 };
 
+class HlfirValue {
+public:
+  HlfirValue(mlir::Value val) : value{val} {
+    // TODO: verify.
+  }
+  bool isValue() const {
+    return getBase().getType().isa<fir::ExprType>() ||
+           fir::isa_trivial(getBase().getType());
+  }
+  bool isVariable() const { return !isValue(); }
+  mlir::Value getBase() const { return value; }
+
+private:
+  mlir::Value value;
+};
+
 } // namespace fir
 
 namespace fir::factory {
@@ -556,6 +572,23 @@ mlir::Value genMaxWithZero(fir::FirOpBuilder &builder, mlir::Location loc,
 /// address.
 mlir::Value genCPtrOrCFunptrAddr(fir::FirOpBuilder &builder, mlir::Location loc,
                                  mlir::Value cPtr, mlir::Type ty);
+
+using CleanupFunction = std::function<void()>;
+std::pair<fir::ExtendedValue, std::optional<CleanupFunction>>
+HlfirValueToExtendedValue(mlir::Location loc, fir::FirOpBuilder &builder,
+                          fir::HlfirValue value);
+
+std::pair<fir::HlfirValue, std::optional<CleanupFunction>>
+readHlfirVarToValue(mlir::Location loc, fir::FirOpBuilder &builder,
+                    fir::HlfirValue hlfirObject);
+
+std::pair<fir::HlfirValue, std::optional<CleanupFunction>>
+copyNonSimplyContiguousIntoTemp(mlir::Location loc, fir::FirOpBuilder &builder,
+                                fir::HlfirValue hlfirObject);
+
+std::pair<fir::HlfirValue, std::optional<CleanupFunction>>
+storeHlfirValueToTemp(mlir::Location loc, fir::FirOpBuilder &builder,
+                      fir::HlfirValue hlfirObject);
 
 } // namespace fir::factory
 
