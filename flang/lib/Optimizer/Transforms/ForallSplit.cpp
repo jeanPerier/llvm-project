@@ -25,6 +25,11 @@
 #include "flang/Optimizer/Builder/Todo.h"
 #include "llvm/ADT/SmallSet.h"
 
+namespace fir {
+#define GEN_PASS_DEF_FORALLSPLIT
+#include "flang/Optimizer/Transforms/Passes.h.inc"
+} // namespace fir
+
 
 // Note: the patte
 bool inline isForall(fir::DoLoopOp loop) {
@@ -333,7 +338,8 @@ bool computeShape(mlir::Value )
 
 
 /// (i:i+2) -> shape is obviously two.... How can we compute that in the general case and hoist that out of the forall if needed.
-/// compute + fold inside the loop, then "hoist" ?
+/// compute + fold inside the loop, then "hoist" ? Imagine we can hoist that. How do we then make a link with this value ?
+/// Need to use it somewhere.... in the designate ? 
 
 // Step 2: create type:
 // Step 3: allocate + index
@@ -510,7 +516,7 @@ public:
 }
 
 namespace {
-struct ForallSplitPass final : public fir::ForallSplitBase<ForallSplitPass> {
+struct ForallSplitPass final : public fir::impl::ForallSplitBase<ForallSplitPass> {
   void runOnOperation() override {
     auto func = getOperation();
     auto *context = &getContext();
