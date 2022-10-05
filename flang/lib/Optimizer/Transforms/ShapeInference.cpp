@@ -10,15 +10,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "PassDetail.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "flang/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 //#include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
+namespace fir {
+#define GEN_PASS_DEF_SHAPEINFERENCE
+#include "flang/Optimizer/Transforms/Passes.h.inc"
+} // namespace fir
 
 namespace {
 struct ShapeDimInfer : public mlir::OpRewritePattern<mlir::shape::DimOp> {
@@ -31,7 +34,7 @@ struct ShapeDimInfer : public mlir::OpRewritePattern<mlir::shape::DimOp> {
 } // namespace
 
 namespace {
-struct ShapeInferencePass final : public fir::ShapeInferenceBase<ShapeInferencePass> {
+struct ShapeInferencePass final : public fir::impl::ShapeInferenceBase<ShapeInferencePass> {
   void runOnOperation() override {
     mlir::RewritePatternSet patterns(&getContext());
     patterns.add<ShapeDimInfer>(
