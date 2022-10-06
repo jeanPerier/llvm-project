@@ -16,6 +16,7 @@
 
 include "flang/Optimizer/Dialect/FIRDialect.td"
 include "flang/Optimizer/Dialect/FIRTypes.td"
+include "flang/Optimizer/Dialect/FortranVariableInterface.td"
 include "mlir/Dialect/Shape/IR/ShapeBase.td"
 
 // Base class for FIR operations.
@@ -2852,7 +2853,7 @@ def fir_IsPresentOp : fir_SimpleOp<"is_present", [NoSideEffect]> {
   let results = (outs BoolLike);
 }
 
-def fir_DeclareOp : fir_Op<"declare", [NoSideEffect, AttrSizedOperandSegments]> {
+def fir_DeclareOp : fir_Op<"declare", [NoSideEffect, AttrSizedOperandSegments, DeclareOpInterfaceMethods<DefineFortranVariableOpInterface>]> {
   let summary = "declare a variable";
 
   let description = [{
