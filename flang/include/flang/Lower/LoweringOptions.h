@@ -42,13 +42,15 @@ public:
   bool isPolymorphicTypeImplEnabled() const { return polymorphicTypeImpl; }
   LoweringOptions &setPolymorphicTypeImpl(bool v) {
     polymorphicTypeImpl = v;
+    return *this;
+  }
 
-    bool getLowerToHighLevelFIR() const { return lowerToHighLevelFIR; }
-    LoweringOptions &setLowerToHighLevelFIR(bool v) {
-      lowerToHighLevelFIR = v;
-      return *this;
-    }
-  };
+  bool getLowerToHighLevelFIR() const { return lowerToHighLevelFIR; }
+  LoweringOptions &setLowerToHighLevelFIR(bool v) {
+    lowerToHighLevelFIR = v;
+    return *this;
+  }
+};
 
 } // namespace Fortran::lower
 
