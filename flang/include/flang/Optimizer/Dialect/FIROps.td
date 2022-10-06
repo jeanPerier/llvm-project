@@ -16,8 +16,10 @@
 
 include "flang/Optimizer/Dialect/FIRDialect.td"
 include "flang/Optimizer/Dialect/FIRTypes.td"
+include "flang/Optimizer/Dialect/FIRAttr.td"
 include "flang/Optimizer/Dialect/FortranVariableInterface.td"
 include "mlir/Dialect/Shape/IR/ShapeBase.td"
+
 
 // Base class for FIR operations.
 // All operations automatically get a prefix of "fir.".
@@ -2871,11 +2873,11 @@ def fir_DeclareOp : fir_Op<"declare", [NoSideEffect, AttrSizedOperandSegments, D
   let description = [{
   }];
 
-  // FIX Shape !
   let arguments = (ins
     AnyRefOrBox:$memref,
-    Optional<AnyType>:$shape,
-    Variadic<AnyIntegerType>:$typeparams
+    Optional<AnyShapeOrShiftType>:$shape,
+    Variadic<AnyIntegerType>:$typeparams,
+    DefaultValuedAttr<fir_FortranVariableFlagsAttr, "{}">:$fortran_attrs
   );
 
   let results = (outs fir_VarType);
