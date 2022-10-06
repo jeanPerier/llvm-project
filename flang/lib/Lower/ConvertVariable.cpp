@@ -1293,6 +1293,79 @@ recoverShapeVector(llvm::ArrayRef<std::int64_t> shapeVec, mlir::Value initVal) {
   return result;
 }
 
+/// Map a symbol to its FIR address and evaluated specification expressions.
+/// Not for symbols lowered to fir.box.
+/// Will optionally create fir.declare.
+static void genDeclareSymbol(Fortran::lower::AbstractConverter &converter,
+                             Fortran::lower::SymMap &symMap,
+                             const Fortran::semantics::Symbol &sym,
+                             mlir::Value base, mlir::Value len = {},
+                             llvm::ArrayRef<mlir::Value> shape = llvm::None,
+                             llvm::ArrayRef<mlir::Value> lbounds = llvm::None,
+                             bool force = false) {
+  if (converter.getLoweringOptions().getLowerToHighLevelFIR())
+    TODO(genLocation(converter, sym), "generate fir.declare");
+  if (len) {
+    if (!shape.empty()) {
+      if (!lbounds.empty())
+        symMap.addCharSymbolWithBounds(sym, base, len, shape, lbounds, force);
+      else
+        symMap.addCharSymbolWithShape(sym, base, len, shape, force);
+    } else {
+      symMap.addCharSymbol(sym, base, len, force);
+    }
+  } else {
+    if (!shape.empty()) {
+      if (!lbounds.empty())
+        symMap.addSymbolWithBounds(sym, base, shape, lbounds, force);
+      else
+        symMap.addSymbolWithShape(sym, base, shape, force);
+    } else {
+      symMap.addSymbol(sym, base, force);
+    }
+  }
+}
+
+/// Map a symbol to its FIR address and evaluated specification expressions
+/// provided as a fir::ExtendedValue. Will optionally create fir.declare.
+static void genDeclareSymbol(Fortran::lower::AbstractConverter &converter,
+                             Fortran::lower::SymMap &symMap,
+                             const Fortran::semantics::Symbol &sym,
+                             const fir::ExtendedValue &exv) {
+  if (converter.getLoweringOptions().getLowerToHighLevelFIR())
+    TODO(genLocation(converter, sym),
+         "generate fir.declare from ExtendedValue");
+  symMap.addSymbol(sym, exv);
+}
+
+/// Map an allocatable or pointer symbol to its FIR address and evaluated
+/// specification expressions. Will optionally create fir.declare.
+static void
+genAllocatableOrPointerDeclare(Fortran::lower::AbstractConverter &converter,
+                               Fortran::lower::SymMap &symMap,
+                               const Fortran::semantics::Symbol &sym,
+                               fir::MutableBoxValue box, bool force = false) {
+  if (converter.getLoweringOptions().getLowerToHighLevelFIR())
+    TODO(genLocation(converter, sym),
+         "generate fir.declare for allocatable or pointers");
+  symMap.addAllocatableOrPointer(sym, box, force);
+}
+
+/// Map a symbol represented with a runtime descriptor to its FIR fir.box and
+/// evaluated specification expressions. Will optionally create fir.declare.
+static void genBoxDeclare(Fortran::lower::AbstractConverter &converter,
+                          Fortran::lower::SymMap &symMap,
+                          const Fortran::semantics::Symbol &sym,
+                          mlir::Value box, llvm::ArrayRef<mlir::Value> lbounds,
+                          llvm::ArrayRef<mlir::Value> explicitParams,
+                          llvm::ArrayRef<mlir::Value> explicitExtents,
+                          bool replace = false) {
+  if (converter.getLoweringOptions().getLowerToHighLevelFIR())
+    TODO(genLocation(converter, sym), "generate fir.declare for box");
+  symMap.addBoxSymbol(sym, box, lbounds, explicitParams, explicitExtents,
+                      replace);
+}
+
 /// Lower specification expressions and attributes of variable \p var and
 /// add it to the symbol map.  For a global or an alias, the address must be
 /// pre-computed and provided in \p preAlloc.  A dummy argument for the current
@@ -1321,7 +1394,8 @@ void Fortran::lower::mapSymbolAttributes(
       mlir::Type dummyProcType =
           Fortran::lower::getDummyProcedureType(sym, converter);
       mlir::Value undefOp = builder.create<fir::UndefOp>(loc, dummyProcType);
-      symMap.addSymbol(sym, undefOp);
+
+      genDeclareSymbol(converter, symMap, sym, undefOp);
     }
     if (Fortran::semantics::IsPointer(sym))
       TODO(loc, "procedure pointers");
@@ -1363,7 +1437,8 @@ void Fortran::lower::mapSymbolAttributes(
     }
     fir::MutableBoxValue box = Fortran::lower::createMutableBox(
         converter, loc, var, boxAlloc, nonDeferredLenParams);
-    symMap.addAllocatableOrPointer(var.getSymbol(), box, replace);
+    genAllocatableOrPointerDeclare(converter, symMap, var.getSymbol(), box,
+                                   replace);
     return;
   }
 
@@ -1383,8 +1458,8 @@ void Fortran::lower::mapSymbolAttributes(
       lowerExplicitLowerBounds(converter, loc, ba, lbounds, symMap, stmtCtx);
       lowerExplicitExtents(converter, loc, ba, lbounds, explicitExtents, symMap,
                            stmtCtx);
-      symMap.addBoxSymbol(sym, dummyArg, lbounds, explicitParams,
-                          explicitExtents, replace);
+      genBoxDeclare(converter, symMap, sym, dummyArg, lbounds, explicitParams,
+                    explicitExtents, replace);
       return;
     }
   }
@@ -1416,10 +1491,11 @@ void Fortran::lower::mapSymbolAttributes(
              "handled above");
       // The box is read right away because lowering code does not expect
       // a non pointer/allocatable symbol to be mapped to a MutableBox.
-      symMap.addSymbol(sym, fir::factory::genMutableBoxRead(
-                                builder, loc,
-                                fir::factory::createTempMutableBox(
-                                    builder, loc, converter.genType(var))));
+      genDeclareSymbol(converter, symMap, sym,
+                       fir::factory::genMutableBoxRead(
+                           builder, loc,
+                           fir::factory::createTempMutableBox(
+                               builder, loc, converter.genType(var))));
       return true;
     }
     return false;
@@ -1536,7 +1612,7 @@ void Fortran::lower::mapSymbolAttributes(
         }
         // Otherwise, it's a local variable or function result.
         mlir::Value local = createNewLocal(converter, loc, var, preAlloc);
-        symMap.addSymbol(sym, local);
+        genDeclareSymbol(converter, symMap, sym, local);
       },
 
       //===--------------------------------------------------------------===//
@@ -1561,17 +1637,19 @@ void Fortran::lower::mapSymbolAttributes(
             // Set/override LEN with a constant
             mlir::Value len =
                 builder.createIntegerConstant(loc, idxTy, charLen);
-            symMap.addCharSymbol(sym, boxAddr, len, true);
+            genDeclareSymbol(converter, symMap, sym, boxAddr, len,
+                             /*shape=*/llvm::None, /*lbounds=*/llvm::None,
+                             true);
             return;
           }
         }
         mlir::Value len = builder.createIntegerConstant(loc, idxTy, charLen);
         if (preAlloc) {
-          symMap.addCharSymbol(sym, preAlloc, len);
+          genDeclareSymbol(converter, symMap, sym, preAlloc, len);
           return;
         }
         mlir::Value local = createNewLocal(converter, loc, var, preAlloc);
-        symMap.addCharSymbol(sym, local, len);
+        genDeclareSymbol(converter, symMap, sym, local, len);
       },
 
       //===--------------------------------------------------------------===//
@@ -1591,19 +1669,20 @@ void Fortran::lower::mapSymbolAttributes(
           // Override LEN with an expression
           if (charLen)
             len = genExplicitCharLen(charLen);
-          symMap.addCharSymbol(sym, boxAddr, len, true);
+          genDeclareSymbol(converter, symMap, sym, boxAddr, len,
+                           /*shape=*/llvm::None, /*lbounds=*/llvm::None, true);
           return;
         }
         // local CHARACTER variable
         mlir::Value len = genExplicitCharLen(charLen);
         if (preAlloc) {
-          symMap.addCharSymbol(sym, preAlloc, len);
+          genDeclareSymbol(converter, symMap, sym, preAlloc, len);
           return;
         }
         llvm::SmallVector<mlir::Value> lengths = {len};
         mlir::Value local =
             createNewLocal(converter, loc, var, preAlloc, llvm::None, lengths);
-        symMap.addCharSymbol(sym, local, len);
+        genDeclareSymbol(converter, symMap, sym, local, len);
       },
 
       //===--------------------------------------------------------------===//
@@ -1621,7 +1700,8 @@ void Fortran::lower::mapSymbolAttributes(
             shape.push_back(genExtentValue(builder, loc, idxTy, i));
           mlir::Value local =
               isDummy ? addr : createNewLocal(converter, loc, var, preAlloc);
-          symMap.addSymbolWithShape(sym, local, shape, isDummy);
+          genDeclareSymbol(converter, symMap, sym, local, /*len=*/{}, shape,
+                           /*lbounds=*/llvm::None, isDummy);
           return;
         }
         // If object is an array process the lower bound and extent values by
@@ -1639,7 +1719,8 @@ void Fortran::lower::mapSymbolAttributes(
         // Must be a dummy argument, have an explicit shape, or be a PARAMETER.
         assert(isDummy || Fortran::lower::isExplicitShape(sym) ||
                Fortran::semantics::IsNamedConstant(sym));
-        symMap.addSymbolWithBounds(sym, local, extents, lbounds, isDummy);
+        genDeclareSymbol(converter, symMap, sym, local, /*len=*/{}, extents,
+                         lbounds, isDummy);
       },
 
       //===--------------------------------------------------------------===//
@@ -1662,18 +1743,20 @@ void Fortran::lower::mapSymbolAttributes(
         }
         if (x.lboundAllOnes()) {
           // if lower bounds are all ones, build simple shaped object
-          llvm::SmallVector<mlir::Value> shapes;
-          populateShape(shapes, x.bounds, argBox);
+          llvm::SmallVector<mlir::Value> extents;
+          populateShape(extents, x.bounds, argBox);
           if (isDummy) {
-            symMap.addSymbolWithShape(sym, addr, shapes, true);
+            genDeclareSymbol(converter, symMap, sym, addr, /*len=*/{}, extents,
+                             /*lbounds=*/llvm::None, true);
             return;
           }
           // local array with computed bounds
           assert(Fortran::lower::isExplicitShape(sym) ||
                  Fortran::semantics::IsAllocatableOrPointer(sym));
           mlir::Value local =
-              createNewLocal(converter, loc, var, preAlloc, shapes);
-          symMap.addSymbolWithShape(sym, local, shapes);
+              createNewLocal(converter, loc, var, preAlloc, extents);
+          genDeclareSymbol(converter, symMap, sym, local, /*len=*/{}, extents,
+                           /*lbounds=*/llvm::None);
           return;
         }
         // if object is an array process the lower bound and extent values
@@ -1681,14 +1764,16 @@ void Fortran::lower::mapSymbolAttributes(
         llvm::SmallVector<mlir::Value> lbounds;
         populateLBoundsExtents(lbounds, extents, x.bounds, argBox);
         if (isDummy) {
-          symMap.addSymbolWithBounds(sym, addr, extents, lbounds, true);
+          genDeclareSymbol(converter, symMap, sym, addr, /*len=*/{}, extents,
+                           lbounds, true);
           return;
         }
         // local array with computed bounds
         assert(Fortran::lower::isExplicitShape(sym));
         mlir::Value local =
             createNewLocal(converter, loc, var, preAlloc, extents);
-        symMap.addSymbolWithBounds(sym, local, extents, lbounds);
+        genDeclareSymbol(converter, symMap, sym, local, /*len=*/{}, extents,
+                         lbounds);
       },
 
       //===--------------------------------------------------------------===//
@@ -1722,7 +1807,8 @@ void Fortran::lower::mapSymbolAttributes(
             shape.push_back(genExtentValue(builder, loc, idxTy, i));
           mlir::Value local =
               isDummy ? addr : createNewLocal(converter, loc, var, preAlloc);
-          symMap.addCharSymbolWithShape(sym, local, len, shape, isDummy);
+          genDeclareSymbol(converter, symMap, sym, local, len, shape,
+                           /*lbounds=*/llvm::None, isDummy);
           return;
         }
 
@@ -1737,15 +1823,15 @@ void Fortran::lower::mapSymbolAttributes(
         }
 
         if (isDummy) {
-          symMap.addCharSymbolWithBounds(sym, addr, len, extents, lbounds,
-                                         true);
+          genDeclareSymbol(converter, symMap, sym, addr, len, extents, lbounds,
+                           true);
           return;
         }
         // local CHARACTER array with computed bounds
         assert(Fortran::lower::isExplicitShape(sym));
         mlir::Value local =
             createNewLocal(converter, loc, var, preAlloc, extents);
-        symMap.addCharSymbolWithBounds(sym, local, len, extents, lbounds);
+        genDeclareSymbol(converter, symMap, sym, local, len, extents, lbounds);
       },
 
       //===--------------------------------------------------------------===//
@@ -1788,13 +1874,14 @@ void Fortran::lower::mapSymbolAttributes(
           for (int64_t i : recoverShapeVector(x.shapes, preAlloc))
             shape.push_back(genExtentValue(builder, loc, idxTy, i));
           if (isDummy) {
-            symMap.addCharSymbolWithShape(sym, addr, len, shape, true);
+            genDeclareSymbol(converter, symMap, sym, addr, len, shape,
+                             /*lbounds=*/llvm::None, true);
             return;
           }
           // local CHARACTER array with constant size
           mlir::Value local = createNewLocal(converter, loc, var, preAlloc,
                                              llvm::None, lengths);
-          symMap.addCharSymbolWithShape(sym, local, len, shape);
+          genDeclareSymbol(converter, symMap, sym, local, len, shape);
           return;
         }
 
@@ -1809,15 +1896,15 @@ void Fortran::lower::mapSymbolAttributes(
           extents.emplace_back(genExtentValue(builder, loc, idxTy, snd));
         }
         if (isDummy) {
-          symMap.addCharSymbolWithBounds(sym, addr, len, extents, lbounds,
-                                         true);
+          genDeclareSymbol(converter, symMap, sym, addr, len, extents, lbounds,
+                           true);
           return;
         }
         // local CHARACTER array with computed bounds
         assert((!mustBeDummy) && (Fortran::lower::isExplicitShape(sym)));
         mlir::Value local =
             createNewLocal(converter, loc, var, preAlloc, llvm::None, lengths);
-        symMap.addCharSymbolWithBounds(sym, local, len, extents, lbounds);
+        genDeclareSymbol(converter, symMap, sym, local, len, extents, lbounds);
       },
 
       //===--------------------------------------------------------------===//
@@ -1855,13 +1942,14 @@ void Fortran::lower::mapSymbolAttributes(
           llvm::SmallVector<mlir::Value> shape;
           populateShape(shape, x.bounds, argBox);
           if (isDummy) {
-            symMap.addCharSymbolWithShape(sym, addr, len, shape, true);
+            genDeclareSymbol(converter, symMap, sym, addr, len, shape,
+                             /*lbounds=*/llvm::None, true);
             return;
           }
           // local CHARACTER array
           mlir::Value local =
               createNewLocal(converter, loc, var, preAlloc, shape);
-          symMap.addCharSymbolWithShape(sym, local, len, shape);
+          genDeclareSymbol(converter, symMap, sym, local, len, shape);
           return;
         }
         // if object is an array process the lower bound and extent values
@@ -1869,15 +1957,15 @@ void Fortran::lower::mapSymbolAttributes(
         llvm::SmallVector<mlir::Value> lbounds;
         populateLBoundsExtents(lbounds, extents, x.bounds, argBox);
         if (isDummy) {
-          symMap.addCharSymbolWithBounds(sym, addr, len, extents, lbounds,
-                                         true);
+          genDeclareSymbol(converter, symMap, sym, addr, len, extents, lbounds,
+                           true);
           return;
         }
         // local CHARACTER array with computed bounds
         assert(Fortran::lower::isExplicitShape(sym));
         mlir::Value local =
             createNewLocal(converter, loc, var, preAlloc, extents);
-        symMap.addCharSymbolWithBounds(sym, local, len, extents, lbounds);
+        genDeclareSymbol(converter, symMap, sym, local, len, extents, lbounds);
       },
 
       //===--------------------------------------------------------------===//
@@ -1929,13 +2017,14 @@ void Fortran::lower::mapSymbolAttributes(
           llvm::SmallVector<mlir::Value> shape;
           populateShape(shape, x.bounds, argBox);
           if (isDummy) {
-            symMap.addCharSymbolWithShape(sym, addr, len, shape, true);
+            genDeclareSymbol(converter, symMap, sym, addr, len, shape,
+                             /*lbounds=*/llvm::None, true);
             return;
           }
           // local CHARACTER array
           mlir::Value local =
               createNewLocal(converter, loc, var, preAlloc, shape, lengths);
-          symMap.addCharSymbolWithShape(sym, local, len, shape);
+          genDeclareSymbol(converter, symMap, sym, local, len, shape);
           return;
         }
         // Process the lower bound and extent values.
@@ -1943,15 +2032,15 @@ void Fortran::lower::mapSymbolAttributes(
         llvm::SmallVector<mlir::Value> lbounds;
         populateLBoundsExtents(lbounds, extents, x.bounds, argBox);
         if (isDummy) {
-          symMap.addCharSymbolWithBounds(sym, addr, len, extents, lbounds,
-                                         true);
+          genDeclareSymbol(converter, symMap, sym, addr, len, extents, lbounds,
+                           true);
           return;
         }
         // local CHARACTER array with computed bounds
         assert(Fortran::lower::isExplicitShape(sym));
         mlir::Value local =
             createNewLocal(converter, loc, var, preAlloc, extents, lengths);
-        symMap.addCharSymbolWithBounds(sym, local, len, extents, lbounds);
+        genDeclareSymbol(converter, symMap, sym, local, len, extents, lbounds);
       },
 
       //===--------------------------------------------------------------===//
