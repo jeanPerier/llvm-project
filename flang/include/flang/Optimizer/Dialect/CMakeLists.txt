@@ -6,6 +6,7 @@ mlir_tablegen(FIROps.h.inc -gen-op-decls)
 mlir_tablegen(FIROps.cpp.inc -gen-op-defs)
 mlir_tablegen(FIROpsTypes.h.inc --gen-typedef-decls --typedefs-dialect=fir)
 mlir_tablegen(FIROpsTypes.cpp.inc --gen-typedef-defs --typedefs-dialect=fir)
+add_mlir_interface(FortranVariableInterface)
 add_public_tablegen_target(FIROpsIncGen)
 
 set(LLVM_TARGET_DEFINITIONS CanonicalizationPatterns.td)
