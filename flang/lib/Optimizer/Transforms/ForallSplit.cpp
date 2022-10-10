@@ -10,18 +10,18 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "flang/Optimizer/Transforms/Passes.h"
-#include "flang/Optimizer/Builder/FIRBuilder.h"
-//#include "mlir/Interfaces/InferTypeOpInterface.h"
-//#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "flang/Optimizer/Support/Matcher.h"
-#include "flang/Optimizer/Support/FIRContext.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/IR/BlockAndValueMapping.h"
+// #include "mlir/Interfaces/InferTypeOpInterface.h"
+// #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "flang/Optimizer/Builder/Todo.h"
+#include "flang/Optimizer/Support/FIRContext.h"
+#include "flang/Optimizer/Support/Matcher.h"
+#include "mlir/IR/BlockAndValueMapping.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/SmallSet.h"
 
 namespace fir {
@@ -29,11 +29,8 @@ namespace fir {
 #include "flang/Optimizer/Transforms/Passes.h.inc"
 } // namespace fir
 
-
 // Note: the patte
-bool inline isForall(fir::DoLoopOp loop) {
-  return loop->hasAttr("fir.forall");
-}
+bool inline isForall(fir::DoLoopOp loop) { return loop->hasAttr("fir.forall"); }
 
 void inline removeForallLabel(fir::DoLoopOp loop) {
   loop->removeAttr("fir.forall");
@@ -42,7 +39,7 @@ void inline removeForallLabel(fir::DoLoopOp loop) {
 bool inline isTopLevelForall(fir::DoLoopOp loop) {
   if (!isForall(loop))
     return false;
-  auto* owner = loop->getParentOp();
+  auto *owner = loop->getParentOp();
   while (owner) {
     if (auto parentLoop = mlir::dyn_cast<fir::DoLoopOp>(owner))
       if (isForall(parentLoop))
@@ -52,38 +49,39 @@ bool inline isTopLevelForall(fir::DoLoopOp loop) {
   return true;
 }
 
-
 namespace {
-
 
 // Note: memory dependencies are dropped on the floor here...
 
-//llvm::SmallPtrSet<mlir::Operation*> gatherOpsToClone(mlir::Operation* leafOp, mlir::Operation* parentOp) {
-//  llvm::SmallPtrSet<mlir::Operation*> toBeCloned;
-//  llvm::SmallVector<mlir::Operation*> toBeVisited{leafOp};
-//  // Start by adding adding all parentOp until parentOp;
-//  mlir::Operation* owner = leafOp->getParentOp();
-//  while (owner && owner != parentOp) {
-//    toBeVisited.push_back(owner);
-//    owner = owner->getParentOp();
-//  }
-//  while (!toBeVisited.empty()) {
-//    mlir::Operation* op = toBeVisited.pop_back_val();
-//    if (toBeCloned.contains(op))
-//     continue;
-//    toBeCloned.insert(op);
-//    for (mlir::Value operand = op->getOperands())
-//      if (mlir::Operation* definingOp = operand.getDefiningOp())
-//        if (parentOp->isProperAncestor(definingOp))
-//          toBeVisited.push_back(definingOp);
-//  }
-//}
+// llvm::SmallPtrSet<mlir::Operation*> gatherOpsToClone(mlir::Operation* leafOp,
+// mlir::Operation* parentOp) {
+//   llvm::SmallPtrSet<mlir::Operation*> toBeCloned;
+//   llvm::SmallVector<mlir::Operation*> toBeVisited{leafOp};
+//   // Start by adding adding all parentOp until parentOp;
+//   mlir::Operation* owner = leafOp->getParentOp();
+//   while (owner && owner != parentOp) {
+//     toBeVisited.push_back(owner);
+//     owner = owner->getParentOp();
+//   }
+//   while (!toBeVisited.empty()) {
+//     mlir::Operation* op = toBeVisited.pop_back_val();
+//     if (toBeCloned.contains(op))
+//      continue;
+//     toBeCloned.insert(op);
+//     for (mlir::Value operand = op->getOperands())
+//       if (mlir::Operation* definingOp = operand.getDefiningOp())
+//         if (parentOp->isProperAncestor(definingOp))
+//           toBeVisited.push_back(definingOp);
+//   }
+// }
 
-void cloneAssignmentIntoItsOwnLoopNest(fir::AssignOp assignment, fir::DoLoopOp loop, mlir::PatternRewriter& rewriter) {
+void cloneAssignmentIntoItsOwnLoopNest(fir::AssignOp assignment,
+                                       fir::DoLoopOp loop,
+                                       mlir::PatternRewriter &rewriter) {
   // How can something be cloned while still preserving the order....
   // auto toBeCloned;
   mlir::BlockAndValueMapping mapper;
-  auto* newLoop = rewriter.clone(*loop.getOperation(), mapper);
+  auto *newLoop = rewriter.clone(*loop.getOperation(), mapper);
   assert(newLoop && "failed to clone");
   int currentPosition = -1;
   int position = -1;
@@ -94,7 +92,7 @@ void cloneAssignmentIntoItsOwnLoopNest(fir::AssignOp assignment, fir::DoLoopOp l
         position = currentPosition;
     }
   });
-  
+
   llvm::SmallVector<fir::AssignOp> toErase;
   llvm::SmallVector<fir::DoLoopOp> removeLabel;
   currentPosition = -1;
@@ -108,7 +106,7 @@ void cloneAssignmentIntoItsOwnLoopNest(fir::AssignOp assignment, fir::DoLoopOp l
         removeLabel.push_back(doLoop);
     }
   });
-  for (fir::AssignOp otherAssignment: toErase)
+  for (fir::AssignOp otherAssignment : toErase)
     rewriter.eraseOp(otherAssignment);
   for (fir::DoLoopOp newNestedLoop : removeLabel)
     removeForallLabel(newNestedLoop);
@@ -117,11 +115,13 @@ void cloneAssignmentIntoItsOwnLoopNest(fir::AssignOp assignment, fir::DoLoopOp l
   // walk + clone ?
 }
 
-void cloneAssignmentsIntoItsOwnLoopNest(llvm::SmallVector<fir::AssignOp> assignments, fir::DoLoopOp loop, mlir::PatternRewriter& rewriter) {
+void cloneAssignmentsIntoItsOwnLoopNest(
+    llvm::SmallVector<fir::AssignOp> assignments, fir::DoLoopOp loop,
+    mlir::PatternRewriter &rewriter) {
   // How can something be cloned while still preserving the order....
   // auto toBeCloned;
   mlir::BlockAndValueMapping mapper;
-  auto* newLoop = rewriter.clone(*loop.getOperation(), mapper);
+  auto *newLoop = rewriter.clone(*loop.getOperation(), mapper);
   assert(newLoop && "failed to clone");
   int currentPosition = -1;
   llvm::SmallSet<int, 8> assignmentPositions;
@@ -137,7 +137,7 @@ void cloneAssignmentsIntoItsOwnLoopNest(llvm::SmallVector<fir::AssignOp> assignm
         }
     }
   });
-  
+
   llvm::SmallVector<fir::AssignOp> toErase;
   llvm::SmallVector<fir::DoLoopOp> removeLabel;
   currentPosition = -1;
@@ -151,9 +151,9 @@ void cloneAssignmentsIntoItsOwnLoopNest(llvm::SmallVector<fir::AssignOp> assignm
         removeLabel.push_back(doLoop);
     }
   });
-  for (fir::AssignOp otherAssignment: toErase)
+  for (fir::AssignOp otherAssignment : toErase)
     rewriter.eraseOp(otherAssignment);
-  for (fir::AssignOp otherAssignment: toEraseInSecondLoop)
+  for (fir::AssignOp otherAssignment : toEraseInSecondLoop)
     rewriter.eraseOp(otherAssignment);
   for (fir::DoLoopOp newNestedLoop : removeLabel)
     removeForallLabel(newNestedLoop);
@@ -168,38 +168,32 @@ void cloneAssignmentsIntoItsOwnLoopNest(llvm::SmallVector<fir::AssignOp> assignm
 /// 3. Temp introductions.
 
 struct VariableDirectReference {
-  bool mayAccess(const VariableDirectReference&) const {
-    return true;
-  }
-  mlir::Operation* varDeclaration;
+  bool mayAccess(const VariableDirectReference &) const { return true; }
+  mlir::Operation *varDeclaration;
   // TBD accesses like indices ?
   // TBD opaque function reference may access non local variables.
 };
 
 struct FunctionCall {
-  bool mayAccess(const VariableDirectReference&) const {
-    return true;
-  }
+  bool mayAccess(const VariableDirectReference &) const { return true; }
   fir::CallOp call;
 };
 
 struct UnknownAccess {
-  bool mayAccess(const VariableDirectReference&) const {
-    return true;
-  } 
+  bool mayAccess(const VariableDirectReference &) const { return true; }
   mlir::Value accessResult;
 };
 
-
 class VariableAccess : public fir::details::matcher<VariableAccess> {
 public:
-  using AccessType = std::variant<VariableDirectReference, FunctionCall, UnknownAccess>;
-  bool mayAccess(const VariableDirectReference& var) const {
-    return match([&](const auto& access) {return access.mayAccess(var);});
+  using AccessType =
+      std::variant<VariableDirectReference, FunctionCall, UnknownAccess>;
+  bool mayAccess(const VariableDirectReference &var) const {
+    return match([&](const auto &access) { return access.mayAccess(var); });
   }
 
-  template<typename A>
-  VariableAccess(A&& a) : variableAccess{std::forward<A>(a)} {}
+  template <typename A>
+  VariableAccess(A &&a) : variableAccess{std::forward<A>(a)} {}
   const AccessType &matchee() const { return variableAccess; }
 
 private:
@@ -208,17 +202,21 @@ private:
 
 struct AssignmentAliasing {
   VariableDirectReference lhsRef;
-  llvm::SmallVector<std::pair<mlir::Value, llvm::SmallVector<VariableAccess>>> variableAccesses;
+  llvm::SmallVector<std::pair<mlir::Value, llvm::SmallVector<VariableAccess>>>
+      variableAccesses;
 };
 
-AssignmentAliasing analyzeAssignment(fir::AssignOp assignment, mlir::Operation* outterForall) {
-  llvm::SmallVector<mlir::Value> primaryOperandsToBeAnalyzed = {assignment.getValue()};
-  mlir::Operation* lhs = assignment.getVar().getDefiningOp();
+AssignmentAliasing analyzeAssignment(fir::AssignOp assignment,
+                                     mlir::Operation *outterForall) {
+  llvm::SmallVector<mlir::Value> primaryOperandsToBeAnalyzed = {
+      assignment.getValue()};
+  mlir::Operation *lhs = assignment.getVar().getDefiningOp();
   while (lhs) {
     if (auto designateOp = mlir::dyn_cast<fir::DesignateOp>(lhs)) {
       // TODO: stop here if LHS is a pointer component.
       lhs = designateOp.getVar().getDefiningOp();
-      primaryOperandsToBeAnalyzed.append(designateOp.getIndices().begin(), designateOp.getIndices().end());      
+      primaryOperandsToBeAnalyzed.append(designateOp.getIndices().begin(),
+                                         designateOp.getIndices().end());
     } else if (auto declareOp = mlir::dyn_cast<fir::DeclareOp>(lhs)) {
       break;
     } else {
@@ -230,29 +228,34 @@ AssignmentAliasing analyzeAssignment(fir::AssignOp assignment, mlir::Operation* 
 
   // Add forall/if op operands.
   if (outterForall) {
-    mlir::Operation* ownerOp = assignment->getParentOp();
+    mlir::Operation *ownerOp = assignment->getParentOp();
     while (ownerOp && outterForall->isProperAncestor(ownerOp)) {
-      primaryOperandsToBeAnalyzed.append(ownerOp->getOperands().begin(), ownerOp->getOperands().end());
+      primaryOperandsToBeAnalyzed.append(ownerOp->getOperands().begin(),
+                                         ownerOp->getOperands().end());
       ownerOp = ownerOp->getParentOp();
     }
   }
 
-  llvm::SmallVector<std::pair<mlir::Value, llvm::SmallVector<VariableAccess>>> variableAccesses;
-  for(mlir::Value primaryOperand : primaryOperandsToBeAnalyzed) {
+  llvm::SmallVector<std::pair<mlir::Value, llvm::SmallVector<VariableAccess>>>
+      variableAccesses;
+  for (mlir::Value primaryOperand : primaryOperandsToBeAnalyzed) {
     llvm::SmallVector<mlir::Value> operandsToBeAnalyzed = {primaryOperand};
-    variableAccesses.emplace_back(std::make_pair(primaryOperand, llvm::SmallVector<VariableAccess>{}));
+    variableAccesses.emplace_back(
+        std::make_pair(primaryOperand, llvm::SmallVector<VariableAccess>{}));
     while (!operandsToBeAnalyzed.empty()) {
       auto operand = operandsToBeAnalyzed.pop_back_val();
-      if (mlir::Operation* parentOp = operand.getDefiningOp()) {
-        const bool opIsInsideForall = outterForall && outterForall->isProperAncestor(parentOp);
-        // If the operand is not an address and is defined above the outer forall,
-        // its value is not impacted by the assignment.
+      if (mlir::Operation *parentOp = operand.getDefiningOp()) {
+        const bool opIsInsideForall =
+            outterForall && outterForall->isProperAncestor(parentOp);
+        // If the operand is not an address and is defined above the outer
+        // forall, its value is not impacted by the assignment.
         if (!opIsInsideForall && fir::isa_trivial(operand.getType()))
           continue;
         if (auto designateOp = mlir::dyn_cast<fir::DesignateOp>(parentOp)) {
           // TODO: Add access if LHS is a pointer component.
         } else if (auto declareOp = mlir::dyn_cast<fir::DeclareOp>(parentOp)) {
-          variableAccesses.back().second.emplace_back(VariableDirectReference{parentOp}); 
+          variableAccesses.back().second.emplace_back(
+              VariableDirectReference{parentOp});
           if (opIsInsideForall)
             TODO(parentOp->getLoc(), "handle declare_op inside Forall");
           continue;
@@ -262,13 +265,16 @@ AssignmentAliasing analyzeAssignment(fir::AssignOp assignment, mlir::Operation* 
         }
         if (parentOp->getNumRegions() > 0)
           TODO(parentOp->getLoc(), "alias analysis of operations with regions");
-        // TODO: deal with loads/stores ? What if op has side effects like calls ?
-        operandsToBeAnalyzed.append(parentOp->getOperands().begin(), parentOp->getOperands().end()); 
+        // TODO: deal with loads/stores ? What if op has side effects like calls
+        // ?
+        operandsToBeAnalyzed.append(parentOp->getOperands().begin(),
+                                    parentOp->getOperands().end());
       } else {
         auto blockArgument = operand.cast<mlir::BlockArgument>();
-        mlir::Block* ownerBlock = blockArgument.getOwner();
-        mlir::Operation* parentOp2 = ownerBlock->getParentOp();
-        const bool opIsInsideForall = outterForall && outterForall->isProperAncestor(parentOp2);
+        mlir::Block *ownerBlock = blockArgument.getOwner();
+        mlir::Operation *parentOp2 = ownerBlock->getParentOp();
+        const bool opIsInsideForall =
+            outterForall && outterForall->isProperAncestor(parentOp2);
         if (!opIsInsideForall && fir::isa_trivial(operand.getType()))
           continue;
         if (ownerBlock->isEntryBlock()) {
@@ -282,23 +288,24 @@ AssignmentAliasing analyzeAssignment(fir::AssignOp assignment, mlir::Operation* 
       }
     }
   }
-  return AssignmentAliasing{VariableDirectReference{lhs}, std::move(variableAccesses)}; 
+  return AssignmentAliasing{VariableDirectReference{lhs},
+                            std::move(variableAccesses)};
 }
 
-bool requiresTemporaries(const AssignmentAliasing& assignmentAnalysis) {
-  for (const auto& primary : assignmentAnalysis.variableAccesses)
+bool requiresTemporaries(const AssignmentAliasing &assignmentAnalysis) {
+  for (const auto &primary : assignmentAnalysis.variableAccesses)
     if (!primary.second.empty())
       return true;
   return false;
 }
 
-mlir::Operation* getParentOrDefinigOp(mlir::Value value) {
-  if (mlir::Operation* definingOp = value.getDefiningOp())
+mlir::Operation *getParentOrDefinigOp(mlir::Value value) {
+  if (mlir::Operation *definingOp = value.getDefiningOp())
     return definingOp;
   return value.getParentBlock()->getParentOp();
 }
 
-bool isDefinedIn(mlir::Value value, mlir::Operation* op) {
+bool isDefinedIn(mlir::Value value, mlir::Operation *op) {
   return op && op->isAncestor(getParentOrDefinigOp(value));
 }
 
@@ -317,67 +324,69 @@ bool isDefinedIn(mlir::Value value, mlir::Operation* op) {
 // - Duplicate loop and remove all assignments/extra loop.
 // - alloca index and increment it.
 
-
-
 /// True IFF all data about this value can be inferred:
 /// -> type (dynamic type)
 /// -> rank (or assumed rank)
-/// -> shape (if not assumed rank, and last extent might be undefined for assumed size arrays)
+/// -> shape (if not assumed rank, and last extent might be undefined for
+/// assumed size arrays)
 /// -> type parameters
-//bool isFortranObject(mlir::Value) {
-//};
+// bool isFortranObject(mlir::Value) {
+// };
 //
-//bool isArray(mlir::Value) {
-//};
+// bool isArray(mlir::Value) {
+// };
 //
-//bool hasLengthParameters(mlir::Value) {
-//};
+// bool hasLengthParameters(mlir::Value) {
+// };
 //
-//bool computeShape(mlir::Value);
+// bool computeShape(mlir::Value);
 
-
-/// (i:i+2) -> shape is obviously two.... How can we compute that in the general case and hoist that out of the forall if needed.
-/// compute + fold inside the loop, then "hoist" ? Imagine we can hoist that. How do we then make a link with this value ?
-/// Need to use it somewhere.... in the designate ? 
+/// (i:i+2) -> shape is obviously two.... How can we compute that in the general
+/// case and hoist that out of the forall if needed. compute + fold inside the
+/// loop, then "hoist" ? Imagine we can hoist that. How do we then make a link
+/// with this value ? Need to use it somewhere.... in the designate ?
 
 // Step 2: create type:
 // Step 3: allocate + index
 
-//class ForallAllocatableBasedTemp {
-//  void create(mlir::Value, mlir::PatternRewriter&);
-//  void resetAddressing(mlir::PatternRewriter&);
-//  SmallPtrSetImpl<mlir::Operation *> storeValueAt(mlir::Value, mlir::ValueRange forallIndices, mlir::PatternRewriter&);  
-//  mlir::Value loadValueAt(mlir::ValueRange forallIndices, mlir::PatternRewriter&);  
-//  void cleanUpAt(mlir::ValueRange forallIndices);
-//  void cleanUp(mlir::PatternRewriter&);
-//private:
-//  mlir::Value index;
-//  mlir::Value boxArrayStorage;
-//};
+// class ForallAllocatableBasedTemp {
+//   void create(mlir::Value, mlir::PatternRewriter&);
+//   void resetAddressing(mlir::PatternRewriter&);
+//   SmallPtrSetImpl<mlir::Operation *> storeValueAt(mlir::Value,
+//   mlir::ValueRange forallIndices, mlir::PatternRewriter&); mlir::Value
+//   loadValueAt(mlir::ValueRange forallIndices, mlir::PatternRewriter&); void
+//   cleanUpAt(mlir::ValueRange forallIndices); void
+//   cleanUp(mlir::PatternRewriter&);
+// private:
+//   mlir::Value index;
+//   mlir::Value boxArrayStorage;
+// };
 
-
-//class ForallArrayTemp {
-//};
+// class ForallArrayTemp {
+// };
 //
 //// TODO:
-//class ForallPointerTemp {
-//};
+// class ForallPointerTemp {
+// };
 //
-//class ForallTemp {
-//public:
-//  static ForallTemp createForallTemp(mlir::Value value);
-//private:
-//  std::variant<>
-//};
+// class ForallTemp {
+// public:
+//   static ForallTemp createForallTemp(mlir::Value value);
+// private:
+//   std::variant<>
+// };
 
-
-llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& assignmentAnalysis, mlir::Operation* outterForall, mlir::PatternRewriter& rewriter) {
-  auto module = assignmentAnalysis.lhsRef.varDeclaration->getParentOfType<mlir::ModuleOp>();
+llvm::SmallVector<fir::AssignOp>
+insertTemporaries(const AssignmentAliasing &assignmentAnalysis,
+                  mlir::Operation *outterForall,
+                  mlir::PatternRewriter &rewriter) {
+  auto module = assignmentAnalysis.lhsRef.varDeclaration
+                    ->getParentOfType<mlir::ModuleOp>();
   fir::FirOpBuilder builder(rewriter, fir::getKindMapping(module));
   mlir::Type idxTy = builder.getIndexType();
   llvm::SmallVector<fir::AssignOp> tempAssignments;
 
-  for (const auto& primary : assignmentAnalysis.variableAccesses)
+  for (const auto &primary : assignmentAnalysis.variableAccesses)
     if (!primary.second.empty()) {
       mlir::Value value = primary.first;
       mlir::Location loc = value.getLoc();
@@ -393,10 +402,11 @@ llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& ass
         TODO(loc, "temporize from memory");
       if (!fir::isa_trivial(value.getType()))
         TODO(loc, "temporize from variable or expression, or weird type");
-      elementType = value.getType(); 
-      // Step 2: compute the iteration size at the point of definition of the primary.
+      elementType = value.getType();
+      // Step 2: compute the iteration size at the point of definition of the
+      // primary.
       llvm::SmallVector<mlir::Value> temporaryShape;
-      mlir::Operation* owner = getParentOrDefinigOp(value);
+      mlir::Operation *owner = getParentOrDefinigOp(value);
       while (owner && outterForall && outterForall->isAncestor(owner)) {
         if (auto doLoop = mlir::dyn_cast<fir::DoLoopOp>(owner))
           if (isForall(doLoop)) {
@@ -404,11 +414,15 @@ llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& ass
             lb = doLoop.getLowerBound();
             ub = doLoop.getUpperBound();
             step = doLoop.getStep();
-            if (!isDefinedIn(lb, outterForall) && !isDefinedIn(ub, outterForall) && !isDefinedIn(step, outterForall)) {
-              mlir::Value extent = builder.genExtentFromTriplet(loc, lb, ub, step, idxTy);
+            if (!isDefinedIn(lb, outterForall) &&
+                !isDefinedIn(ub, outterForall) &&
+                !isDefinedIn(step, outterForall)) {
+              mlir::Value extent =
+                  builder.genExtentFromTriplet(loc, lb, ub, step, idxTy);
               temporaryShape.push_back(extent);
             } else {
-              TODO(value.getLoc(), "Forall temp with forall bounds depending on outter Forall indices");
+              TODO(value.getLoc(), "Forall temp with forall bounds depending "
+                                   "on outter Forall indices");
             }
           }
         owner = owner->getParentOp();
@@ -416,19 +430,25 @@ llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& ass
       // Step 3: insert temp creation + clean-up.
       rewriter.setInsertionPoint(outterForall);
       if (temporaryShape.empty())
-        TODO(loc, "temporize outside of forall"); 
-      mlir::Type tempType = builder.getVarLenSeqTy(elementType, temporaryShape.size());
-      auto temp = builder.create<fir::AllocMemOp>(loc, tempType, /*typeParams=*/llvm::None, temporaryShape);
-      auto shapeType = fir::ShapeType::get(rewriter.getContext(), temporaryShape.size());
+        TODO(loc, "temporize outside of forall");
+      mlir::Type tempType =
+          builder.getVarLenSeqTy(elementType, temporaryShape.size());
+      auto temp = builder.create<fir::AllocMemOp>(
+          loc, tempType, /*typeParams=*/llvm::None, temporaryShape);
+      auto shapeType =
+          fir::ShapeType::get(rewriter.getContext(), temporaryShape.size());
       auto shape = builder.create<fir::ShapeOp>(loc, shapeType, temporaryShape);
       mlir::Type varType = fir::VarType::get(tempType);
-      auto tempVar = builder.create<fir::DeclareOp>(loc, varType, temp, shape, /*typeParams*/llvm::None);
+      auto tempVar = builder.create<fir::DeclareOp>(
+          loc, varType, temp, shape, /*typeParams*/ llvm::None,
+          /*fortran_attrs=*/fir::FortranVariableFlagsAttr{});
       // This assumes this is the latest Forall. Is this true ?
       builder.setInsertionPointAfter(outterForall);
       // TODO: proper finalization if needed ?
       builder.create<fir::FreeMemOp>(loc, temp);
-      // Step 4: assign primary to temp, and replace primary usages by load from the temp.
-      // Address temp. TODO: Needs to account for Forall bounds. Or use Forall zero/one base index..
+      // Step 4: assign primary to temp, and replace primary usages by load from
+      // the temp. Address temp. TODO: Needs to account for Forall bounds. Or
+      // use Forall zero/one base index..
       llvm::SmallVector<mlir::Value> inductionValues;
       owner = getParentOrDefinigOp(value);
       while (owner && outterForall && outterForall->isAncestor(owner)) {
@@ -437,17 +457,21 @@ llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& ass
             inductionValues.push_back(doLoop.getInductionVar());
         owner = owner->getParentOp();
       }
-      if (mlir::Operation* definingOp = value.getDefiningOp())
+      if (mlir::Operation *definingOp = value.getDefiningOp())
         builder.setInsertionPointAfter(definingOp);
       else
         builder.setInsertionPointToStart(value.getParentBlock());
 
       mlir::Type varEleType = fir::VarType::get(elementType);
-      auto tempEltWrite =  builder.create<fir::DesignateOp>(loc, varEleType, tempVar, inductionValues);
-      auto tempAssignment = builder.create<fir::AssignOp>(loc, value, tempEltWrite);
+      auto tempEltWrite = builder.create<fir::DesignateOp>(
+          loc, varEleType, tempVar, inductionValues);
+      auto tempAssignment =
+          builder.create<fir::AssignOp>(loc, value, tempEltWrite);
       tempAssignments.push_back(tempAssignment);
-      auto tempEltRead =  builder.create<fir::DesignateOp>(loc, varEleType, tempVar, inductionValues);
-      auto newValue = builder.create<fir::AsValueOp>(loc, elementType, tempEltRead);
+      auto tempEltRead = builder.create<fir::DesignateOp>(
+          loc, varEleType, tempVar, inductionValues);
+      auto newValue =
+          builder.create<fir::AsValueOp>(loc, elementType, tempEltRead);
       value.replaceAllUsesExcept(newValue, tempAssignment.getOperation());
     }
   return tempAssignments;
@@ -455,8 +479,7 @@ llvm::SmallVector<fir::AssignOp> insertTemporaries(const AssignmentAliasing& ass
 
 class ForallConversion : public mlir::OpRewritePattern<fir::DoLoopOp> {
 public:
-  explicit ForallConversion(mlir::MLIRContext *ctx)
-      : OpRewritePattern{ctx} {}
+  explicit ForallConversion(mlir::MLIRContext *ctx) : OpRewritePattern{ctx} {}
 
   mlir::LogicalResult
   matchAndRewrite(fir::DoLoopOp loop,
@@ -473,28 +496,31 @@ public:
       fir::AssignOp assignment = iter.value();
       auto analysis = analyzeAssignment(assignment, loop.getOperation());
       if (requiresTemporaries(analysis)) {
-        auto tempAssignments = insertTemporaries(analysis, loop.getOperation(), rewriter);
+        auto tempAssignments =
+            insertTemporaries(analysis, loop.getOperation(), rewriter);
         cloneAssignmentsIntoItsOwnLoopNest(tempAssignments, loop, rewriter);
       }
-      if (iter.index()+1 < assignments.size())
+      if (iter.index() + 1 < assignments.size())
         cloneAssignmentsIntoItsOwnLoopNest({assignment}, loop, rewriter);
-      //llvm::errs() << "listing conflicts with: " << *analysis.lhsRef.varDeclaration << "\n";
-      //for (const auto& primary : analysis.variableAccesses) {
-      //  llvm::errs() << "  from: "<< primary.first << "\n";
-      //  for (const auto& access : primary.second) {
-      //    access.match(
-      //        [](const VariableDirectReference& ref){
-      //          llvm::errs() << "    ref: "<< *ref.varDeclaration << "\n";
-      //        },
-      //        [](const FunctionCall& call){
-      //          llvm::errs() << "    call: "<< call.call << "\n";
-      //        },
-      //        [](const UnknownAccess& unknown){
-      //          llvm::errs() << "    unknown: "<< unknown.accessResult << "\n";
-      //        }
-      //    );
-      //  }
-      //}
+      // llvm::errs() << "listing conflicts with: " <<
+      // *analysis.lhsRef.varDeclaration << "\n"; for (const auto& primary :
+      // analysis.variableAccesses) {
+      //   llvm::errs() << "  from: "<< primary.first << "\n";
+      //   for (const auto& access : primary.second) {
+      //     access.match(
+      //         [](const VariableDirectReference& ref){
+      //           llvm::errs() << "    ref: "<< *ref.varDeclaration << "\n";
+      //         },
+      //         [](const FunctionCall& call){
+      //           llvm::errs() << "    call: "<< call.call << "\n";
+      //         },
+      //         [](const UnknownAccess& unknown){
+      //           llvm::errs() << "    unknown: "<< unknown.accessResult <<
+      //           "\n";
+      //         }
+      //     );
+      //   }
+      // }
     }
     loop->walk([&](mlir::Operation *op) {
       if (auto doLoop = mlir::dyn_cast<fir::DoLoopOp>(op))
@@ -502,20 +528,21 @@ public:
           removeForallLabel(doLoop);
     });
     rewriter.finalizeRootUpdate(loop);
-//    rewriter.setInsertionPoint(loop);
-//    // STUPID TEST: let's split assignments into their own FORALL (note:
-//    // not valid if where depends on previously assigned values).
-//    for (fir::AssignOp assignment : assignments)
-//      cloneAssignmentIntoItsOwnLoopNest(assignment, loop, rewriter);
-//    // Note: this assumes FORALL do not have results.
-//    rewriter.eraseOp(loop);
+    //    rewriter.setInsertionPoint(loop);
+    //    // STUPID TEST: let's split assignments into their own FORALL (note:
+    //    // not valid if where depends on previously assigned values).
+    //    for (fir::AssignOp assignment : assignments)
+    //      cloneAssignmentIntoItsOwnLoopNest(assignment, loop, rewriter);
+    //    // Note: this assumes FORALL do not have results.
+    //    rewriter.eraseOp(loop);
     return mlir::success();
   }
 };
-}
+} // namespace
 
 namespace {
-struct ForallSplitPass final : public fir::impl::ForallSplitBase<ForallSplitPass> {
+struct ForallSplitPass final
+    : public fir::impl::ForallSplitBase<ForallSplitPass> {
   void runOnOperation() override {
     auto func = getOperation();
     auto *context = &getContext();
@@ -524,7 +551,8 @@ struct ForallSplitPass final : public fir::impl::ForallSplitBase<ForallSplitPass
     mlir::ConversionTarget target(*context);
     target.addDynamicallyLegalOp<fir::DoLoopOp>(
         [](fir::DoLoopOp loop) { return !isTopLevelForall(loop); });
-    target.markUnknownOpDynamicallyLegal([](mlir::Operation*) {return true;});
+    target.markUnknownOpDynamicallyLegal(
+        [](mlir::Operation *) { return true; });
     if (mlir::failed(
             mlir::applyPartialConversion(func, target, std::move(patterns)))) {
       mlir::emitError(mlir::UnknownLoc::get(context),
