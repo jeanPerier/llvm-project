@@ -2877,7 +2877,7 @@ def fir_DeclareOp : fir_Op<"declare", [NoSideEffect, AttrSizedOperandSegments, D
     AnyRefOrBox:$memref,
     Optional<AnyShapeOrShiftType>:$shape,
     Variadic<AnyIntegerType>:$typeparams,
-    DefaultValuedAttr<fir_FortranVariableFlagsAttr, "{}">:$fortran_attrs
+    OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
   );
 
   let results = (outs fir_VarType);
