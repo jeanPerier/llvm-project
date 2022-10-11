@@ -439,8 +439,10 @@ insertTemporaries(const AssignmentAliasing &assignmentAnalysis,
           fir::ShapeType::get(rewriter.getContext(), temporaryShape.size());
       auto shape = builder.create<fir::ShapeOp>(loc, shapeType, temporaryShape);
       mlir::Type varType = fir::VarType::get(tempType);
+      auto name = mlir::StringAttr::get(rewriter.getContext(),
+                                        "i_need_uniq_temp_names_generation");
       auto tempVar = builder.create<fir::DeclareOp>(
-          loc, varType, temp, shape, /*typeParams*/ llvm::None,
+          loc, varType, temp, shape, /*typeParams*/ llvm::None, name,
           /*fortran_attrs=*/fir::FortranVariableFlagsAttr{});
       // This assumes this is the latest Forall. Is this true ?
       builder.setInsertionPointAfter(outterForall);
