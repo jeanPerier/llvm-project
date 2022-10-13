@@ -14,6 +14,7 @@
 #ifndef FORTRAN_OPTIMIZER_DIALECT_FORTRANVARIABLEINTERFACE_H
 #define FORTRAN_OPTIMIZER_DIALECT_FORTRANVARIABLEINTERFACE_H
 
+#include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
