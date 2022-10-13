@@ -1359,7 +1359,6 @@ static void genDeclareSymbol(Fortran::lower::AbstractConverter &converter,
         loc, base.getType(), base, shapeOrShift, lenParams, name, attributes);
     base = newBase;
     symMap.addVariableDefinition(sym, newBase);
-    symMap.lookupSymbol(sym);
     return;
   }
   if (len) {

@@ -40,7 +40,15 @@ toSymbolBox(std::variant<Fortran::lower::SymbolBox,
     return *symBox;
   auto definingOp =
       std::get<fir::DefineFortranVariableOpInterface>(symboxOrdefiningOp);
-  TODO(definingOp->getLoc(), "DefineFortranVariableOpInterface to SymbolBox");
+  return fir::toExtendedValue(definingOp)
+      .match(
+          [&](const fir::UnboxedValue &v) -> Fortran::lower::SymbolBox {
+            return Fortran::lower::SymbolBox::Intrinsic{v};
+          },
+          [&](const fir::ProcBoxValue) -> Fortran::lower::SymbolBox {
+            TODO(definingOp.getLoc(), "procedure pointers");
+          },
+          [](auto x) -> Fortran::lower::SymbolBox { return x; });
 }
 
 Fortran::lower::SymbolBox
