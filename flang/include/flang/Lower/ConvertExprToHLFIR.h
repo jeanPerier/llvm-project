@@ -19,8 +19,8 @@
 #define FORTRAN_LOWER_CONVERTEXPRTOHLFIR_H
 
 #include "flang/Lower/Support/Utils.h"
-#include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
+#include "flang/Optimizer/Builder/HLFIRTools.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 
 namespace mlir {

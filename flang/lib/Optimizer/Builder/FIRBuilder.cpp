@@ -1291,34 +1291,3 @@ mlir::Value fir::factory::genCPtrOrCFunptrAddr(fir::FirOpBuilder &builder,
   return builder.create<fir::CoordinateOp>(loc, builder.getRefType(fieldTy),
                                            cPtr, field);
 }
-
-std::pair<fir::ExtendedValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::HlfirValueToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
-                                        fir::HlfirValue) {
-  TODO(loc, "HLFIR to fir::ExtendedValue");
-  return {{}, {}};
-}
-
-std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::readHlfirVarToValue(mlir::Location loc,
-                                  fir::FirOpBuilder &builder,
-                                  fir::HlfirValue hlfirObject) {
-  TODO(loc, "HLFIR var to value");
-  return {{mlir::Value{}}, {}};
-}
-
-std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::copyNonSimplyContiguousIntoTemp(mlir::Location loc,
-                                              fir::FirOpBuilder &builder,
-                                              fir::HlfirValue hlfirObject) {
-  TODO(loc, "HLFIR non contiguous var to contiguous temp var");
-  return {{mlir::Value{}}, {}};
-}
-
-std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::storeHlfirValueToTemp(mlir::Location loc,
-                                    fir::FirOpBuilder &builder,
-                                    fir::HlfirValue hlfirObject) {
-  TODO(loc, "HLFIR value to temp var");
-  return {{mlir::Value{}}, {}};
-}

@@ -87,3 +87,44 @@ fir::toExtendedValue(fir::DefineFortranVariableOpInterface var) {
                               getExplicitLbounds(var));
   return var.getBase();
 }
+
+std::pair<fir::ExtendedValue, std::optional<fir::factory::CleanupFunction>>
+fir::factory::HlfirValueToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
+                                        fir::HlfirValue val) {
+  using ResultType = std::pair<fir::ExtendedValue,
+                               std::optional<fir::factory::CleanupFunction>>;
+  return val.match(
+      [&](mlir::Value val) -> ResultType {
+        if (val.getType().isa<fir::ExprType>())
+          TODO(loc, "fir.expr to fir::ExtendedValue");
+        return {{val}, {}};
+      },
+      [](fir::DefineFortranVariableOpInterface var) -> ResultType {
+        return {fir::toExtendedValue(var), {}};
+      });
+}
+
+std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
+fir::factory::readHlfirVarToValue(mlir::Location loc,
+                                  fir::FirOpBuilder &builder,
+                                  fir::HlfirValue hlfirObject) {
+  TODO(loc, "HLFIR var to value");
+  return {{mlir::Value{}}, {}};
+}
+
+std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
+fir::factory::copyNonSimplyContiguousIntoTemp(mlir::Location loc,
+                                              fir::FirOpBuilder &builder,
+                                              fir::HlfirValue hlfirObject) {
+  TODO(loc, "HLFIR non contiguous var to contiguous temp var");
+  return {{mlir::Value{}}, {}};
+}
+
+std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
+fir::factory::storeHlfirValueToTemp(mlir::Location loc,
+                                    fir::FirOpBuilder &builder,
+                                    fir::HlfirValue hlfirObject) {
+  if (hlfirObject.isVariable())
+    return {hlfirObject, {}};
+  TODO(loc, "HLFIR value to temp var");
+}
