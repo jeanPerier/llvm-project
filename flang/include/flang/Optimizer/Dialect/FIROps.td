@@ -2957,7 +2957,7 @@ def fir_ElementalOp : region_Op<"elemental", [AttrSizedOperandSegments,  Callabl
   }];
 }
 
-def fir_DesignateOp : fir_Op<"designate", [NoSideEffect]> {
+def fir_DesignateOp : fir_Op<"designate", [NoMemoryEffect]> {
   let summary = "designate a variable";
 
   let description = [{
@@ -3020,7 +3020,7 @@ def fir_AssignOp : fir_Op<"assign", [MemoryEffects<[MemWrite]>]> {
 }
 
 // TBD traits
-def fir_AsValueOp : fir_Op<"as_value", [NoSideEffect]> {
+def fir_AsValueOp : fir_Op<"as_value", [NoMemoryEffect]> {
   let summary = "glue to value";
 
   let description = [{
@@ -3040,7 +3040,7 @@ def fir_AsValueOp : fir_Op<"as_value", [NoSideEffect]> {
 }
 
 // TBD: what about temps...
-def fir_AsAddrOp : fir_Op<"as_addr", [NoSideEffect]> {
+def fir_AsAddrOp : fir_Op<"as_addr", [NoMemoryEffect]> {
   let summary = "glue to address";
 
   let description = [{
@@ -3059,7 +3059,7 @@ def fir_AsAddrOp : fir_Op<"as_addr", [NoSideEffect]> {
 }
 
 // TBD: what about temps...
-def fir_AsBoxOp : fir_Op<"as_box", [NoSideEffect]> {
+def fir_AsBoxOp : fir_Op<"as_box", [NoMemoryEffect]> {
   let summary = "glue to address";
 
   let description = [{
@@ -3077,7 +3077,7 @@ def fir_AsBoxOp : fir_Op<"as_box", [NoSideEffect]> {
   }];
 }
 
-def fir_AsExprOp : fir_Op<"as_expr", [NoSideEffect]> {
+def fir_AsExprOp : fir_Op<"as_expr", [NoMemoryEffect]> {
   let summary = "glue to expr";
 
   let description = [{
