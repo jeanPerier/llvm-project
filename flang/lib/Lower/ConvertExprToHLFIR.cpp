@@ -85,9 +85,6 @@ private:
   mlir::Location loc;
 };
 
-class HlfirConstanBuilder {
-}
-
 /// Lower Expr to HLFIR.
 class HlfirBuilder {
 public:
