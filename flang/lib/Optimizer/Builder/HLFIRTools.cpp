@@ -18,7 +18,7 @@
 // Return explicit extents. If the base is a fir.box, this won't read it to
 // return the extents and will instead return an empty vector.
 static llvm::SmallVector<mlir::Value>
-getExplicitExtents(fir::DefineFortranVariableOpInterface var) {
+getExplicitExtents(fir::FortranVariableOpInterface var) {
   llvm::SmallVector<mlir::Value> result;
   if (llvm::Optional<mlir::Value> shape = var.getShape()) {
     auto *shapeOp = shape->getDefiningOp();
@@ -40,7 +40,7 @@ getExplicitExtents(fir::DefineFortranVariableOpInterface var) {
 // Return explicit lower bounds. For pointers and allocatables, this will not
 // read the lower bounds and instead return an empty vector.
 static llvm::SmallVector<mlir::Value>
-getExplicitLbounds(fir::DefineFortranVariableOpInterface var) {
+getExplicitLbounds(fir::FortranVariableOpInterface var) {
   llvm::SmallVector<mlir::Value> result;
   if (llvm::Optional<mlir::Value> shape = var.getShape()) {
     auto *shapeOp = shape->getDefiningOp();
@@ -60,7 +60,7 @@ getExplicitLbounds(fir::DefineFortranVariableOpInterface var) {
 }
 
 static llvm::SmallVector<mlir::Value>
-getExplicitTypeParams(fir::DefineFortranVariableOpInterface var) {
+getExplicitTypeParams(fir::FortranVariableOpInterface var) {
   llvm::SmallVector<mlir::Value> res;
   mlir::OperandRange range = var.getExplicitTypeParams();
   res.append(range.begin(), range.end());
@@ -68,10 +68,10 @@ getExplicitTypeParams(fir::DefineFortranVariableOpInterface var) {
 }
 
 fir::ExtendedValue
-fir::toExtendedValue(fir::DefineFortranVariableOpInterface var) {
+fir::toExtendedValue(fir::FortranVariableOpInterface var) {
   if (var.isPointer() || var.isAllocatable())
     TODO(var->getLoc(), "pointer or allocatable "
-                        "DefineFortranVariableOpInterface to extendedValue");
+                        "FortranVariableOpInterface to extendedValue");
   if (var.getBase().getType().isa<fir::BaseBoxType>())
     return fir::BoxValue(var.getBase(), getExplicitLbounds(var),
                          getExplicitTypeParams(var), getExplicitExtents(var));
@@ -99,7 +99,7 @@ fir::factory::HlfirValueToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
           TODO(loc, "fir.expr to fir::ExtendedValue");
         return {{val}, {}};
       },
-      [](fir::DefineFortranVariableOpInterface var) -> ResultType {
+      [](fir::FortranVariableOpInterface var) -> ResultType {
         return {fir::toExtendedValue(var), {}};
       });
 }

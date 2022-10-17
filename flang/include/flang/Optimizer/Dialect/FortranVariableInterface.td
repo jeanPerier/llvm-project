@@ -16,7 +16,7 @@
 include "mlir/IR/OpBase.td"
 
 
-def DefineFortranVariableOpInterface : OpInterface<"DefineFortranVariableOpInterface"> {
+def FortranVariableOpInterface : OpInterface<"FortranVariableOpInterface"> {
   let description = [{
     Interface for operation that creates Fortran like variables in order to query about all
     their Fortran properties.

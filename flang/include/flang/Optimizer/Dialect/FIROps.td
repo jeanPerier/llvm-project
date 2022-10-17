@@ -2868,7 +2868,7 @@ def fir_IsPresentOp : fir_SimpleOp<"is_present", [NoMemoryEffect]> {
   let results = (outs BoolLike);
 }
 
-def fir_DeclareOp : fir_Op<"declare", [AttrSizedOperandSegments, DeclareOpInterfaceMethods<DefineFortranVariableOpInterface>]> {
+def fir_DeclareOp : fir_Op<"declare", [AttrSizedOperandSegments, DeclareOpInterfaceMethods<FortranVariableOpInterface>]> {
   let summary = "declare a variable";
 
   let description = [{

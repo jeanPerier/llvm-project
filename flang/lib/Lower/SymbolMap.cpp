@@ -33,13 +33,13 @@ void Fortran::lower::SymMap::addSymbol(Fortran::semantics::SymbolRef sym,
 
 Fortran::lower::SymbolBox
 toSymbolBox(std::variant<Fortran::lower::SymbolBox,
-                         fir::DefineFortranVariableOpInterface>
+                         fir::FortranVariableOpInterface>
                 symboxOrdefiningOp) {
   if (const Fortran::lower::SymbolBox *symBox =
           std::get_if<Fortran::lower::SymbolBox>(&symboxOrdefiningOp))
     return *symBox;
   auto definingOp =
-      std::get<fir::DefineFortranVariableOpInterface>(symboxOrdefiningOp);
+      std::get<fir::FortranVariableOpInterface>(symboxOrdefiningOp);
   return fir::toExtendedValue(definingOp)
       .match(
           [&](const fir::UnboxedValue &v) -> Fortran::lower::SymbolBox {
@@ -99,14 +99,14 @@ Fortran::lower::SymMap::lookupImpliedDo(Fortran::lower::SymMap::AcDoVar var) {
   return {};
 }
 
-llvm::Optional<fir::DefineFortranVariableOpInterface>
+llvm::Optional<fir::FortranVariableOpInterface>
 Fortran::lower::SymMap::lookupVariableDefinition(semantics::SymbolRef sym) {
   for (auto jmap = symbolMapStack.rbegin(), jend = symbolMapStack.rend();
        jmap != jend; ++jmap) {
     auto iter = jmap->find(&*sym);
     if (iter != jmap->end()) {
       if (const auto *varDef =
-              std::get_if<fir::DefineFortranVariableOpInterface>(&iter->second))
+              std::get_if<fir::FortranVariableOpInterface>(&iter->second))
         return *varDef;
       else
         return {};
@@ -132,13 +132,13 @@ Fortran::lower::operator<<(llvm::raw_ostream &os,
 static llvm::raw_ostream &
 dump(llvm::raw_ostream &os,
      const std::variant<Fortran::lower::SymbolBox,
-                        fir::DefineFortranVariableOpInterface>
+                        fir::FortranVariableOpInterface>
          &symboxOrdefiningOp) {
   if (const Fortran::lower::SymbolBox *symBox =
           std::get_if<Fortran::lower::SymbolBox>(&symboxOrdefiningOp))
     return os << *symBox;
   auto definingOp =
-      std::get<fir::DefineFortranVariableOpInterface>(symboxOrdefiningOp);
+      std::get<fir::FortranVariableOpInterface>(symboxOrdefiningOp);
   return os << definingOp << "\n";
 }
 

@@ -52,7 +52,7 @@ public:
 
 private:
   fir::HlfirValue gen(const Fortran::evaluate::SymbolRef &symbolRef) {
-    if (llvm::Optional<fir::DefineFortranVariableOpInterface> varDef =
+    if (llvm::Optional<fir::FortranVariableOpInterface> varDef =
             getSymMap().lookupVariableDefinition(symbolRef))
       return *varDef;
     TODO(getLoc(), "symbol");

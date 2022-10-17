@@ -22,11 +22,11 @@ class FirOpBuilder;
 
 class HlfirValue : public details::matcher<HlfirValue> {
 public:
-  using VT = std::variant<mlir::Value, fir::DefineFortranVariableOpInterface>;
+  using VT = std::variant<mlir::Value, fir::FortranVariableOpInterface>;
   HlfirValue(mlir::Value val) : valueOrVariable{val} {
     assert(hasFortranValueType(val) && "must be a Fortran value type");
   }
-  HlfirValue(fir::DefineFortranVariableOpInterface var)
+  HlfirValue(fir::FortranVariableOpInterface var)
       : valueOrVariable{var} {}
 
   static bool hasFortranValueType(mlir::Value value) {
@@ -41,7 +41,7 @@ public:
 
   mlir::Value getBase() {
     return match([](mlir::Value val) { return val; },
-                 [](fir::DefineFortranVariableOpInterface var) {
+                 [](fir::FortranVariableOpInterface var) {
                    return var.getBase();
                  });
   }
@@ -53,7 +53,7 @@ private:
 };
 
 fir::ExtendedValue
-toExtendedValue(fir::DefineFortranVariableOpInterface varDefinition);
+toExtendedValue(fir::FortranVariableOpInterface varDefinition);
 
 } // namespace fir
 

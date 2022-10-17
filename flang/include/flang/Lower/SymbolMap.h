@@ -341,7 +341,7 @@ public:
   LLVM_DUMP_METHOD void dump() const { llvm::errs() << *this << '\n'; }
 
   void addVariableDefinition(semantics::SymbolRef symRef,
-                             fir::DefineFortranVariableOpInterface definingOp,
+                             fir::FortranVariableOpInterface definingOp,
                              bool force = false) {
     const auto *sym = &symRef.get().GetUltimate();
     if (force)
@@ -349,7 +349,7 @@ public:
     symbolMapStack.back().try_emplace(sym, definingOp);
   }
 
-  llvm::Optional<fir::DefineFortranVariableOpInterface>
+  llvm::Optional<fir::FortranVariableOpInterface>
   lookupVariableDefinition(semantics::SymbolRef sym);
 
 private:
@@ -365,7 +365,7 @@ private:
 
   llvm::SmallVector<llvm::DenseMap<
       const semantics::Symbol *,
-      std::variant<SymbolBox, fir::DefineFortranVariableOpInterface>>>
+      std::variant<SymbolBox, fir::FortranVariableOpInterface>>>
       symbolMapStack;
 
   // Implied DO induction variables are not represented as Se::Symbol in
