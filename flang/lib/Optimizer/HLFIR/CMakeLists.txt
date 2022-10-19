@@ -3,12 +3,10 @@ add_flang_library(HLFIRDialect
 
   DEPENDS
   FIRDialect
-  FIRSupport
   HLFIROpsIncGen
 
   LINK_LIBS
   FIRDialect
-  FIRSupport
 
   LINK_COMPONENTS
   AsmParser

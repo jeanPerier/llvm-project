@@ -22,4 +22,7 @@
 #define GET_TYPEDEF_CLASSES
 #include "flang/Optimizer/HLFIR/HLFIRTypes.h.inc"
 
+#define GET_ATTRDEF_CLASSES
+#include "flang/Optimizer/HLFIR/HLFIRAttributes.h.inc"
+
 #endif // FORTRAN_OPTIMIZER_HLFIR_HLFIRDIALECT_H

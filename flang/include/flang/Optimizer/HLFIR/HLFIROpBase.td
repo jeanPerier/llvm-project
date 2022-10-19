@@ -36,7 +36,6 @@ def hlfir_Dialect : Dialect {
     into sequence of lower level FIR operations on memory.
   }];
 
-  let useDefaultAttributePrinterParser = 1;
   let useDefaultTypePrinterParser = 1;
   let cppNamespace = "hlfir";
 }
@@ -59,8 +58,10 @@ def hlfir_ExprType : TypeDef<hlfir_Dialect, "Expr"> {
   );
 
   let extraClassDeclaration = [{
-      mlir::Type getEleTy() const {return getElementType();}
+    using Shape = llvm::SmallVector<int64_t>;
+    mlir::Type getEleTy() const {return getElementType();}
     bool isArray() const { return !getShape().empty(); }
+    bool isPolymorphic() const { return getPolymorphic(); }
   }];
 
   let hasCustomAssemblyFormat = 1;
