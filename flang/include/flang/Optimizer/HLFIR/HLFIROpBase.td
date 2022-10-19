@@ -14,9 +14,10 @@
 #ifndef FORTRAN_DIALECT_HLFIR_OP_BASE
 #define FORTRAN_DIALECT_HLFIR_OP_BASE
 
+include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 
-def HLFIR_Dialect : Dialect {
+def hlfir_Dialect : Dialect {
   let name = "hlfir";
 
   let summary = "High Level Fortran IR.";
@@ -36,11 +37,12 @@ def HLFIR_Dialect : Dialect {
   }];
 
   let useDefaultAttributePrinterParser = 1;
-  let cppNamespace = "::mlir::acc";
+  let useDefaultTypePrinterParser = 1;
+  let cppNamespace = "hlfir";
 }
 
 
-def hlfir_ExprType : TypeDef<hlfir_Dialect, Expr> {
+def hlfir_ExprType : TypeDef<hlfir_Dialect, "Expr"> {
   let mnemonic = "expr";
   let summary = "The type of an array, character, or derived type Fortran expression";
 
@@ -52,8 +54,8 @@ def hlfir_ExprType : TypeDef<hlfir_Dialect, Expr> {
 
   let parameters = (ins
     ArrayRefParameter<"int64_t", "expression shape">:$shape,
-    "mlir::Type":$elementType
-    "bool":$polymorphic,
+    "mlir::Type":$elementType,
+    "bool":$polymorphic
   );
 
   let extraClassDeclaration = [{
@@ -65,4 +67,4 @@ def hlfir_ExprType : TypeDef<hlfir_Dialect, Expr> {
   
 }
 
-#endif FORTRAN_DIALECT_HLFIR_OP_BASE
+#endif // FORTRAN_DIALECT_HLFIR_OP_BASE

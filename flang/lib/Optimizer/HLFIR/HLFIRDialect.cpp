@@ -11,8 +11,21 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Optimizer/HLFIR/HLFIRDialect.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/Matchers.h"
+#include "mlir/IR/OpImplementation.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 #include "flang/Optimizer/HLFIR/HLFIRDialect.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES
-#include "flang/Optimizer/Dialect/FIROpsTypes.cpp.inc"
+#include "flang/Optimizer/HLFIR/HLFIRTypes.cpp.inc"
+
+void hlfir::hlfirDialect::initialize() {
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "flang/Optimizer/HLFIR/HLFIRTypes.cpp.inc"
+      >();
+}
