@@ -15,67 +15,72 @@
 
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Dialect/FortranVariableInterface.h"
+#include "flang/Optimizer/HLFIR/HLFIRDialect.h"
 
 namespace fir {
-
 class FirOpBuilder;
+}
 
-class HlfirValue : public details::matcher<HlfirValue> {
+namespace hlfir {
+
+inline bool isFortranValueType(mlir::Type type) {
+  return type.isa<hlfir::ExprType>() || fir::isa_trivial(type);
+}
+
+inline bool isFortranValue(mlir::Value value) {
+  return isFortranValueType(value.getType());
+}
+
+inline bool isFortranVariable(mlir::Value value) {
+  return value.getDefiningOp<fir::FortranVariableOpInterface>();
+}
+
+inline bool isFortranEntity(mlir::Value value) {
+  return isFortranValue(value) || isFortranVariable(value);
+}
+
+class FortranEntity : public mlir::Value {
 public:
-  using VT = std::variant<mlir::Value, fir::FortranVariableOpInterface>;
-  HlfirValue(mlir::Value val) : valueOrVariable{val} {
-    assert(hasFortranValueType(val) && "must be a Fortran value type");
+  FortranEntity(mlir::Value value) : mlir::Value(value) {
+    assert(isFortranEntity(value) &&
+           "must be a value representing a Fortran value or variable");
   }
-  HlfirValue(fir::FortranVariableOpInterface var)
-      : valueOrVariable{var} {}
-
-  static bool hasFortranValueType(mlir::Value value) {
-    mlir::Type type = value.getType();
-    return type.isa<fir::ExprType>() || fir::isa_trivial(type);
-  }
-
-  bool isValue() const {
-    return std::holds_alternative<mlir::Value>(valueOrVariable);
-  }
+  FortranEntity(fir::FortranVariableOpInterface variable)
+      : mlir::Value(variable.getBase()) {}
+  bool isValue() const { return isFortranValue(*this); }
   bool isVariable() const { return !isValue(); }
-
-  mlir::Value getBase() {
-    return match([](mlir::Value val) { return val; },
-                 [](fir::FortranVariableOpInterface var) {
-                   return var.getBase();
-                 });
+  fir::FortranVariableOpInterface getIfVariable() const {
+    return this->getDefiningOp<fir::FortranVariableOpInterface>();
   }
-
-  const VT &matchee() const { return valueOrVariable; }
-
-private:
-  VT valueOrVariable;
+  mlir::Value getBase() const { return *this; }
 };
 
-fir::ExtendedValue
-toExtendedValue(fir::FortranVariableOpInterface varDefinition);
-
-} // namespace fir
-
-namespace fir::factory {
-
+/// Functions to translate hlfir::FortranEntity to fir::ExtendedValue.
+/// For Fortran arrays, character, and derived type values, this require
+/// allocating a storage since these can only be represented in memory in FIR.
+/// In that case, a cleanup function is provided to generate the finalization
+/// code after the end of the fir::ExtendedValue use.
 using CleanupFunction = std::function<void()>;
-
 std::pair<fir::ExtendedValue, std::optional<CleanupFunction>>
-HlfirValueToExtendedValue(mlir::Location loc, fir::FirOpBuilder &builder,
-                          fir::HlfirValue value);
+translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &builder,
+                         FortranEntity entity);
 
-std::pair<fir::HlfirValue, std::optional<CleanupFunction>>
+/// Function to translate FortranVariableOpInterface to fir::ExtendedValue.
+/// It does not generate any IR, and is a simple packaging operation.
+fir::ExtendedValue
+translateToExtendedValue(fir::FortranVariableOpInterface fortranVariable);
+
+std::pair<hlfir::FortranEntity, std::optional<CleanupFunction>>
 readHlfirVarToValue(mlir::Location loc, fir::FirOpBuilder &builder,
-                    fir::HlfirValue hlfirObject);
+                    hlfir::FortranEntity entity);
 
-std::pair<fir::HlfirValue, std::optional<CleanupFunction>>
+std::pair<hlfir::FortranEntity, std::optional<CleanupFunction>>
 copyNonSimplyContiguousIntoTemp(mlir::Location loc, fir::FirOpBuilder &builder,
-                                fir::HlfirValue hlfirObject);
+                                hlfir::FortranEntity entity);
 
-std::pair<fir::HlfirValue, std::optional<CleanupFunction>>
+std::pair<hlfir::FortranEntity, std::optional<CleanupFunction>>
 storeHlfirValueToTemp(mlir::Location loc, fir::FirOpBuilder &builder,
-                      fir::HlfirValue hlfirObject);
-} // namespace fir::factory
+                      hlfir::FortranEntity entity);
+} // namespace hlfir
 
 #endif // FORTRAN_OPTIMIZER_BUILDER_BOXVALUE_H

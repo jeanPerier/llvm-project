@@ -424,27 +424,26 @@ public:
               mlir::Location *localLoc = nullptr) override final {
     mlir::Location loc = localLoc ? *localLoc : toLocation();
     if (bridge.getLoweringOptions().getLowerToHighLevelFIR()) {
-      fir::HlfirValue loweredExpr = Fortran::lower::convertExprToHLFIR(
+      hlfir::FortranEntity loweredExpr = Fortran::lower::convertExprToHLFIR(
           loc, *this, expr, localSymbols, context);
-      fir::HlfirValue var = [&]() {
+      hlfir::FortranEntity var = [&]() {
         if (loweredExpr.isVariable()) {
           // TODO: This matches the current genExprAddr behaviour, but should
           // probably be further delayed to users.
-          auto [var, varCleanup] =
-              fir::factory::copyNonSimplyContiguousIntoTemp(
-                  loc, getFirOpBuilder(), loweredExpr);
+          auto [var, varCleanup] = hlfir::copyNonSimplyContiguousIntoTemp(
+              loc, getFirOpBuilder(), loweredExpr);
           if (varCleanup)
             context.attachCleanup(*varCleanup);
           return var;
         }
-        auto [var, varCleanup] = fir::factory::storeHlfirValueToTemp(
-            loc, getFirOpBuilder(), loweredExpr);
+        auto [var, varCleanup] =
+            hlfir::storeHlfirValueToTemp(loc, getFirOpBuilder(), loweredExpr);
         if (varCleanup)
           context.attachCleanup(*varCleanup);
         return var;
       }();
       auto [exv, exvCleanup] =
-          fir::factory::HlfirValueToExtendedValue(loc, getFirOpBuilder(), var);
+          hlfir::translateToExtendedValue(loc, getFirOpBuilder(), var);
       if (exvCleanup)
         context.attachCleanup(*exvCleanup);
       return exv;
@@ -458,14 +457,14 @@ public:
                mlir::Location *localLoc = nullptr) override final {
     mlir::Location loc = localLoc ? *localLoc : toLocation();
     if (bridge.getLoweringOptions().getLowerToHighLevelFIR()) {
-      fir::HlfirValue loweredExpr = Fortran::lower::convertExprToHLFIR(
+      hlfir::FortranEntity loweredExpr = Fortran::lower::convertExprToHLFIR(
           loc, *this, expr, localSymbols, context);
-      auto [value, valueCleanup] = fir::factory::readHlfirVarToValue(
-          loc, getFirOpBuilder(), loweredExpr);
+      auto [value, valueCleanup] =
+          hlfir::readHlfirVarToValue(loc, getFirOpBuilder(), loweredExpr);
       if (valueCleanup)
         context.attachCleanup(*valueCleanup);
-      auto [exv, exvCleanup] = fir::factory::HlfirValueToExtendedValue(
-          loc, getFirOpBuilder(), value);
+      auto [exv, exvCleanup] =
+          hlfir::translateToExtendedValue(loc, getFirOpBuilder(), value);
       if (exvCleanup)
         context.attachCleanup(*exvCleanup);
       return exv;
@@ -478,14 +477,14 @@ public:
   genExprBox(mlir::Location loc, const Fortran::lower::SomeExpr &expr,
              Fortran::lower::StatementContext &stmtCtx) override final {
     if (bridge.getLoweringOptions().getLowerToHighLevelFIR()) {
-      fir::HlfirValue loweredExpr = Fortran::lower::convertExprToHLFIR(
+      hlfir::FortranEntity loweredExpr = Fortran::lower::convertExprToHLFIR(
           loc, *this, expr, localSymbols, stmtCtx);
-      auto [var, varCleanup] = fir::factory::storeHlfirValueToTemp(
-          loc, getFirOpBuilder(), loweredExpr);
+      auto [var, varCleanup] =
+          hlfir::storeHlfirValueToTemp(loc, getFirOpBuilder(), loweredExpr);
       if (varCleanup)
         stmtCtx.attachCleanup(*varCleanup);
       auto [exv, exvCleanup] =
-          fir::factory::HlfirValueToExtendedValue(loc, getFirOpBuilder(), var);
+          hlfir::translateToExtendedValue(loc, getFirOpBuilder(), var);
       if (exvCleanup)
         stmtCtx.attachCleanup(*exvCleanup);
       if (!exv.getBoxOf<fir::BoxValue>())

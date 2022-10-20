@@ -31,16 +31,15 @@ void Fortran::lower::SymMap::addSymbol(Fortran::semantics::SymbolRef sym,
             });
 }
 
-Fortran::lower::SymbolBox
-toSymbolBox(std::variant<Fortran::lower::SymbolBox,
-                         fir::FortranVariableOpInterface>
-                symboxOrdefiningOp) {
+Fortran::lower::SymbolBox toSymbolBox(
+    std::variant<Fortran::lower::SymbolBox, fir::FortranVariableOpInterface>
+        symboxOrdefiningOp) {
   if (const Fortran::lower::SymbolBox *symBox =
           std::get_if<Fortran::lower::SymbolBox>(&symboxOrdefiningOp))
     return *symBox;
   auto definingOp =
       std::get<fir::FortranVariableOpInterface>(symboxOrdefiningOp);
-  return fir::toExtendedValue(definingOp)
+  return hlfir::translateToExtendedValue(definingOp)
       .match(
           [&](const fir::UnboxedValue &v) -> Fortran::lower::SymbolBox {
             return Fortran::lower::SymbolBox::Intrinsic{v};
@@ -132,8 +131,7 @@ Fortran::lower::operator<<(llvm::raw_ostream &os,
 static llvm::raw_ostream &
 dump(llvm::raw_ostream &os,
      const std::variant<Fortran::lower::SymbolBox,
-                        fir::FortranVariableOpInterface>
-         &symboxOrdefiningOp) {
+                        fir::FortranVariableOpInterface> &symboxOrdefiningOp) {
   if (const Fortran::lower::SymbolBox *symBox =
           std::get_if<Fortran::lower::SymbolBox>(&symboxOrdefiningOp))
     return os << *symBox;

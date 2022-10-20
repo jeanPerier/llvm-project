@@ -32,44 +32,44 @@ public:
   using CharacterDesignators =
       decltype(Fortran::evaluate::Designator<Fortran::evaluate::Type<
                    Fortran::evaluate::TypeCategory::Character, 1>>::u);
-  fir::HlfirValue gen(const CharacterDesignators &designatorVariant) {
+  hlfir::FortranEntity gen(const CharacterDesignators &designatorVariant) {
     return std::visit([&](const auto &x) { return gen(x); }, designatorVariant);
   }
   // Character designators variant contains complex parts
   using RealDesignators =
       decltype(Fortran::evaluate::Designator<Fortran::evaluate::Type<
                    Fortran::evaluate::TypeCategory::Real, 4>>::u);
-  fir::HlfirValue gen(const RealDesignators &designatorVariant) {
+  hlfir::FortranEntity gen(const RealDesignators &designatorVariant) {
     return std::visit([&](const auto &x) { return gen(x); }, designatorVariant);
   }
   // All other designators are similar
   using OtherDesignators =
       decltype(Fortran::evaluate::Designator<Fortran::evaluate::Type<
                    Fortran::evaluate::TypeCategory::Integer, 4>>::u);
-  fir::HlfirValue gen(const OtherDesignators &designatorVariant) {
+  hlfir::FortranEntity gen(const OtherDesignators &designatorVariant) {
     return std::visit([&](const auto &x) { return gen(x); }, designatorVariant);
   }
 
 private:
-  fir::HlfirValue gen(const Fortran::evaluate::SymbolRef &symbolRef) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::SymbolRef &symbolRef) {
     if (llvm::Optional<fir::FortranVariableOpInterface> varDef =
             getSymMap().lookupVariableDefinition(symbolRef))
       return *varDef;
     TODO(getLoc(), "symbol");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::Component &component) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::Component &component) {
     TODO(getLoc(), "component");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::ArrayRef &arrayRef) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::ArrayRef &arrayRef) {
     TODO(getLoc(), "ArrayRef");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::CoarrayRef &coarrayRef) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::CoarrayRef &coarrayRef) {
     TODO(getLoc(), "CoarrayRef");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::ComplexPart &complexPart) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::ComplexPart &complexPart) {
     TODO(getLoc(), "complex part");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::Substring &substring) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::Substring &substring) {
     TODO(getLoc(), "substrings");
   }
 
@@ -94,82 +94,83 @@ public:
       : converter{converter}, symMap{symMap}, stmtCtx{stmtCtx}, loc{loc} {}
 
   template <typename T>
-  fir::HlfirValue gen(const Fortran::evaluate::Expr<T> &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::Expr<T> &expr) {
     return std::visit([&](const auto &x) { return gen(x); }, expr.u);
   }
 
 private:
-  fir::HlfirValue gen(const Fortran::evaluate::BOZLiteralConstant &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::BOZLiteralConstant &expr) {
     fir::emitFatalError(loc, "BOZ literal must be replaced by semantics");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::NullPointer &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::NullPointer &expr) {
     TODO(getLoc(), "NullPointer");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::ProcedureDesignator &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::ProcedureDesignator &expr) {
     TODO(getLoc(), "ProcDes");
   }
-  fir::HlfirValue gen(const Fortran::evaluate::ProcedureRef &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::ProcedureRef &expr) {
     TODO(getLoc(), "ProcRef");
   }
 
   template <typename T>
-  fir::HlfirValue gen(const Fortran::evaluate::Designator<T> &designator) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::Designator<T> &designator) {
     return HlfirDesignatorBuilder(getLoc(), getConverter(), getSymMap(),
                                   getStmtCtx())
         .gen(designator.u);
   }
 
   template <typename T>
-  fir::HlfirValue gen(const Fortran::evaluate::FunctionRef<T> &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::FunctionRef<T> &expr) {
     TODO(getLoc(), "funcRef");
   }
 
   template <typename T>
-  fir::HlfirValue gen(const Fortran::evaluate::Constant<T> &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::Constant<T> &expr) {
     TODO(getLoc(), "constant");
   }
 
   template <typename T>
-  fir::HlfirValue gen(const Fortran::evaluate::ArrayConstructor<T> &expr) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::ArrayConstructor<T> &expr) {
     TODO(getLoc(), "ArrayCtor");
   }
 
   template <Fortran::common::TypeCategory TC1, int KIND,
             Fortran::common::TypeCategory TC2>
-  fir::HlfirValue
+  hlfir::FortranEntity
   gen(const Fortran::evaluate::Convert<Fortran::evaluate::Type<TC1, KIND>, TC2>
           &convert) {
     TODO(getLoc(), "convert");
   }
 
   template <typename D, typename R, typename O>
-  fir::HlfirValue gen(const Fortran::evaluate::Operation<D, R, O> &op) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::Operation<D, R, O> &op) {
     TODO(getLoc(), "unary op");
   }
 
   template <typename D, typename R, typename LO, typename RO>
-  fir::HlfirValue gen(const Fortran::evaluate::Operation<D, R, LO, RO> &op) {
+  hlfir::FortranEntity
+  gen(const Fortran::evaluate::Operation<D, R, LO, RO> &op) {
     TODO(getLoc(), "binary op");
   }
 
-  fir::HlfirValue
+  hlfir::FortranEntity
   gen(const Fortran::evaluate::Relational<Fortran::evaluate::SomeType> &op) {
     return std::visit([&](const auto &x) { return gen(x); }, op.u);
   }
 
-  fir::HlfirValue gen(const Fortran::evaluate::TypeParamInquiry &) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::TypeParamInquiry &) {
     TODO(getLoc(), "type parameter inquiry");
   }
 
-  fir::HlfirValue gen(const Fortran::evaluate::DescriptorInquiry &desc) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::DescriptorInquiry &desc) {
     TODO(getLoc(), "descriptor inquiry");
   }
 
-  fir::HlfirValue gen(const Fortran::evaluate::ImpliedDoIndex &var) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::ImpliedDoIndex &var) {
     TODO(getLoc(), "implied do index");
   }
 
-  fir::HlfirValue gen(const Fortran::evaluate::StructureConstructor &var) {
+  hlfir::FortranEntity gen(const Fortran::evaluate::StructureConstructor &var) {
     TODO(getLoc(), "structure constructor");
   }
 
@@ -187,7 +188,7 @@ private:
 
 } // namespace
 
-fir::HlfirValue Fortran::lower::convertExprToHLFIR(
+hlfir::FortranEntity Fortran::lower::convertExprToHLFIR(
     mlir::Location loc, Fortran::lower::AbstractConverter &converter,
     const Fortran::lower::SomeExpr &expr, Fortran::lower::SymMap &symMap,
     Fortran::lower::StatementContext &stmtCtx) {

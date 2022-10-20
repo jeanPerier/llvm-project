@@ -67,63 +67,55 @@ getExplicitTypeParams(fir::FortranVariableOpInterface var) {
   return res;
 }
 
-fir::ExtendedValue fir::toExtendedValue(fir::FortranVariableOpInterface var) {
-  if (var.isPointer() || var.isAllocatable())
-    TODO(var->getLoc(), "pointer or allocatable "
-                        "FortranVariableOpInterface to extendedValue");
-  if (var.getBase().getType().isa<fir::BaseBoxType>())
-    return fir::BoxValue(var.getBase(), getExplicitLbounds(var),
-                         getExplicitTypeParams(var), getExplicitExtents(var));
-  if (var.isCharacter()) {
-    if (var.isArray())
-      return fir::CharArrayBoxValue(var.getBase(), var.getExplicitCharLen(),
-                                    getExplicitExtents(var),
-                                    getExplicitLbounds(var));
-    return fir::CharBoxValue(var.getBase(), var.getExplicitCharLen());
+std::pair<fir::ExtendedValue, std::optional<hlfir::CleanupFunction>>
+hlfir::translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
+                                hlfir::FortranEntity entity) {
+  if (auto variable = entity.getIfVariable())
+    return {hlfir::translateToExtendedValue(variable), {}};
+  if (entity.getType().isa<hlfir::ExprType>())
+    TODO(loc, "hlfir.expr to fir::ExtendedValue"); // use hlfir.associate
+  return {{static_cast<mlir::Value>(entity)}, {}};
+}
+
+fir::ExtendedValue
+hlfir::translateToExtendedValue(fir::FortranVariableOpInterface variable) {
+  if (variable.isPointer() || variable.isAllocatable())
+    TODO(variable->getLoc(), "pointer or allocatable "
+                             "FortranVariableOpInterface to extendedValue");
+  if (variable.getBase().getType().isa<fir::BaseBoxType>())
+    return fir::BoxValue(variable.getBase(), getExplicitLbounds(variable),
+                         getExplicitTypeParams(variable),
+                         getExplicitExtents(variable));
+  if (variable.isCharacter()) {
+    if (variable.isArray())
+      return fir::CharArrayBoxValue(
+          variable.getBase(), variable.getExplicitCharLen(),
+          getExplicitExtents(variable), getExplicitLbounds(variable));
+    return fir::CharBoxValue(variable.getBase(), variable.getExplicitCharLen());
   }
-  if (var.isArray())
-    return fir::ArrayBoxValue(var.getBase(), getExplicitExtents(var),
-                              getExplicitLbounds(var));
-  return var.getBase();
+  if (variable.isArray())
+    return fir::ArrayBoxValue(variable.getBase(), getExplicitExtents(variable),
+                              getExplicitLbounds(variable));
+  return variable.getBase();
 }
 
-std::pair<fir::ExtendedValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::HlfirValueToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
-                                        fir::HlfirValue val) {
-  using ResultType = std::pair<fir::ExtendedValue,
-                               std::optional<fir::factory::CleanupFunction>>;
-  return val.match(
-      [&](mlir::Value val) -> ResultType {
-        if (val.getType().isa<fir::ExprType>())
-          TODO(loc, "fir.expr to fir::ExtendedValue");
-        return {{val}, {}};
-      },
-      [](fir::FortranVariableOpInterface var) -> ResultType {
-        return {fir::toExtendedValue(var), {}};
-      });
+std::pair<hlfir::FortranEntity, std::optional<hlfir::CleanupFunction>>
+hlfir::readHlfirVarToValue(mlir::Location loc, fir::FirOpBuilder &builder,
+                           hlfir::FortranEntity) {
+  TODO(loc, "HLFIR variable to value");
 }
 
-std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::readHlfirVarToValue(mlir::Location loc,
-                                  fir::FirOpBuilder &builder,
-                                  fir::HlfirValue hlfirObject) {
-  TODO(loc, "HLFIR var to value");
-  return {{mlir::Value{}}, {}};
+std::pair<hlfir::FortranEntity, std::optional<hlfir::CleanupFunction>>
+hlfir::copyNonSimplyContiguousIntoTemp(mlir::Location loc,
+                                       fir::FirOpBuilder &builder,
+                                       hlfir::FortranEntity) {
+  TODO(loc, "HLFIR non contiguous variable to contiguous temporary variable");
 }
 
-std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::copyNonSimplyContiguousIntoTemp(mlir::Location loc,
-                                              fir::FirOpBuilder &builder,
-                                              fir::HlfirValue hlfirObject) {
-  TODO(loc, "HLFIR non contiguous var to contiguous temp var");
-  return {{mlir::Value{}}, {}};
-}
-
-std::pair<fir::HlfirValue, std::optional<fir::factory::CleanupFunction>>
-fir::factory::storeHlfirValueToTemp(mlir::Location loc,
-                                    fir::FirOpBuilder &builder,
-                                    fir::HlfirValue hlfirObject) {
-  if (hlfirObject.isVariable())
-    return {hlfirObject, {}};
-  TODO(loc, "HLFIR value to temp var");
+std::pair<hlfir::FortranEntity, std::optional<hlfir::CleanupFunction>>
+hlfir::storeHlfirValueToTemp(mlir::Location loc, fir::FirOpBuilder &builder,
+                             hlfir::FortranEntity entity) {
+  if (entity.isVariable())
+    return {entity, {}};
+  TODO(loc, "HLFIR value to temp variable");
 }
