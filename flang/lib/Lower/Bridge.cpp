@@ -418,6 +418,16 @@ public:
   }
 
   fir::ExtendedValue
+  translateToExtendedValue(mlir::Location loc, hlfir::FortranEntity entity,
+                           Fortran::lower::StatementContext &context) {
+    auto [exv, exvCleanup] =
+        hlfir::translateToExtendedValue(loc, getFirOpBuilder(), entity);
+    if (exvCleanup)
+      context.attachCleanup(*exvCleanup);
+    return exv;
+  }
+
+  fir::ExtendedValue
   genExprAddr(const Fortran::lower::SomeExpr &expr,
               Fortran::lower::StatementContext &context,
               mlir::Location *locPtr = nullptr) override final {
@@ -427,13 +437,8 @@ public:
           loc, *this, expr, localSymbols, context);
       if (fir::FortranVariableOpInterface variable =
               loweredExpr.getIfVariable())
-        if (!variable.isBox()) {
-          auto [exv, exvCleanup] =
-              hlfir::translateToExtendedValue(loc, getFirOpBuilder(), variable);
-          if (exvCleanup)
-            context.attachCleanup(*exvCleanup);
-          return exv;
-        }
+        if (!variable.isBox())
+          return translateToExtendedValue(loc, loweredExpr, context);
       TODO(loc, "lower expr that is not a scalar or explicit shape array "
                 "variable to HLFIR address");
     }
@@ -461,12 +466,8 @@ public:
       if (fir::FortranVariableOpInterface variable =
               loweredExpr.getIfVariable())
         if (variable.isBoxValue() || !variable.isBoxAddress()) {
-          auto &builder = getFirOpBuilder();
-          auto [exv, exvCleanup] =
-              hlfir::translateToExtendedValue(loc, builder, variable);
-          if (exvCleanup)
-            stmtCtx.attachCleanup(*exvCleanup);
-          return fir::factory::createBoxValue(builder, loc, exv);
+          auto exv = translateToExtendedValue(loc, loweredExpr, stmtCtx);
+          return fir::factory::createBoxValue(getFirOpBuilder(), loc, exv);
         }
       TODO(loc,
            "lower expression value or pointer and allocatable to HLFIR box");
