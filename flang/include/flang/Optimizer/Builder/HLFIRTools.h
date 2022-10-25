@@ -85,6 +85,13 @@ translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &builder,
 fir::ExtendedValue
 translateToExtendedValue(fir::FortranVariableOpInterface fortranVariable);
 
+/// Translate a FortranVariableOpInterface to a fir::BoxValue.
+/// If a fir.box is already available in the FortranVariableOpInterface, this is
+/// a simple packaging operation. Otherwise this will create fir.embox
+fir::BoxValue translateToBoxValue(mlir::Location loc,
+                                  fir::FirOpBuilder &builder,
+                                  fir::FortranVariableOpInterface variable);
+
 /// Generate declaration for a fir::ExtendedValue in memory.
 FortranEntity genDeclare(mlir::Location loc, fir::FirOpBuilder &builder,
                          const fir::ExtendedValue &exv, llvm::StringRef name,

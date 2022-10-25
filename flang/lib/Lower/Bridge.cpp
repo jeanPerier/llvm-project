@@ -492,10 +492,7 @@ public:
           loc, *this, expr, localSymbols, stmtCtx);
       if (fir::FortranVariableOpInterface variable =
               loweredExpr.getIfVariable())
-        if (variable.isBoxValue() || !variable.isBoxAddress()) {
-          auto exv = translateToExtendedValue(loc, loweredExpr, stmtCtx);
-          return fir::factory::createBoxValue(getFirOpBuilder(), loc, exv);
-        }
+        return hlfir::translateToBoxValue(loc, getFirOpBuilder(), variable);
       TODO(loc,
            "lower expression value or pointer and allocatable to HLFIR box");
     }

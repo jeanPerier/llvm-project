@@ -13,6 +13,7 @@
 #include "flang/Optimizer/Builder/HLFIRTools.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/Todo.h"
+#include "flang/Optimizer/HLFIR/HLFIROps.h"
 
 // Return explicit extents. If the base is a fir.box, this won't read it to
 // return the extents and will instead return an empty vector.
@@ -78,24 +79,41 @@ hlfir::translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
 
 fir::ExtendedValue
 hlfir::translateToExtendedValue(fir::FortranVariableOpInterface variable) {
+  mlir::Value base = variable.getBase();
+  /// When going towards FIR, use the original base value to avoid
+  /// introducing descriptors at runtime when they are not required.
+  if (auto declareOp =
+          mlir::dyn_cast<hlfir::DeclareOp>(variable.getOperation()))
+    base = declareOp.getOriginalBase();
   if (variable.isPointer() || variable.isAllocatable())
     TODO(variable->getLoc(), "pointer or allocatable "
                              "FortranVariableOpInterface to extendedValue");
-  if (variable.getBase().getType().isa<fir::BaseBoxType>())
-    return fir::BoxValue(variable.getBase(), getExplicitLbounds(variable),
+  if (base.getType().isa<fir::BaseBoxType>())
+    return fir::BoxValue(base, getExplicitLbounds(variable),
                          getExplicitTypeParams(variable),
                          getExplicitExtents(variable));
   if (variable.isCharacter()) {
     if (variable.isArray())
-      return fir::CharArrayBoxValue(
-          variable.getBase(), variable.getExplicitCharLen(),
-          getExplicitExtents(variable), getExplicitLbounds(variable));
-    return fir::CharBoxValue(variable.getBase(), variable.getExplicitCharLen());
+      return fir::CharArrayBoxValue(base, variable.getExplicitCharLen(),
+                                    getExplicitExtents(variable),
+                                    getExplicitLbounds(variable));
+    return fir::CharBoxValue(base, variable.getExplicitCharLen());
   }
   if (variable.isArray())
-    return fir::ArrayBoxValue(variable.getBase(), getExplicitExtents(variable),
+    return fir::ArrayBoxValue(base, getExplicitExtents(variable),
                               getExplicitLbounds(variable));
-  return variable.getBase();
+  return base;
+}
+
+fir::BoxValue
+hlfir::translateToBoxValue(mlir::Location loc, fir::FirOpBuilder &builder,
+                           fir::FortranVariableOpInterface variable) {
+  mlir::Value base = variable.getBase();
+  if (base.getType().isa<fir::BaseBoxType>())
+    return fir::BoxValue(base, getExplicitLbounds(variable),
+                         getExplicitTypeParams(variable));
+  fir::ExtendedValue exv = translateToExtendedValue(variable);
+  return fir::factory::createBoxValue(builder, loc, exv);
 }
 
 hlfir::FortranEntity hlfir::genDeclare(mlir::Location loc,

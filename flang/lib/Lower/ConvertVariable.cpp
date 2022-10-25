@@ -30,6 +30,7 @@
 #include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
+#include "flang/Optimizer/HLFIR/HLFIROps.h"
 #include "flang/Optimizer/Support/FIRContext.h"
 #include "flang/Optimizer/Support/FatalError.h"
 #include "flang/Semantics/runtime-type-info.h"
@@ -1353,13 +1354,11 @@ static void genDeclareSymbol(Fortran::lower::AbstractConverter &converter,
     llvm::SmallVector<mlir::Value> lenParams;
     if (len)
       lenParams.emplace_back(len);
-    auto name = mlir::StringAttr::get(builder.getContext(),
-                                      Fortran::lower::mangle::mangleName(sym));
+    auto name = Fortran::lower::mangle::mangleName(sym);
     fir::FortranVariableFlagsAttr attributes =
         translateSymbolAttributes(builder.getContext(), sym);
-    auto newBase = builder.create<fir::DeclareOp>(
-        loc, base.getType(), base, shapeOrShift, lenParams, name, attributes);
-    base = newBase;
+    auto newBase = builder.create<hlfir::DeclareOp>(
+        loc, base, name, shapeOrShift, lenParams, attributes);
     symMap.addVariableDefinition(sym, newBase, force);
     return;
   }
