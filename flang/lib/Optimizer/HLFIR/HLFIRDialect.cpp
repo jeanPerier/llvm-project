@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Optimizer/HLFIR/HLFIRDialect.h"
+#include "flang/Optimizer/HLFIR/HLFIROps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -30,6 +31,10 @@ void hlfir::hlfirDialect::initialize() {
   addTypes<
 #define GET_TYPEDEF_LIST
 #include "flang/Optimizer/HLFIR/HLFIRTypes.cpp.inc"
+      >();
+  addOperations<
+#define GET_OP_LIST
+#include "flang/Optimizer/HLFIR/HLFIROps.cpp.inc"
       >();
 }
 

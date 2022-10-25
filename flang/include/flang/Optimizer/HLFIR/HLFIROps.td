@@ -96,6 +96,25 @@ def hlfir_DeclareOp : hlfir_Op<"declare", [AttrSizedOperandSegments,
     $memref (`(` $shape^ `)`)? (`typeparams` $typeparams^)?
      attr-dict `:` functional-type(operands, results)
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$memref, "llvm::StringRef":$uniq_name,
+      CArg<"mlir::Value", "{}">:$shape, CArg<"mlir::ValueRange", "{}">:$typeparams,
+      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>];
+
+  let extraClassDeclaration = [{
+    /// Get the variable original base (same as input). It lacks
+    /// any explicit lower bounds and the extents might not be retrievable
+    /// from it. This matches what is used as base in FIR.
+    mlir::Value getOriginalBase() {
+      return getResult(1);
+    }
+
+    /// Override FortranVariableInterface default implementation
+    mlir::Value getBase() {
+      return getResult(0);
+    }
+  }];
 }
 
 #endif // FORTRAN_DIALECT_HLFIR_OPS

@@ -20,3 +20,31 @@
 
 #define GET_OP_CLASSES
 #include "flang/Optimizer/HLFIR/HLFIROps.cpp.inc"
+
+static mlir::Type getHLFIRVariableTypeFor(mlir::Type inputType,
+                                          bool hasExplicitLowerBounds) {
+  mlir::Type type = fir::unwrapRefType(inputType);
+  if (type.isa<fir::BoxType>())
+    return inputType;
+  if (auto charType = type.dyn_cast<fir::CharacterType>())
+    if (charType.hasDynamicLen())
+      return fir::BoxCharType::get(charType.getContext(), charType.getFKind());
+  if (fir::hasDynamicSize(inputType) || hasExplicitLowerBounds)
+    return fir::BoxType::get(type);
+  return inputType;
+}
+
+void hlfir::DeclareOp::build(mlir::OpBuilder &builder,
+                             mlir::OperationState &result, mlir::Value memref,
+                             llvm::StringRef uniq_name, mlir::Value shape,
+                             mlir::ValueRange typeparams,
+                             fir::FortranVariableFlagsAttr fortran_attrs) {
+  auto nameAttr = builder.getStringAttr(uniq_name);
+  mlir::Type inputType = memref.getType();
+  bool hasExplicitLowerBounds =
+      shape && shape.getType().isa<fir::ShapeShiftType, fir::ShiftType>();
+  mlir::Type hlfirVariableType =
+      getHLFIRVariableTypeFor(inputType, hasExplicitLowerBounds);
+  build(builder, result, {hlfirVariableType, inputType}, memref, shape,
+        typeparams, nameAttr, fortran_attrs);
+}
