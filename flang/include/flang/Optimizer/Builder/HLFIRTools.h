@@ -16,6 +16,7 @@
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Dialect/FortranVariableInterface.h"
 #include "flang/Optimizer/HLFIR/HLFIRDialect.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 namespace fir {
 class FirOpBuilder;
@@ -31,6 +32,22 @@ inline bool isFortranValueType(mlir::Type type) {
 /// Is this the value of a Fortran expression in an SSA value form?
 inline bool isFortranValue(mlir::Value value) {
   return isFortranValueType(value.getType());
+}
+
+inline bool isFortranVariableLike(mlir::Value value) {
+  return llvm::TypeSwitch<mlir::Type, bool>(value.getType())
+      .Case<fir::ReferenceType, fir::PointerType, fir::HeapType>([](auto p) {
+        mlir::Type eleType = p.getEleTy();
+        return eleType.isa<fir::BaseBoxType>() || !fir::hasDynamicSize(eleType);
+      })
+      .Case<fir::BaseBoxType, fir::BoxCharType>([](auto) {
+        return true;
+      })
+      .Default([](mlir::Type) { return false; });
+}
+
+inline bool isFortranEntityLike(mlir::Value value) {
+  return isFortranValue(value) || isFortranVariableLike(value);
 }
 
 /// Is this a Fortran variable?
@@ -50,24 +67,43 @@ inline bool isFortranEntity(mlir::Value value) {
   return isFortranValue(value) || isFortranVariable(value);
 }
 
+class FortranEntityLike : public mlir::Value {
+public:
+  explicit FortranEntityLike(mlir::Value value) : mlir::Value(value) {
+    assert(isFortranEntityLike(value) &&
+           "must be a value representing a Fortran value or variable like");
+  }
+  bool isValue() const { return isFortranValue(*this); }
+  bool isVariable() const { return !isValue(); }
+  bool isArray() const {
+    mlir::Type type = fir::unwrapPassByRefType(fir::unwrapRefType(getType()));
+    if (type.isa<fir::SequenceType>())
+      return true;
+    if (auto exprType = type.dyn_cast<hlfir::ExprType>())
+      return exprType.isArray();
+    return false;
+  }
+  fir::FortranVariableOpInterface getIfVariableInterface() const {
+    return this->getDefiningOp<fir::FortranVariableOpInterface>();
+  }
+  mlir::Value getBase() const { return *this; }
+};
+
 /// Wrapper over an mlir::Value that can be viewed as a Fortran entity.
 /// This provides some Fortran specific helpers as well as a guarantee
 /// in the compiler source that a certain mlir::Value must be a Fortran
 /// entity.
-class FortranEntity : public mlir::Value {
+class FortranEntity : public FortranEntityLike {
 public:
-  explicit FortranEntity(mlir::Value value) : mlir::Value(value) {
+  explicit FortranEntity(mlir::Value value) : FortranEntityLike(value) {
     assert(isFortranEntity(value) &&
            "must be a value representing a Fortran value or variable");
   }
   FortranEntity(fir::FortranVariableOpInterface variable)
-      : mlir::Value(variable.getBase()) {}
-  bool isValue() const { return isFortranValue(*this); }
-  bool isVariable() const { return !isValue(); }
+      : FortranEntityLike(variable.getBase()) {}
   fir::FortranVariableOpInterface getIfVariable() const {
-    return this->getDefiningOp<fir::FortranVariableOpInterface>();
+    return getIfVariableInterface();
   }
-  mlir::Value getBase() const { return *this; }
 };
 
 /// Functions to translate hlfir::FortranEntity to fir::ExtendedValue.
@@ -78,7 +114,7 @@ public:
 using CleanupFunction = std::function<void()>;
 std::pair<fir::ExtendedValue, llvm::Optional<CleanupFunction>>
 translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &builder,
-                         FortranEntity entity);
+                         FortranEntityLike entity);
 
 /// Function to translate FortranVariableOpInterface to fir::ExtendedValue.
 /// It does not generate any IR, and is a simple packaging operation.

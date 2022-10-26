@@ -69,9 +69,11 @@ getExplicitTypeParams(fir::FortranVariableOpInterface var) {
 
 std::pair<fir::ExtendedValue, llvm::Optional<hlfir::CleanupFunction>>
 hlfir::translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
-                                hlfir::FortranEntity entity) {
-  if (auto variable = entity.getIfVariable())
+                                hlfir::FortranEntityLike entity) {
+  if (auto variable = entity.getIfVariableInterface())
     return {hlfir::translateToExtendedValue(variable), {}};
+  if (entity.isVariable())
+    TODO(loc, "HLFIR variable to fir::ExtendedValue without a FortranVariableOpInterface");
   if (entity.getType().isa<hlfir::ExprType>())
     TODO(loc, "hlfir.expr to fir::ExtendedValue"); // use hlfir.associate
   return {{static_cast<mlir::Value>(entity)}, {}};

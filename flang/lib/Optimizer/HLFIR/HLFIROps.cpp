@@ -24,12 +24,12 @@
 static mlir::Type getHLFIRVariableTypeFor(mlir::Type inputType,
                                           bool hasExplicitLowerBounds) {
   mlir::Type type = fir::unwrapRefType(inputType);
-  if (type.isa<fir::BoxType>())
+  if (type.isa<fir::BaseBoxType>())
     return inputType;
   if (auto charType = type.dyn_cast<fir::CharacterType>())
     if (charType.hasDynamicLen())
       return fir::BoxCharType::get(charType.getContext(), charType.getFKind());
-  if (fir::hasDynamicSize(inputType) || hasExplicitLowerBounds)
+  if (fir::hasDynamicSize(type) || hasExplicitLowerBounds)
     return fir::BoxType::get(type);
   return inputType;
 }

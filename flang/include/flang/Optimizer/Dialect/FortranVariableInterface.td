@@ -74,7 +74,10 @@ def fir_FortranVariableOpInterface : OpInterface<"FortranVariableOpInterface"> {
     /// Get the sequence type or scalar value type corresponding to this
     /// variable.
     mlir::Type getElementOrSequenceType() {
-      return fir::unwrapPassByRefType(fir::unwrapRefType(getBase().getType()));
+      mlir::Type type = fir::unwrapPassByRefType(fir::unwrapRefType(getBase().getType()));
+      if (auto boxCharType = type.dyn_cast<fir::BoxCharType>())
+        return boxCharType.getEleTy();
+      return type;
     }
 
     /// Get the scalar value type corresponding to this variable.

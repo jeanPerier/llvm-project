@@ -25,6 +25,8 @@ include "mlir/IR/BuiltinAttributes.td"
 class hlfir_Op<string mnemonic, list<Trait> traits>
   : Op<hlfir_Dialect, mnemonic, traits>;
 
+
+
 def hlfir_DeclareOp : hlfir_Op<"declare", [AttrSizedOperandSegments,
     DeclareOpInterfaceMethods<fir_FortranVariableOpInterface>]> {
   let summary = "declare a variable and produce an SSA value with all local information";
@@ -90,7 +92,7 @@ def hlfir_DeclareOp : hlfir_Op<"declare", [AttrSizedOperandSegments,
     OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
   );
 
-  let results = (outs AnyRefOrBox, AnyRefOrBox);
+  let results = (outs AnyRefOrBoxLike, AnyRefOrBoxLike);
 
   let assemblyFormat = [{
     $memref (`(` $shape^ `)`)? (`typeparams` $typeparams^)?
@@ -114,6 +116,21 @@ def hlfir_DeclareOp : hlfir_Op<"declare", [AttrSizedOperandSegments,
     mlir::Value getBase() {
       return getResult(0);
     }
+  }];
+}
+
+def fir_AssignOp : hlfir_Op<"assign", [MemoryEffects<[MemWrite]>]> {
+  let summary = "Assign an expression or variable value to a Fortran variable";
+
+  let description = [{
+    TODO
+  }];
+
+  let arguments = (ins AnyType:$rhs,
+                   Arg<AnyType, "", [MemWrite]>:$lhs);
+  
+  let assemblyFormat = [{
+    $rhs `to` $lhs attr-dict `:` type(operands)
   }];
 }
 

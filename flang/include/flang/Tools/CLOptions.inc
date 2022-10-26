@@ -14,6 +14,7 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "flang/Optimizer/CodeGen/CodeGen.h"
+#include "flang/Optimizer/HLFIR/Passes.h"
 #include "flang/Optimizer/Transforms/Passes.h"
 #include "llvm/Passes/OptimizationLevel.h"
 #include "llvm/Support/CommandLine.h"
@@ -160,6 +161,7 @@ inline void createDefaultFIROptimizerPassPipeline(
   // simplify the IR
   mlir::GreedyRewriteConfig config;
   config.enableRegionSimplification = false;
+  pm.addPass(hlfir::createConvertHLFIRtoFIRPass());
   pm.addPass(mlir::createCSEPass());
   fir::addAVC(pm);
   pm.addNestedPass<mlir::func::FuncOp>(fir::createCharacterConversionPass());
