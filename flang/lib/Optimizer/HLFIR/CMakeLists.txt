@@ -1,22 +1,2 @@
-get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-
-add_flang_library(HLFIRDialect
-  HLFIRDialect.cpp
-  HLFIROps.cpp
-  ConvertToFIR.cpp
-
-  DEPENDS
-  FIRDialect
-  HLFIROpsIncGen
-  ${dialect_libs}
-
-  LINK_LIBS
-  FIRDialect
-  MLIRIR
-  ${dialect_libs}
-
-  LINK_COMPONENTS
-  AsmParser
-  AsmPrinter
-  Remarks
-)
+add_subdirectory(IR)
+add_subdirectory(Transforms)
