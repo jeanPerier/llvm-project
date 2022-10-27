@@ -22,6 +22,7 @@
 #include "flang/Lower/CallInterface.h"
 #include "flang/Lower/Coarray.h"
 #include "flang/Lower/ComponentPath.h"
+#include "flang/Lower/ConvertConstant.h"
 #include "flang/Lower/ConvertType.h"
 #include "flang/Lower/ConvertVariable.h"
 #include "flang/Lower/CustomIntrinsicCall.h"
@@ -782,14 +783,6 @@ public:
     return builder.createBool(getLoc(), value);
   }
 
-  /// Generate a real constant with a value `value`.
-  template <int KIND>
-  mlir::Value genRealConstant(mlir::MLIRContext *context,
-                              const llvm::APFloat &value) {
-    mlir::Type fltTy = Fortran::lower::convertReal(context, KIND);
-    return builder.createRealConstant(getLoc(), fltTy, value);
-  }
-
   mlir::Type getSomeKindInteger() { return builder.getIndexType(); }
 
   mlir::func::FuncOp getFunction(llvm::StringRef name,
@@ -1445,60 +1438,6 @@ public:
     llvm_unreachable("unhandled logical operation");
   }
 
-  /// Convert a scalar literal constant to IR.
-  template <Fortran::common::TypeCategory TC, int KIND>
-  ExtValue genScalarLit(
-      const Fortran::evaluate::Scalar<Fortran::evaluate::Type<TC, KIND>>
-          &value) {
-    if constexpr (TC == Fortran::common::TypeCategory::Integer) {
-      if (KIND == 16) {
-        mlir::Type ty =
-            converter.genType(Fortran::common::TypeCategory::Integer, KIND);
-        auto bigInt =
-            llvm::APInt(ty.getIntOrFloatBitWidth(), value.SignedDecimal(), 10);
-        return builder.create<mlir::arith::ConstantOp>(
-            getLoc(), ty, mlir::IntegerAttr::get(ty, bigInt));
-      }
-      return genIntegerConstant<KIND>(builder.getContext(), value.ToInt64());
-    } else if constexpr (TC == Fortran::common::TypeCategory::Logical) {
-      return genBoolConstant(value.IsTrue());
-    } else if constexpr (TC == Fortran::common::TypeCategory::Real) {
-      std::string str = value.DumpHexadecimal();
-      if constexpr (KIND == 2) {
-        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEhalf(), str);
-        return genRealConstant<KIND>(builder.getContext(), floatVal);
-      } else if constexpr (KIND == 3) {
-        auto floatVal = consAPFloat(llvm::APFloatBase::BFloat(), str);
-        return genRealConstant<KIND>(builder.getContext(), floatVal);
-      } else if constexpr (KIND == 4) {
-        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEsingle(), str);
-        return genRealConstant<KIND>(builder.getContext(), floatVal);
-      } else if constexpr (KIND == 10) {
-        auto floatVal =
-            consAPFloat(llvm::APFloatBase::x87DoubleExtended(), str);
-        return genRealConstant<KIND>(builder.getContext(), floatVal);
-      } else if constexpr (KIND == 16) {
-        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEquad(), str);
-        return genRealConstant<KIND>(builder.getContext(), floatVal);
-      } else {
-        // convert everything else to double
-        auto floatVal = consAPFloat(llvm::APFloatBase::IEEEdouble(), str);
-        return genRealConstant<KIND>(builder.getContext(), floatVal);
-      }
-    } else if constexpr (TC == Fortran::common::TypeCategory::Complex) {
-      using TR =
-          Fortran::evaluate::Type<Fortran::common::TypeCategory::Real, KIND>;
-      Fortran::evaluate::ComplexConstructor<KIND> ctor(
-          Fortran::evaluate::Expr<TR>{
-              Fortran::evaluate::Constant<TR>{value.REAL()}},
-          Fortran::evaluate::Expr<TR>{
-              Fortran::evaluate::Constant<TR>{value.AIMAG()}});
-      return genunbox(ctor);
-    } else /*constexpr*/ {
-      llvm_unreachable("unhandled constant");
-    }
-  }
-
   /// Convert string, \p s, to an APFloat value. Recognize and handle Inf and
   /// NaN strings as well. \p s is assumed to not contain any spaces.
   static llvm::APFloat consAPFloat(const llvm::fltSemantics &fsem,
@@ -1521,34 +1460,19 @@ public:
   void
   genRawLit(const Fortran::evaluate::Scalar<Fortran::evaluate::Type<TC, KIND>>
                 &value) {
-    mlir::Attribute val;
     assert(inInitializer != nullptr);
-    if constexpr (TC == Fortran::common::TypeCategory::Integer) {
-      inInitializer->rawType = converter.genType(TC, KIND);
-      val = builder.getIntegerAttr(inInitializer->rawType, value.ToInt64());
-    } else if constexpr (TC == Fortran::common::TypeCategory::Logical) {
-      inInitializer->rawType =
-          converter.genType(Fortran::common::TypeCategory::Integer, KIND);
-      val = builder.getIntegerAttr(inInitializer->rawType, value.IsTrue());
-    } else if constexpr (TC == Fortran::common::TypeCategory::Real) {
-      std::string str = value.DumpHexadecimal();
-      inInitializer->rawType = converter.genType(TC, KIND);
-      auto floatVal =
-          consAPFloat(builder.getKindMap().getFloatSemantics(KIND), str);
-      val = builder.getFloatAttr(inInitializer->rawType, floatVal);
-    } else if constexpr (TC == Fortran::common::TypeCategory::Complex) {
-      std::string strReal = value.REAL().DumpHexadecimal();
-      std::string strImg = value.AIMAG().DumpHexadecimal();
-      inInitializer->rawType = converter.genType(TC, KIND);
-      auto realVal =
-          consAPFloat(builder.getKindMap().getFloatSemantics(KIND), strReal);
-      val = builder.getFloatAttr(inInitializer->rawType, realVal);
-      inInitializer->rawVals.push_back(val);
-      auto imgVal =
-          consAPFloat(builder.getKindMap().getFloatSemantics(KIND), strImg);
-      val = builder.getFloatAttr(inInitializer->rawType, imgVal);
-    }
-    inInitializer->rawVals.push_back(val);
+    inInitializer->rawType =
+        Fortran::lower::ConstantBuilder<TC, KIND>::convertToAttribute(
+            builder, value, inInitializer->rawVals);
+  }
+
+  /// Convert a scalar literal constant to IR.
+  template <Fortran::common::TypeCategory TC, int KIND>
+  ExtValue genScalarLit(
+      const Fortran::evaluate::Scalar<Fortran::evaluate::Type<TC, KIND>>
+          &value) {
+    return Fortran::lower::ConstantBuilder<TC, KIND>::genScalarLit(
+        builder, getLoc(), value);
   }
 
   /// Convert a scalar literal CHARACTER to IR.
@@ -1557,64 +1481,10 @@ public:
   genScalarLit(const Fortran::evaluate::Scalar<Fortran::evaluate::Type<
                    Fortran::common::TypeCategory::Character, KIND>> &value,
                int64_t len) {
-    using ET = typename std::decay_t<decltype(value)>::value_type;
-    if constexpr (KIND == 1) {
-      assert(value.size() == static_cast<std::uint64_t>(len));
-      // Outline character constant in ro data if it is not in an initializer.
-      if (!inInitializer)
-        return fir::factory::createStringLiteral(builder, getLoc(), value);
-      // When in an initializer context, construct the literal op itself and do
-      // not construct another constant object in rodata.
-      fir::StringLitOp stringLit = builder.createStringLitOp(getLoc(), value);
-      mlir::Value lenp = builder.createIntegerConstant(
-          getLoc(), builder.getCharacterLengthType(), len);
-      return fir::CharBoxValue{stringLit.getResult(), lenp};
-    }
-    fir::CharacterType type =
-        fir::CharacterType::get(builder.getContext(), KIND, len);
-    auto consLit = [&]() -> fir::StringLitOp {
-      mlir::MLIRContext *context = builder.getContext();
-      std::int64_t size = static_cast<std::int64_t>(value.size());
-      mlir::ShapedType shape = mlir::RankedTensorType::get(
-          llvm::ArrayRef<std::int64_t>{size},
-          mlir::IntegerType::get(builder.getContext(), sizeof(ET) * 8));
-      auto denseAttr = mlir::DenseElementsAttr::get(
-          shape, llvm::ArrayRef<ET>{value.data(), value.size()});
-      auto denseTag = mlir::StringAttr::get(context, fir::StringLitOp::xlist());
-      mlir::NamedAttribute dataAttr(denseTag, denseAttr);
-      auto sizeTag = mlir::StringAttr::get(context, fir::StringLitOp::size());
-      mlir::NamedAttribute sizeAttr(sizeTag, builder.getI64IntegerAttr(len));
-      llvm::SmallVector<mlir::NamedAttribute> attrs = {dataAttr, sizeAttr};
-      return builder.create<fir::StringLitOp>(
-          getLoc(), llvm::ArrayRef<mlir::Type>{type}, llvm::None, attrs);
-    };
-
-    mlir::Value lenp = builder.createIntegerConstant(
-        getLoc(), builder.getCharacterLengthType(), len);
-    // When in an initializer context, construct the literal op itself and do
-    // not construct another constant object in rodata.
-    if (inInitializer)
-      return fir::CharBoxValue{consLit().getResult(), lenp};
-
-    // Otherwise, the string is in a plain old expression so "outline" the value
-    // by hashconsing it to a constant literal object.
-
-    auto size =
-        converter.getKindMap().getCharacterBitsize(KIND) / 8 * value.size();
-    llvm::StringRef strVal(reinterpret_cast<const char *>(value.c_str()), size);
-    std::string globalName = fir::factory::uniqueCGIdent("cl", strVal);
-    fir::GlobalOp global = builder.getNamedGlobal(globalName);
-    if (!global)
-      global = builder.createGlobalConstant(
-          getLoc(), type, globalName,
-          [&](fir::FirOpBuilder &builder) {
-            fir::StringLitOp str = consLit();
-            builder.create<fir::HasValueOp>(getLoc(), str);
-          },
-          builder.createLinkOnceLinkage());
-    auto addr = builder.create<fir::AddrOfOp>(getLoc(), global.resultType(),
-                                              global.getSymbol());
-    return fir::CharBoxValue{addr, lenp};
+    // Constant character outside of initializer can be outlined
+    // in read only memory.
+    return Fortran::lower::ConstantCharBuilder<KIND>::genScalarLit(
+        builder, getLoc(), value, len, !inInitializer);
   }
 
   template <Fortran::common::TypeCategory TC, int KIND>
