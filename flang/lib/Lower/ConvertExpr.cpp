@@ -511,16 +511,6 @@ bool isElementalProcWithArrayArgs(const Fortran::lower::SomeExpr &x) {
   return false;
 }
 
-/// Some auxiliary data for processing initialization in ScalarExprLowering
-/// below. This is currently used for generating dense attributed global
-/// arrays.
-struct InitializerData {
-  explicit InitializerData(bool getRawVals = false) : genRawVals{getRawVals} {}
-  llvm::SmallVector<mlir::Attribute> rawVals; // initialization raw values
-  mlir::Type rawType; // Type of elements processed for rawVals vector.
-  bool genRawVals;    // generate the rawVals vector if set.
-};
-
 /// If \p arg is the address of a function with a denoted host-association tuple
 /// argument, then return the host-associations tuple value of the current
 /// procedure. Otherwise, return nullptr.
@@ -661,10 +651,10 @@ public:
                               Fortran::lower::AbstractConverter &converter,
                               Fortran::lower::SymMap &symMap,
                               Fortran::lower::StatementContext &stmtCtx,
-                              InitializerData *initializer = nullptr)
+                              bool inInitializer = false)
       : location{loc}, converter{converter},
         builder{converter.getFirOpBuilder()}, stmtCtx{stmtCtx}, symMap{symMap},
-        inInitializer{initializer} {}
+        inInitializer{inInitializer} {}
 
   ExtValue genExtAddr(const Fortran::lower::SomeExpr &expr) {
     return gen(expr);
@@ -1474,7 +1464,7 @@ public:
              &con) {
     return Fortran::lower::IntrinsicConstantBuilder<TC, KIND>::gen(
         builder, getLoc(), con,
-        /*outlineCharacterScalarInReadOnlyMemory=*/!inInitializer);
+        /*outlineBigConstantsInReadOnlyMemory=*/!inInitializer);
   }
 
   fir::ExtendedValue genval(
@@ -3293,7 +3283,7 @@ private:
   fir::FirOpBuilder &builder;
   Fortran::lower::StatementContext &stmtCtx;
   Fortran::lower::SymMap &symMap;
-  InitializerData *inInitializer = nullptr;
+  bool inInitializer = false;
   bool useBoxArg = false; // expression lowered as argument
 };
 } // namespace
@@ -5420,8 +5410,18 @@ private:
     };
   }
 
-  template <typename A>
-  CC genarr(const Fortran::evaluate::Constant<A> &x) {
+  template <Fortran::common::TypeCategory TC, int KIND>
+  CC genarr(
+      const Fortran::evaluate::Constant<Fortran::evaluate::Type<TC, KIND>> &x) {
+    if (x.Rank() == 0)
+      return genScalarAndForwardValue(x);
+    return genarr(Fortran::lower::IntrinsicConstantBuilder<TC, KIND>::gen(
+        builder, getLoc(), x,
+        /*outlineBigConstantsInReadOnlyMemory=*/true));
+  }
+
+  CC genarr(
+      const Fortran::evaluate::Constant<Fortran::evaluate::SomeDerived> &x) {
     if (x.Rank() == 0)
       return genScalarAndForwardValue(x);
     mlir::Location loc = getLoc();
@@ -5430,40 +5430,19 @@ private:
     std::string globalName = Fortran::lower::mangle::mangleArrayLiteral(x);
     fir::GlobalOp global = builder.getNamedGlobal(globalName);
     if (!global) {
-      mlir::Type symTy = arrTy;
-      mlir::Type eleTy = symTy.cast<fir::SequenceType>().getEleTy();
-      // If we have a rank-1 array of integer, real, or logical, then we can
-      // create a global array with the dense attribute.
-      //
-      // The mlir tensor type can only handle integer, real, or logical. It
-      // does not currently support nested structures which is required for
-      // complex.
-      //
-      // Also, we currently handle just rank-1 since tensor type assumes
-      // row major array ordering. We will need to reorder the dimensions
-      // in the tensor type to support Fortran's column major array ordering.
-      // How to create this tensor type is to be determined.
-      if (x.Rank() == 1 &&
-          eleTy.isa<fir::LogicalType, mlir::IntegerType, mlir::FloatType>())
-        global = Fortran::lower::tryCreatingDenseGlobal(
-            builder, loc, arrTy, globalName, builder.createInternalLinkage(),
-            true, toEvExpr(x));
-      // Note: If call to tryCreatingDenseGlobal() returns 0, then call
-      // createGlobalConstant() below.
-      if (!global)
-        global = builder.createGlobalConstant(
-            loc, arrTy, globalName,
-            [&](fir::FirOpBuilder &builder) {
-              Fortran::lower::StatementContext stmtCtx(
-                  /*cleanupProhibited=*/true);
-              fir::ExtendedValue result =
-                  Fortran::lower::createSomeInitializerExpression(
-                      loc, converter, toEvExpr(x), symMap, stmtCtx);
-              mlir::Value castTo =
-                  builder.createConvert(loc, arrTy, fir::getBase(result));
-              builder.create<fir::HasValueOp>(loc, castTo);
-            },
-            builder.createInternalLinkage());
+      global = builder.createGlobalConstant(
+          loc, arrTy, globalName,
+          [&](fir::FirOpBuilder &builder) {
+            Fortran::lower::StatementContext stmtCtx(
+                /*cleanupProhibited=*/true);
+            fir::ExtendedValue result =
+                Fortran::lower::createSomeInitializerExpression(
+                    loc, converter, toEvExpr(x), symMap, stmtCtx);
+            mlir::Value castTo =
+                builder.createConvert(loc, arrTy, fir::getBase(result));
+            builder.create<fir::HasValueOp>(loc, castTo);
+          },
+          builder.createInternalLinkage());
     }
     auto addr = builder.create<fir::AddrOfOp>(getLoc(), global.resultType(),
                                               global.getSymbol());
@@ -7401,9 +7380,8 @@ fir::ExtendedValue Fortran::lower::createSomeInitializerExpression(
     const Fortran::lower::SomeExpr &expr, Fortran::lower::SymMap &symMap,
     Fortran::lower::StatementContext &stmtCtx) {
   LLVM_DEBUG(expr.AsFortran(llvm::dbgs() << "expr: ") << '\n');
-  InitializerData initData; // needed for initializations
   return ScalarExprLowering{loc, converter, symMap, stmtCtx,
-                            /*initializer=*/&initData}
+                            /*inInitializer=*/true}
       .genval(expr);
 }
 
@@ -7420,8 +7398,9 @@ fir::ExtendedValue Fortran::lower::createInitializerAddress(
     const Fortran::lower::SomeExpr &expr, Fortran::lower::SymMap &symMap,
     Fortran::lower::StatementContext &stmtCtx) {
   LLVM_DEBUG(expr.AsFortran(llvm::dbgs() << "address: ") << '\n');
-  InitializerData init;
-  return ScalarExprLowering(loc, converter, symMap, stmtCtx, &init).gen(expr);
+  return ScalarExprLowering(loc, converter, symMap, stmtCtx,
+                            /*inInitializer=*/true)
+      .gen(expr);
 }
 
 void Fortran::lower::createSomeArrayAssignment(
