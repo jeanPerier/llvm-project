@@ -38,33 +38,25 @@ static llvm::APFloat consAPFloat(const llvm::fltSemantics &fsem,
 // Fortran::lower::tryCreatingDenseGlobal implementation
 //===----------------------------------------------------------------------===//
 
-/// Generate a raw literal value and store it in the rawVals vector.
+/// Generate an mlir attribute from a literal value
 template <Fortran::common::TypeCategory TC, int KIND>
-static void convertToAttribute(
+static mlir::Attribute convertToAttribute(
     fir::FirOpBuilder &builder,
     const Fortran::evaluate::Scalar<Fortran::evaluate::Type<TC, KIND>> &value,
-    mlir::Type type, llvm::SmallVectorImpl<mlir::Attribute> &outputAttributes) {
-  mlir::Attribute val;
+    mlir::Type type) {
   if constexpr (TC == Fortran::common::TypeCategory::Integer) {
-    val = builder.getIntegerAttr(type, value.ToInt64());
+    return builder.getIntegerAttr(type, value.ToInt64());
   } else if constexpr (TC == Fortran::common::TypeCategory::Logical) {
-    val = builder.getIntegerAttr(type, value.IsTrue());
-  } else if constexpr (TC == Fortran::common::TypeCategory::Real) {
+    return builder.getIntegerAttr(type, value.IsTrue());
+  } else {
+    static_assert(TC == Fortran::common::TypeCategory::Real,
+                  "type values cannot be converted to attributes");
     std::string str = value.DumpHexadecimal();
     auto floatVal =
         consAPFloat(builder.getKindMap().getFloatSemantics(KIND), str);
-    val = builder.getFloatAttr(type, floatVal);
-  } else if constexpr (TC == Fortran::common::TypeCategory::Complex) {
-    std::string strReal = value.REAL().DumpHexadecimal();
-    std::string strImg = value.AIMAG().DumpHexadecimal();
-    auto realVal =
-        consAPFloat(builder.getKindMap().getFloatSemantics(KIND), strReal);
-    outputAttributes.push_back(builder.getFloatAttr(type, realVal));
-    auto imgVal =
-        consAPFloat(builder.getKindMap().getFloatSemantics(KIND), strImg);
-    val = builder.getFloatAttr(type, imgVal);
+    return builder.getFloatAttr(type, floatVal);
   }
-  outputAttributes.push_back(val);
+  return {};
 }
 
 namespace {
@@ -99,8 +91,6 @@ public:
             [&](const Fortran::evaluate::Expr<Fortran::evaluate::SomeReal> &x) {
               globalBuilder.tryConvertingToAttributes(builder, x);
             },
-            [&](const Fortran::evaluate::Expr<Fortran::evaluate::SomeComplex> &
-                    x) { globalBuilder.tryConvertingToAttributes(builder, x); },
             [](const auto &) {},
         },
         initExpr.u);
@@ -139,8 +129,8 @@ private:
     attributeElementType = Fortran::lower::getFIRType(builder.getContext(),
                                                       attrTc, KIND, llvm::None);
     for (auto element : constant.values())
-      convertToAttribute<TC, KIND>(builder, element, attributeElementType,
-                                   attributes);
+      attributes.push_back(
+          convertToAttribute<TC, KIND>(builder, element, attributeElementType));
   }
 
   /// Try converting an evaluate::Expr to a list of MLIR attributes.
@@ -299,7 +289,7 @@ genScalarLit(fir::FirOpBuilder &builder, mlir::Location loc,
     return createStringLitOp<KIND>(builder, loc, value, len);
 
   // Otherwise, the string is in a plain old expression so "outline" the value
-  // in read only data by hashconsing it to a constant literal object.
+  // in read only data by hash consing it to a constant literal object.
 
   // ASCII global constants are created using an mlir string attribute.
   if constexpr (KIND == 1) {
@@ -395,7 +385,7 @@ static mlir::Value genInlinedArrayLit(
   return array;
 }
 
-/// Create an evaluate::Constant<T> array to a fir.ref<fir.array<>> value
+/// Convert an evaluate::Constant<T> array into a fir.ref<fir.array<>> value
 /// that points to the storage of a fir.global in read only memory and is
 /// initialized with the value of the constant.
 /// This should not be called while generating the body of a fir.global.
@@ -408,9 +398,11 @@ static mlir::Value genOutlineArrayLit(
   fir::GlobalOp global = builder.getNamedGlobal(globalName);
   if (!global) {
     // Using a dense attribute for the initial value instead of creating an
-    // intialization body speed up MLIR/LLVM compilation, but this is not always
-    // possible.
-    if constexpr (TC != Fortran::common::TypeCategory::Character) {
+    // intialization body speeds up MLIR/LLVM compilation, but this is not
+    // always possible.
+    if constexpr (TC == Fortran::common::TypeCategory::Logical ||
+                  TC == Fortran::common::TypeCategory::Integer ||
+                  TC == Fortran::common::TypeCategory::Real) {
       global = DenseGlobalBuilder::tryCreating(
           builder, loc, arrayTy, globalName, builder.createInternalLinkage(),
           true, constant);
@@ -429,7 +421,7 @@ static mlir::Value genOutlineArrayLit(
                                        global.getSymbol());
 }
 
-/// Create an evaluate::Constant<T> array to an fir::ExtendedValue.
+/// Convert an evaluate::Constant<T> array into an fir::ExtendedValue.
 template <Fortran::common::TypeCategory TC, int KIND>
 static fir::ExtendedValue genArrayLit(
     fir::FirOpBuilder &builder, mlir::Location loc,

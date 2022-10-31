@@ -33,7 +33,7 @@ public:
   /// Lower \p constant into a fir::ExtendedValue.
   /// If \p outlineBigConstantsInReadOnlyMemory is set, character and array
   /// constants will be lowered into read only memory fir.global, and the
-  /// resulting fir::ExtendedValue will contains the address of the fir.global.
+  /// resulting fir::ExtendedValue will contain the address of the fir.global.
   /// This option should not be set if the constant is being lowered while the
   /// builder is already in a fir.global body because fir.global initialization
   /// body cannot contain code manipulating memory (e.g. fir.load/fir.store...).
