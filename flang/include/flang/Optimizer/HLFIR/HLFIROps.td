@@ -134,4 +134,50 @@ def fir_AssignOp : hlfir_Op<"assign", [MemoryEffects<[MemWrite]>]> {
   }];
 }
 
+//def fir_DesignateOp : hlfir_Op<"designate", [AttrSizedOperandSegments]> {
+def hlfir_DesignateOp : hlfir_Op<"designate", [AttrSizedOperandSegments,
+    DeclareOpInterfaceMethods<fir_FortranVariableOpInterface>]> {
+  let summary = "Assign an expression or variable value to a Fortran variable";
+
+  let description = [{
+    TODO
+  }];
+
+  let arguments = (ins AnyType:$memref,
+                   OptionalAttr<Builtin_StringAttr>:$component,
+                   Optional<AnyShapeOrShiftType>:$component_shape,
+                   Variadic<AnyIntegerType>:$indices,
+                   DenseBoolArrayAttr:$is_triplet,
+                   Variadic<AnyIntegerType>:$substring,
+                   OptionalAttr<BoolAttr>:$complex_part,
+                   Optional<AnyShapeOrShiftType>:$shape,
+                   Variadic<AnyIntegerType>:$typeparams,
+                   OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
+                );
+
+  let results = (outs AnyRefOrBoxLike);
+  
+  let assemblyFormat = [{
+    $memref (`{` $component^ `}`)? (`<` $component_shape^ `>`)? custom<DesignatorIndices>($indices, $is_triplet)
+    (`substr` $substring^)?
+    custom<DesignatorComplexPart>($complex_part)
+    (`shape` $shape^)? (`typeparams` $typeparams^)?
+    attr-dict `:` functional-type(operands, results)
+  }];
+  let extraClassDeclaration = [{
+    using Triplet = std::tuple<mlir::Value, mlir::Value, mlir::Value>;
+    using Subscript = std::variant<mlir::Value, Triplet>;
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$result_type, "mlir::Value":$memref, "llvm::StringRef":$component,
+      "mlir::Value":$component_shape,
+      "llvm::ArrayRef<std::variant<mlir::Value, std::tuple<mlir::Value, mlir::Value, mlir::Value>>>":$subscripts,
+      CArg<"mlir::ValueRange", "{}">:$substring,
+      CArg<"llvm::Optional<bool>", "{}">:$complex_part,
+      CArg<"mlir::Value", "{}">:$shape, CArg<"mlir::ValueRange", "{}">:$typeparams,
+      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>];
+  let hasVerifier = 1;
+}
+
 #endif // FORTRAN_DIALECT_HLFIR_OPS

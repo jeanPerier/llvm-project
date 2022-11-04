@@ -40,9 +40,7 @@ inline bool isFortranVariableLike(mlir::Value value) {
         mlir::Type eleType = p.getEleTy();
         return eleType.isa<fir::BaseBoxType>() || !fir::hasDynamicSize(eleType);
       })
-      .Case<fir::BaseBoxType, fir::BoxCharType>([](auto) {
-        return true;
-      })
+      .Case<fir::BaseBoxType, fir::BoxCharType>([](auto) { return true; })
       .Default([](mlir::Type) { return false; });
 }
 
@@ -73,8 +71,14 @@ public:
     assert(isFortranEntityLike(value) &&
            "must be a value representing a Fortran value or variable like");
   }
+  FortranEntityLike(fir::FortranVariableOpInterface variable)
+      : mlir::Value(variable.getBase()) {}
   bool isValue() const { return isFortranValue(*this); }
   bool isVariable() const { return !isValue(); }
+  bool isMutableBox() const {
+    mlir::Type type = fir::dyn_cast_ptrEleTy(getType());
+    return type && type.isa<fir::BaseBoxType>();
+  }
   bool isArray() const {
     mlir::Type type = fir::unwrapPassByRefType(fir::unwrapRefType(getType()));
     if (type.isa<fir::SequenceType>())
@@ -83,6 +87,22 @@ public:
       return exprType.isArray();
     return false;
   }
+  bool isScalar() const { return !isArray(); }
+
+  mlir::Type getFortranElementType() const {
+    mlir::Type type = fir::unwrapSequenceType(
+        fir::unwrapPassByRefType(fir::unwrapRefType(getType())));
+    if (auto exprType = type.dyn_cast<hlfir::ExprType>())
+      return exprType.getEleTy();
+    return type;
+  }
+
+  bool hasLengthParameters() const {
+    mlir::Type eleTy = getFortranElementType();
+    return eleTy.isa<fir::CharacterType>() ||
+           fir::isRecordWithTypeParameters(eleTy);
+  }
+
   fir::FortranVariableOpInterface getIfVariableInterface() const {
     return this->getDefiningOp<fir::FortranVariableOpInterface>();
   }
@@ -100,7 +120,7 @@ public:
            "must be a value representing a Fortran value or variable");
   }
   FortranEntity(fir::FortranVariableOpInterface variable)
-      : FortranEntityLike(variable.getBase()) {}
+      : FortranEntityLike(variable) {}
   fir::FortranVariableOpInterface getIfVariable() const {
     return getIfVariableInterface();
   }
@@ -132,6 +152,20 @@ fir::BoxValue translateToBoxValue(mlir::Location loc,
 FortranEntity genDeclare(mlir::Location loc, fir::FirOpBuilder &builder,
                          const fir::ExtendedValue &exv, llvm::StringRef name,
                          fir::FortranVariableFlagsAttr flags);
+
+llvm::SmallVector<std::pair<mlir::Value, mlir::Value>>
+genBounds(mlir::Location loc, fir::FirOpBuilder &builder,
+          FortranEntityLike entity);
+
+std::pair<mlir::Value, mlir::Value>
+genRawBaseAndShape(mlir::Location loc, fir::FirOpBuilder &builder,
+                   FortranEntityLike entity);
+
+/// If the entity is a variable, load its value (dereference pointers and
+/// allocatables if needed). Do nothing if the entity os already a variable or
+/// if it is not a scalar entity of numerical or logical type.
+mlir::Value loadTrivialScalar(mlir::Location loc, fir::FirOpBuilder &builder,
+                              FortranEntityLike entity);
 
 } // namespace hlfir
 
