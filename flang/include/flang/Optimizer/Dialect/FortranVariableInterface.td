@@ -115,6 +115,13 @@ def fir_FortranVariableOpInterface : OpInterface<"FortranVariableOpInterface"> {
                         fir::FortranVariableFlagsEnum::allocatable);
     }
 
+    /// Is this variable a Fortran optional ?
+    bool isOptional() {
+      auto attrs = getFortranAttrs();
+      return attrs && bitEnumContainsAny(*attrs,
+                        fir::FortranVariableFlagsEnum::optional);
+    }
+
     /// Is this a Fortran character variable ?
     bool isCharacter() {
       return getElementType().isa<fir::CharacterType>();
