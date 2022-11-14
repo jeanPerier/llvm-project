@@ -50,8 +50,9 @@ static mlir::Value genScalarValue(Fortran::lower::AbstractConverter &converter,
   // This does not use the AbstractConverter member function to override the
   // symbol mapping to be used expression lowering.
   if (converter.getLoweringOptions().getLowerToHighLevelFIR()) {
-    hlfir::FortranEntity loweredExpr = Fortran::lower::convertExprToHLFIR(
-        loc, converter, expr, symMap, context);
+    hlfir::EntityWithAttributes loweredExpr =
+        Fortran::lower::convertExprToHLFIR(loc, converter, expr, symMap,
+                                           context);
     return hlfir::loadTrivialScalar(loc, converter.getFirOpBuilder(),
                                     loweredExpr);
   }
@@ -1405,7 +1406,7 @@ static void genDeclareSymbol(Fortran::lower::AbstractConverter &converter,
     fir::FortranVariableFlagsAttr attributes =
         translateSymbolAttributes(builder.getContext(), sym);
     auto name = Fortran::lower::mangle::mangleName(sym);
-    hlfir::FortranEntity declare =
+    hlfir::EntityWithAttributes declare =
         hlfir::genDeclare(loc, builder, exv, name, attributes);
     symMap.addVariableDefinition(sym, declare.getIfVariableInterface(), force);
     return;
