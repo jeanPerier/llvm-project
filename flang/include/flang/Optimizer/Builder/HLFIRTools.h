@@ -98,7 +98,19 @@ public:
   fir::FortranVariableOpInterface getIfVariableInterface() const {
     return this->getDefiningOp<fir::FortranVariableOpInterface>();
   }
+
+  // Get the entity as an mlir SSA value containing all the shape, type
+  // parameters and dynamic shape information.
   mlir::Value getBase() const { return *this; }
+
+  // Get the entity as a FIR base. This may not carry the shape and type
+  // parameters information, and even when it is a box with shape information.
+  // it will not contain the local lower bounds of the entity. This should
+  // be used with care when generating FIR code that does not need this
+  // information, or has access to it in other ways. Its advantage is that
+  // it will never be a fir.box for explicit shape arrays, leading to simpler
+  // FIR code generation.
+  mlir::Value getFirBase() const;
 };
 
 /// Wrapper over an mlir::Value that can be viewed as a Fortran entity.

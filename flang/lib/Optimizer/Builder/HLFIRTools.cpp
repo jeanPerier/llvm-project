@@ -81,14 +81,19 @@ hlfir::translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &,
   return {{static_cast<mlir::Value>(entity)}, {}};
 }
 
+mlir::Value hlfir::Entity::getFirBase() const {
+  if (fir::FortranVariableOpInterface variable = getIfVariableInterface())
+    if (auto declareOp =
+            mlir::dyn_cast<hlfir::DeclareOp>(variable.getOperation()))
+      return declareOp.getOriginalBase();
+  return getBase();
+}
+
 fir::ExtendedValue
 hlfir::translateToExtendedValue(fir::FortranVariableOpInterface variable) {
-  mlir::Value firBase = variable.getBase();
   /// When going towards FIR, use the original base value to avoid
   /// introducing descriptors at runtime when they are not required.
-  if (auto declareOp =
-          mlir::dyn_cast<hlfir::DeclareOp>(variable.getOperation()))
-    firBase = declareOp.getOriginalBase();
+  mlir::Value firBase = Entity{variable}.getFirBase();
   if (variable.isPointer() || variable.isAllocatable())
     TODO(variable->getLoc(), "pointer or allocatable "
                              "FortranVariableOpInterface to extendedValue");
