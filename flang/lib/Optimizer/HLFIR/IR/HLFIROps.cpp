@@ -195,7 +195,7 @@ mlir::LogicalResult hlfir::DesignateOp::verify() {
   unsigned numSubscripts = getIsTriplet().size();
   unsigned subscriptsRank =
       llvm::count_if(getIsTriplet(), [](bool isTriplet) { return isTriplet; });
-  unsigned outputRank;
+  unsigned outputRank = 0;
   mlir::Type outputElementType;
   bool hasBoxComponent;
   if (getComponent()) {
@@ -246,8 +246,6 @@ mlir::LogicalResult hlfir::DesignateOp::verify() {
     else if (auto componentSeqType =
                  componentBaseType.dyn_cast<fir::SequenceType>())
       outputRank = componentSeqType.getDimension();
-    else
-      outputRank = 0;
     outputElementType = fir::unwrapSequenceType(componentBaseType);
   } else {
     outputElementType = baseElementType;
