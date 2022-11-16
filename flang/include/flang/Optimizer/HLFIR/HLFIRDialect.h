@@ -42,7 +42,7 @@ inline mlir::Type getFortranElementType(mlir::Type type) {
   return type;
 }
 
-/// If this the type of a Fortran array entity, get the related
+/// If this is the type of a Fortran array entity, get the related
 /// fir.array type. Otherwise, returns the Fortran element typeof the entity.
 inline mlir::Type getFortranElementOrSequenceType(mlir::Type type) {
   type = fir::unwrapPassByRefType(fir::unwrapRefType(type));

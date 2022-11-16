@@ -138,9 +138,9 @@ def hlfir_DesignateOp : hlfir_Op<"designate", [AttrSizedOperandSegments,
   let summary = "Designate a Fortran variable";
 
   let description = [{
-    This operations represents a Fortran "part-ref", except that it can embed
-    substring or complex part directly, and that vector subscripts cannot be used.
-    It returns a Fortran variable that is a part of the input variable.
+    This operation represents a Fortran "part-ref", except that it can embed a
+    substring or or complex part directly, and that vector subscripts cannot be
+    used. It returns a Fortran variable that is a part of the input variable.
 
     The operands are as follow:
       - memref is the variable being designated.
