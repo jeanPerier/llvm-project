@@ -60,15 +60,13 @@ public:
   }
 
 private:
-  using LoweredSubscripts = llvm::SmallVector<hlfir::DesignateOp::Subscript>;
-
   /// Struct that is filled while visiting a part-ref (in the "visit" member
   /// function) before the top level "gen" generates an hlfir.declare for the
   /// part ref. It contains the lowered pieces of the part-ref that will
   /// become the operands of an hlfir.declare.
   struct PartInfo {
     fir::FortranVariableOpInterface base;
-    llvm::SmallVector<hlfir::DesignateOp::Subscript> subscripts;
+    llvm::SmallVector<hlfir::DesignateOp::Subscript, 8> subscripts;
     mlir::Value resultShape;
     llvm::SmallVector<mlir::Value> typeParams;
   };
