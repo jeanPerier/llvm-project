@@ -208,4 +208,21 @@ def hlfir_DesignateOp : hlfir_Op<"designate", [AttrSizedOperandSegments,
   let hasVerifier = 1;
 }
 
+def hlfir_ConcatOp : hlfir_Op<"concat", []> {
+  let summary = "concatenate characters";
+  let description = [{
+    Concatenate two or more character strings
+  }];
+
+  let arguments = (ins Variadic<AnyScalarCharacterEntity>:$strings,
+                   AnyIntegerType:$length);
+
+  let results = (outs AnyScalarCharacterExpr);
+
+  let assemblyFormat = [{
+    $strings `len` $length
+     attr-dict `:` functional-type(operands, results)
+  }];
+}
+
 #endif // FORTRAN_DIALECT_HLFIR_OPS
