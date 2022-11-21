@@ -96,6 +96,13 @@ public:
     return this->getDefiningOp<fir::FortranVariableOpInterface>();
   }
 
+  llvm::Optional<fir::CharacterType::LenType> getCharacterLengthIfStatic() {
+    if (auto charType = getFortranElementType().dyn_cast<fir::CharacterType>())
+      if (charType.hasConstantLen())
+        return charType.getLen();
+    return llvm::None;
+  }
+
   // Get the entity as an mlir SSA value containing all the shape, type
   // parameters and dynamic shape information.
   mlir::Value getBase() const { return *this; }
