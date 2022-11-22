@@ -225,4 +225,93 @@ def hlfir_ConcatOp : hlfir_Op<"concat", []> {
   }];
 }
 
+def hlfir_AssociateOp : hlfir_Op<"associate", [AttrSizedOperandSegments,
+    DeclareOpInterfaceMethods<fir_FortranVariableOpInterface>]> {
+  let summary = "Create a variable from an expression or variable";
+  let description = [{
+    Create a variable from an expression or variable.
+
+    For variable associatons, this operations allows conditionnaly making
+    a new contiguous storage for the variable if the source is not
+    contiguous. This operation can handle sources that may be absent
+    provided "handle_optional" is set, in which case the copy_in will
+    also be conditional on the source dynamic presence.
+
+    For expressions, this operations is an incentive to re-use the expression
+    storage, if any, after the bufferization pass if possible (if the
+    expression is not used afterwards).
+  }];
+
+  let arguments = (ins
+    AnyFortranEntity:$source,
+    OptionalAttr<BoolAttr>:$copy_in,
+    OptionalAttr<BoolAttr>:$handle_optional,
+    Optional<AnyShapeOrShiftType>:$shape,
+    Variadic<AnyIntegerType>:$typeparams,
+    Builtin_StringAttr:$uniq_name,
+    OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
+  );
+
+  let results = (outs AnyFortranVariable, AnyRefOrBoxLike, I1);
+
+  let assemblyFormat = [{
+    $source (`(` $shape^ `)`)? (`typeparams` $typeparams^)?
+     attr-dict `:` functional-type(operands, results)
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$source, "llvm::StringRef":$uniq_name,
+      CArg<"mlir::Value", "{}">:$shape, CArg<"mlir::ValueRange", "{}">:$typeparams,
+      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>];
+
+  let extraClassDeclaration = [{
+    /// Override FortranVariableInterface default implementation
+    mlir::Value getBase() {
+      return getResult(0);
+    }
+
+    /// Get the variable FIR base (same as input). It lacks
+    /// any explicit lower bounds and the extents might not be retrievable
+    /// from it. This matches what is used as a "base" in FIR. All non
+    /// polymophic expressions FIR base is a simple raw adress (they are
+    /// contiguous in memory).
+    mlir::Value getFirBase() {
+      return getResult(1);
+    }
+
+    /// Return the result value that indicates if the variable storage
+    /// was allocated on the heap. At the HLFIR level, this may not be
+    /// known yet, and lowering will need to conditionaly free the storage.
+    mlir::Value getMustFreeStrorageFlag() {
+      return getResult(2);
+    }
+  }];
+  
+}
+
+def hlfir_EndAssociateOp : hlfir_Op<"end_associate", []> {
+  let summary = "Mark the end of life of a variable associated to a variable";
+
+  let description = [{
+    Conditionnaly deallocate memory storage of a variable that was created
+    in a fir.associate from an expression or variable. If this was a variable
+    association and a copy_out may be required, the source variable of the
+    hlfir.associate must be provided so that copy_in can occure.
+    If the optionality has been preserved, "handle_optional"
+  }];
+
+  let arguments = (ins AnyFortranVariable:$var,
+                   Optional<AnyFortranVariable>:$source,
+                   OptionalAttr<BoolAttr>:$copy_out,
+                   OptionalAttr<BoolAttr>:$handle_optional,
+                   I1:$must_free);
+
+  let assemblyFormat = [{
+    $operands attr-dict `:` type(operands)
+  }];
+}
+
+
+#endif // FORTRAN_DIALECT_HLFIR_OPS
+
 #endif // FORTRAN_DIALECT_HLFIR_OPS
