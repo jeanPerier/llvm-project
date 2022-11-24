@@ -16,6 +16,7 @@
 #include "flang/Lower/CallInterface.h"
 #include "flang/Lower/ConvertCall.h"
 #include "flang/Lower/ConvertConstant.h"
+#include "flang/Lower/ConvertType.h"
 #include "flang/Lower/StatementContext.h"
 #include "flang/Lower/SymbolMap.h"
 #include "flang/Optimizer/Builder/Todo.h"
@@ -335,28 +336,38 @@ public:
         TODO(loc, "HLFIR PassBy::BaseAddressValueAttribute");
       } break;
       case PassBy::BaseAddress: {
-        hlfir::Entity addr = *actual;
-        // Deref pointers.
-        // Copy-in non contiguous variable
-        // Expr to memory.
-        // Get raw address.
-        // Cast address.
-        if (addr.isVariable()) {
-          if (addr.isMutableBox())
-            addr = hlfir::Entity{
-                builder.create<fir::LoadOp>(loc, addr).getResult()};
+        hlfir::Entity entity = *actual;
+        if (entity.isVariable()) {
+          // Deref pointers and allocatables.
+          if (entity.isMutableBox())
+            entity = hlfir::Entity{
+                builder.create<fir::LoadOp>(loc, entity).getResult()};
+          // Copy-in non contiguous variable
           if (!isSimplyContiguous)
             TODO(loc, "HLFIR copy-in/copy-out");
           /// Shape and type parameters do not matter here, use the FIR base
           /// directly to avoid introducing useless descriptor usage.
-          mlir::Value baseAddr = addr.getFirBase();
+
+          //mlir::Value baseAddr = hlfir::getVariableRawAddress(loc, builder, entity);
+          mlir::Value baseAddr = entity.getFirBase();
+          // Get raw address.
           if (baseAddr.getType().isa<fir::BaseBoxType>()) {
             auto addrType = fir::ReferenceType::get(
                 fir::unwrapPassByRefType(baseAddr.getType()));
             baseAddr = builder.create<fir::BoxAddrOp>(loc, addrType, baseAddr);
           }
+          // Cast address (does this really matter) ?
           caller.placeInput(arg, builder.createConvert(loc, argTy, baseAddr));
         } else {
+         // mlir::Value cleanUp;
+         // hlfir::AssociateExpr associate = hlfir::genAssociateExpr(loc, builder, entity, argTy);
+         // mlir::Value baseAddr = hlfir::getVariableRawAddress(loc, builder, associate.getBase());
+         // 
+         // // Convert i1 to actual argument type before associating it.
+         // if (!entity.getType().isa<hlfir::ExprType>())
+         //   entity = builder.
+         // // Expr to memory.
+         // // Be carefull: i1 arguments to what ?
           TODO(loc, "HLFIR expr to addr");
         }
       } break;
@@ -386,7 +397,6 @@ public:
     // Prepare lowered arguments according to the interface
     // and map the lowered values to the dummy
     // arguments.
-    // FIXME: i1 to what ? Be carefull with implicit interface casts !
     fir::ExtendedValue result = Fortran::lower::genCallOpAndResult(
         loc, getConverter(), getSymMap(), getStmtCtx(), caller, callSiteType,
         resultType);
@@ -397,6 +407,7 @@ public:
       return hlfir::EntityWithAttributes{resultFirBase};
     return hlfir::genDeclare(loc, builder, result, "tmp.funcresult",
                              fir::FortranVariableFlagsAttr{});
+    // TODO: as_expr "move" non variable results.
   }
 
 private:
@@ -452,8 +463,9 @@ private:
   template <typename T>
   hlfir::EntityWithAttributes
   gen(const Fortran::evaluate::FunctionRef<T> &expr) {
+    mlir::Type resType = Fortran::lower::TypeBuilder<T>::genType(getConverter(), expr);
     return CallBuilder(getLoc(), getConverter(), getSymMap(), getStmtCtx())
-        .gen(expr, /*FIXME!*/ getBuilder().getIndexType())
+        .gen(expr, resType)
         .value();
   }
 
