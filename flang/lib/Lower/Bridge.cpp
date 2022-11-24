@@ -1097,6 +1097,8 @@ private:
     Fortran::lower::pft::Evaluation &eval = getEval();
     setCurrentPosition(stmt.v.source);
     assert(stmt.typedCall && "Call was not analyzed");
+    if (bridge.getLoweringOptions().getLowerToHighLevelFIR())
+        TODO(toLocation(), "Lowering subroutine calls to HLFIR");
     // Call statement lowering shares code with function call lowering.
     mlir::Value res = Fortran::lower::createSubroutineCall(
         *this, *stmt.typedCall, explicitIterSpace, implicitIterSpace,
