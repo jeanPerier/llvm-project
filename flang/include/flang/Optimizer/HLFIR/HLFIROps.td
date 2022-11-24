@@ -225,138 +225,138 @@ def hlfir_ConcatOp : hlfir_Op<"concat", []> {
   }];
 }
 
-def hlfir_AssociateOp : hlfir_Op<"associate", [AttrSizedOperandSegments,
-    DeclareOpInterfaceMethods<fir_FortranVariableOpInterface>]> {
-  let summary = "Create a variable from an expression value";
-  let description = [{
-    Create a variable from an expression value.
-    For expressions, this operations is an incentive to re-use the expression
-    storage, if any, after the bufferization pass if possible (if the
-    expression is not used afterwards).
-  }];
-
-  let arguments = (ins
-    AnyFortranValue:$source,
-    Optional<AnyShapeOrShiftType>:$shape,
-    Variadic<AnyIntegerType>:$typeparams,
-    Builtin_StringAttr:$uniq_name,
-    OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
-  );
-
-  let results = (outs AnyFortranVariable, AnyRefOrBoxLike, I1);
-
-  let assemblyFormat = [{
-    $source (`(` $shape^ `)`)? (`typeparams` $typeparams^)?
-     attr-dict `:` functional-type(operands, results)
-  }];
-
-  let builders = [
-    OpBuilder<(ins "mlir::Value":$source, "llvm::StringRef":$uniq_name,
-      CArg<"mlir::Value", "{}">:$shape, CArg<"mlir::ValueRange", "{}">:$typeparams,
-      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>];
-
-  let extraClassDeclaration = [{
-    /// Override FortranVariableInterface default implementation
-    mlir::Value getBase() {
-      return getResult(0);
-    }
-
-    /// Get the variable FIR base (same as input). It lacks
-    /// any explicit lower bounds and the extents might not be retrievable
-    /// from it. This matches what is used as a "base" in FIR. All non
-    /// polymophic expressions FIR base is a simple raw adress (they are
-    /// contiguous in memory).
-    mlir::Value getFirBase() {
-      return getResult(1);
-    }
-
-    /// Return the result value that indicates if the variable storage
-    /// was allocated on the heap. At the HLFIR level, this may not be
-    /// known yet, and lowering will need to conditionaly free the storage.
-    mlir::Value getMustFreeStrorageFlag() {
-      return getResult(2);
-    }
-  }];
-}
-
-def hlfir_EndAssociateOp : hlfir_Op<"end_associate", []> {
-  let summary = "Mark the end of life of a variable associated to an expression";
-
-  let description = [{
-    Mark the end of life of a variable associated to an expression.
-  }];
-
-  let arguments = (ins AnyFortranVariable:$var,
-                   I1:$must_free);
-
-  let assemblyFormat = [{
-    $operands attr-dict `:` type(operands)
-  }];
-
-  let builders = [OpBuilder<(ins "hlfir::AssociateOp":$associate)>];
-}
-
-def hlfir_CopyInOp : hlfir_Op<"copy_in", []> {
-  let summary = "Place a variable in a contiguous storage if it is not already contigous";
-  let description = [{
-    For variable associatons, this operations allows conditionnaly making
-    a new contiguous storage for the variable if the source is not
-    contiguous. This operation can handle sources that may be absent
-    provided "handle_optional" is set, in which case the copy_in will
-    also be conditional on the source dynamic presence.
-
-  }];
-
-  let arguments = (ins AnyFortranVariable:$var,
-                   OptionalAttr<UnitAttr>:$handle_optional);
-
-  let results = (outs AnyFortranVariable, AnyRefOrBoxLike, I1);
-
-  let assemblyFormat = [{
-    $var attr-dict `:` functional-type(operands, results)
-  }];
-
-  let builders = [OpBuilder<(ins "mlir::Value":$var, "bool":$handle_optional)>];
-}
-
-def hlfir_CopyOutOp : hlfir_Op<"copy_out", []> {
-  let summary = "Conditionnaly copy_out the variable created by a copy_in into its source and free the storage if needed";
-  let description = [{
-    Conditionnaly deallocate memory storage of a variable that was created
-    in a fir.associate from an expression or variable. If this was a variable
-    association and a copy_out may be required, the source variable of the
-    hlfir.associate must be provided so that copy_in can occure.
-    If the optionality has been preserved, "handle_optional"
-  }];
-
-  let arguments = (ins AnyFortranVariable:$var,
-                   AnyFortranVariable:$source,
-                   OptionalAttr<UnitAttr>:$handle_optional,
-                   I1:$must_free);
-
-  let assemblyFormat = [{
-    $operands attr-dict `:` type(operands)
-  }];
-
-  let builders = [OpBuilder<(ins "hlfir::CopyInOp":$copy_in)>];
-}
-
-def hlfir_AsExprOp : hlfir_Op<"as_expr", [MemoryEffects<[MemRead]>]> {
-  let summary = "Read a variable into an expression value";
-  let description = [{
-    Read a variable into an expression value.
-  }];
-
-  let arguments = (ins Arg<AnyFortranVariable, "", [MemRead]>:$var);
-
-  let results = (outs AnyFortranValue);
-
-  let assemblyFormat = [{
-    $var attr-dict `:` functional-type(operands, results)
-  }];
-
-  let builders = [OpBuilder<(ins "mlir::Value":$var)>];
-}
+//def hlfir_AssociateOp : hlfir_Op<"associate", [AttrSizedOperandSegments,
+//    DeclareOpInterfaceMethods<fir_FortranVariableOpInterface>]> {
+//  let summary = "Create a variable from an expression value";
+//  let description = [{
+//    Create a variable from an expression value.
+//    For expressions, this operations is an incentive to re-use the expression
+//    storage, if any, after the bufferization pass if possible (if the
+//    expression is not used afterwards).
+//  }];
+//
+//  let arguments = (ins
+//    AnyFortranValue:$source,
+//    Optional<AnyShapeOrShiftType>:$shape,
+//    Variadic<AnyIntegerType>:$typeparams,
+//    Builtin_StringAttr:$uniq_name,
+//    OptionalAttr<fir_FortranVariableFlagsAttr>:$fortran_attrs
+//  );
+//
+//  let results = (outs AnyFortranVariable, AnyRefOrBoxLike, I1);
+//
+//  let assemblyFormat = [{
+//    $source (`(` $shape^ `)`)? (`typeparams` $typeparams^)?
+//     attr-dict `:` functional-type(operands, results)
+//  }];
+//
+//  let builders = [
+//    OpBuilder<(ins "mlir::Value":$source, "llvm::StringRef":$uniq_name,
+//      CArg<"mlir::Value", "{}">:$shape, CArg<"mlir::ValueRange", "{}">:$typeparams,
+//      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>];
+//
+//  let extraClassDeclaration = [{
+//    /// Override FortranVariableInterface default implementation
+//    mlir::Value getBase() {
+//      return getResult(0);
+//    }
+//
+//    /// Get the variable FIR base (same as input). It lacks
+//    /// any explicit lower bounds and the extents might not be retrievable
+//    /// from it. This matches what is used as a "base" in FIR. All non
+//    /// polymophic expressions FIR base is a simple raw adress (they are
+//    /// contiguous in memory).
+//    mlir::Value getFirBase() {
+//      return getResult(1);
+//    }
+//
+//    /// Return the result value that indicates if the variable storage
+//    /// was allocated on the heap. At the HLFIR level, this may not be
+//    /// known yet, and lowering will need to conditionaly free the storage.
+//    mlir::Value getMustFreeStrorageFlag() {
+//      return getResult(2);
+//    }
+//  }];
+//}
+//
+//def hlfir_EndAssociateOp : hlfir_Op<"end_associate", []> {
+//  let summary = "Mark the end of life of a variable associated to an expression";
+//
+//  let description = [{
+//    Mark the end of life of a variable associated to an expression.
+//  }];
+//
+//  let arguments = (ins AnyFortranVariable:$var,
+//                   I1:$must_free);
+//
+//  let assemblyFormat = [{
+//    $operands attr-dict `:` type(operands)
+//  }];
+//
+//  let builders = [OpBuilder<(ins "hlfir::AssociateOp":$associate)>];
+//}
+//
+//def hlfir_CopyInOp : hlfir_Op<"copy_in", []> {
+//  let summary = "Place a variable in a contiguous storage if it is not already contigous";
+//  let description = [{
+//    For variable associatons, this operations allows conditionnaly making
+//    a new contiguous storage for the variable if the source is not
+//    contiguous. This operation can handle sources that may be absent
+//    provided "handle_optional" is set, in which case the copy_in will
+//    also be conditional on the source dynamic presence.
+//
+//  }];
+//
+//  let arguments = (ins AnyFortranVariable:$var,
+//                   OptionalAttr<UnitAttr>:$handle_optional);
+//
+//  let results = (outs AnyFortranVariable, AnyRefOrBoxLike, I1);
+//
+//  let assemblyFormat = [{
+//    $var attr-dict `:` functional-type(operands, results)
+//  }];
+//
+//  let builders = [OpBuilder<(ins "mlir::Value":$var, "bool":$handle_optional)>];
+//}
+//
+//def hlfir_CopyOutOp : hlfir_Op<"copy_out", []> {
+//  let summary = "Conditionnaly copy_out the variable created by a copy_in into its source and free the storage if needed";
+//  let description = [{
+//    Conditionnaly deallocate memory storage of a variable that was created
+//    in a fir.associate from an expression or variable. If this was a variable
+//    association and a copy_out may be required, the source variable of the
+//    hlfir.associate must be provided so that copy_in can occure.
+//    If the optionality has been preserved, "handle_optional"
+//  }];
+//
+//  let arguments = (ins AnyFortranVariable:$var,
+//                   AnyFortranVariable:$source,
+//                   OptionalAttr<UnitAttr>:$handle_optional,
+//                   I1:$must_free);
+//
+//  let assemblyFormat = [{
+//    $operands attr-dict `:` type(operands)
+//  }];
+//
+//  let builders = [OpBuilder<(ins "hlfir::CopyInOp":$copy_in)>];
+//}
+//
+//def hlfir_AsExprOp : hlfir_Op<"as_expr", [MemoryEffects<[MemRead]>]> {
+//  let summary = "Read a variable into an expression value";
+//  let description = [{
+//    Read a variable into an expression value.
+//  }];
+//
+//  let arguments = (ins Arg<AnyFortranVariable, "", [MemRead]>:$var);
+//
+//  let results = (outs AnyFortranValue);
+//
+//  let assemblyFormat = [{
+//    $var attr-dict `:` functional-type(operands, results)
+//  }];
+//
+//  let builders = [OpBuilder<(ins "mlir::Value":$var)>];
+//}
 
 
 #endif // FORTRAN_DIALECT_HLFIR_OPS

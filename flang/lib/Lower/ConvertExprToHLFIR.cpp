@@ -13,12 +13,13 @@
 #include "flang/Lower/ConvertExprToHLFIR.h"
 #include "flang/Evaluate/shape.h"
 #include "flang/Lower/AbstractConverter.h"
+#include "flang/Lower/CallInterface.h"
+#include "flang/Lower/ConvertCall.h"
 #include "flang/Lower/ConvertConstant.h"
 #include "flang/Lower/StatementContext.h"
 #include "flang/Lower/SymbolMap.h"
 #include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/HLFIR/HLFIROps.h"
-#include "flang/Lower/CallInterface.h"
 
 namespace {
 
@@ -265,36 +266,46 @@ isStatementFunctionCall(const Fortran::evaluate::ProcedureRef &procRef) {
 
 class CallBuilder {
 public:
-  hlfir::EntityWithAttributes gen(const Fortran::evaluate::ProcedureRef &expr, mlir::Type resultType) {
-    if (isElementalProcWithArrayArgs(expr)) 
-      TODO(getLoc(), "lowering elemental call to HLFIR");
+  CallBuilder(mlir::Location loc, Fortran::lower::AbstractConverter &converter,
+              Fortran::lower::SymMap &symMap,
+              Fortran::lower::StatementContext &stmtCtx)
+      : converter{converter}, symMap{symMap}, stmtCtx{stmtCtx}, loc{loc} {}
+
+  llvm::Optional<hlfir::EntityWithAttributes>
+  gen(const Fortran::evaluate::ProcedureRef &procRef,
+      llvm::Optional<mlir::Type> resultType) {
+    mlir::Location loc = getLoc();
+    fir::FirOpBuilder &builder = getBuilder();
+    if (isElementalProcWithArrayArgs(procRef))
+      TODO(loc, "lowering elemental call to HLFIR");
     if (procRef.proc().GetSpecificIntrinsic())
-      TODO(getLoc(), "lowering ProcRef to HLFIR");
+      TODO(loc, "lowering ProcRef to HLFIR");
     if (isStatementFunctionCall(procRef))
-      TODO(getLoc(), "lowering Statement function call to HLFIR");
-    
+      TODO(loc, "lowering Statement function call to HLFIR");
+
     Fortran::lower::CallerInterface caller(procRef, converter);
     using PassBy = Fortran::lower::CallerInterface::PassEntityBy;
     mlir::FunctionType callSiteType = caller.genFunctionType();
 
-    llvm::SmallVector<llvm::Optional<hlfir::EntityWithAttributes>> loweredActuals;
+    llvm::SmallVector<llvm::Optional<hlfir::EntityWithAttributes>>
+        loweredActuals;
     // Lower the actual arguments
     for (const Fortran::lower::CallInterface<
              Fortran::lower::CallerInterface>::PassedEntity &arg :
-         caller.getPassedArguments()) {
+         caller.getPassedArguments())
       if (const auto *actual = arg.entity) {
         const auto *expr = actual->UnwrapExpr();
         if (!expr)
           TODO(loc, "assumed type actual argument");
-        loweredActual.emplace_back(
-          HlfirBuilder(getLoc(), getConverter(), getSymMap(), getStmtCtx())
-            .gen(expr));
+        loweredActuals.emplace_back(Fortran::lower::convertExprToHLFIR(
+            loc, getConverter(), *expr, getSymMap(), getStmtCtx()));
       } else {
         // Optional dummy argument for which there is no actual argument.
-        loweredActuals.emplace_back(llvm::None)
+        loweredActuals.emplace_back(llvm::None);
       }
-    
-    for (auto &[actual, dummyIface] : llvm::zip(loweredActuals, caller.getPassedArguments()) {
+
+    for (auto [actual, arg] :
+         llvm::zip(loweredActuals, caller.getPassedArguments())) {
       mlir::Type argTy = callSiteType.getInput(arg.firArgument);
       if (!actual) {
         // Optional dummy argument for which there is no actual argument.
@@ -302,10 +313,14 @@ public:
         continue;
       }
 
-      bool actualMayBeDynamicallyAbsent = false;
-      const auto *expr = actual->UnwrapExpr();
+      const auto *expr = arg.entity->UnwrapExpr();
       if (!expr)
         TODO(loc, "assumed type actual argument");
+
+      const bool actualMayBeDynamicallyAbsent = false; // FIXME
+      const bool isSimplyContiguous =
+          actual->isScalar() || Fortran::evaluate::IsSimplyContiguous(
+                                    *expr, getConverter().getFoldingContext());
 
       switch (arg.passBy) {
       case PassBy::Value: {
@@ -313,7 +328,7 @@ public:
         auto value = hlfir::loadTrivialScalar(loc, builder, *actual);
         if (!value.isValue())
           TODO(loc, "Passing CPTR an CFUNCTPTR VALUE in HLFIR");
-        caller.placeInput(arg, builder.createConvert(loc, builder, argTy, value));
+        caller.placeInput(arg, builder.createConvert(loc, argTy, value));
       } break;
       case PassBy::BaseAddressValueAttribute: {
         // VALUE attribute or pass-by-reference to a copy semantics. (byval*)
@@ -327,12 +342,23 @@ public:
         // Get raw address.
         // Cast address.
         if (addr.isVariable()) {
-          if (addr.isBoxAddress())
-            addr = builder.create<fir::LoadOp>(loc, addr);
+          if (addr.isMutableBox())
+            addr = hlfir::Entity{
+                builder.create<fir::LoadOp>(loc, addr).getResult()};
           if (!isSimplyContiguous)
-          // I am here !
+            TODO(loc, "HLFIR copy-in/copy-out");
+          /// Shape and type parameters do not matter here, use the FIR base
+          /// directly to avoid introducing useless descriptor usage.
+          mlir::Value baseAddr = addr.getFirBase();
+          if (baseAddr.getType().isa<fir::BaseBoxType>()) {
+            auto addrType = fir::ReferenceType::get(
+                fir::unwrapPassByRefType(baseAddr.getType()));
+            baseAddr = builder.create<fir::BoxAddrOp>(loc, addrType, baseAddr);
+          }
+          caller.placeInput(arg, builder.createConvert(loc, argTy, baseAddr));
+        } else {
+          TODO(loc, "HLFIR expr to addr");
         }
-        TODO(loc, "HLFIR PassBy::BaseAddress");
       } break;
       case PassBy::CharBoxValueAttribute: {
         TODO(loc, "HLFIR PassBy::CharBoxValueAttribute");
@@ -356,20 +382,24 @@ public:
         TODO(loc, "HLFIR PassBy::MutableBox");
       } break;
       }
-      
     }
     // Prepare lowered arguments according to the interface
     // and map the lowered values to the dummy
     // arguments.
     // FIXME: i1 to what ? Be carefull with implicit interface casts !
-
-    
-      mlir::Type argTy = callSiteType.getInput(arg.firArgument);
-
-    TODO(getLoc(), "lowering ProcRef to HLFIR");
+    fir::ExtendedValue result = Fortran::lower::genCallOpAndResult(
+        loc, getConverter(), getSymMap(), getStmtCtx(), caller, callSiteType,
+        resultType);
+    mlir::Value resultFirBase = fir::getBase(result);
+    if (!resultFirBase)
+      return llvm::None; // subroutine call.
+    if (fir::isa_trivial(resultFirBase.getType()))
+      return hlfir::EntityWithAttributes{resultFirBase};
+    return hlfir::genDeclare(loc, builder, result, "tmp.funcresult",
+                             fir::FortranVariableFlagsAttr{});
   }
+
 private:
-  
   mlir::Location getLoc() const { return loc; }
   Fortran::lower::AbstractConverter &getConverter() { return converter; }
   fir::FirOpBuilder &getBuilder() { return converter.getFirOpBuilder(); }
@@ -422,7 +452,9 @@ private:
   template <typename T>
   hlfir::EntityWithAttributes
   gen(const Fortran::evaluate::FunctionRef<T> &expr) {
-    TODO(getLoc(), "lowering funcRef to HLFIR");
+    return CallBuilder(getLoc(), getConverter(), getSymMap(), getStmtCtx())
+        .gen(expr, /*FIXME!*/ getBuilder().getIndexType())
+        .value();
   }
 
   template <typename T>
