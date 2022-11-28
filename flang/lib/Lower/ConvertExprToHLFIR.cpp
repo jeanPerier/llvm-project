@@ -305,6 +305,7 @@ public:
         loweredActuals.emplace_back(llvm::None);
       }
 
+    llvm::SmallVector<hlfir::AssociateOp> exprAssociations;
     for (auto [actual, arg] :
          llvm::zip(loweredActuals, caller.getPassedArguments())) {
       mlir::Type argTy = callSiteType.getInput(arg.firArgument);
@@ -335,7 +336,8 @@ public:
         // VALUE attribute or pass-by-reference to a copy semantics. (byval*)
         TODO(loc, "HLFIR PassBy::BaseAddressValueAttribute");
       } break;
-      case PassBy::BaseAddress: {
+      case PassBy::BaseAddress:
+      case PassBy::BoxChar: {
         hlfir::Entity entity = *actual;
         if (entity.isVariable()) {
           // Deref pointers and allocatables.
@@ -348,34 +350,21 @@ public:
           /// Shape and type parameters do not matter here, use the FIR base
           /// directly to avoid introducing useless descriptor usage.
 
-          //mlir::Value baseAddr = hlfir::getVariableRawAddress(loc, builder, entity);
-          mlir::Value baseAddr = entity.getFirBase();
-          // Get raw address.
-          if (baseAddr.getType().isa<fir::BaseBoxType>()) {
-            auto addrType = fir::ReferenceType::get(
-                fir::unwrapPassByRefType(baseAddr.getType()));
-            baseAddr = builder.create<fir::BoxAddrOp>(loc, addrType, baseAddr);
-          }
-          // Cast address (does this really matter) ?
-          caller.placeInput(arg, builder.createConvert(loc, argTy, baseAddr));
         } else {
-         // mlir::Value cleanUp;
-         // hlfir::AssociateExpr associate = hlfir::genAssociateExpr(loc, builder, entity, argTy);
-         // mlir::Value baseAddr = hlfir::getVariableRawAddress(loc, builder, associate.getBase());
-         // 
-         // // Convert i1 to actual argument type before associating it.
-         // if (!entity.getType().isa<hlfir::ExprType>())
-         //   entity = builder.
-         // // Expr to memory.
-         // // Be carefull: i1 arguments to what ?
-          TODO(loc, "HLFIR expr to addr");
+          hlfir::AssociateOp associate = hlfir::genAssociateExpr(
+              loc, builder, entity, argTy, "adapt.valuebyref");
+          exprAssociations.push_back(associate);
+          entity = hlfir::Entity{associate.getBase()};
         }
+        mlir::Value addr =
+            arg.passBy == PassBy::BaseAddress
+                ? hlfir::genVariableRawAddress(loc, builder, entity)
+                : hlfir::genVariableBoxChar(loc, builder, entity);
+        // Cast address (does this really matter) ?
+        caller.placeInput(arg, builder.createConvert(loc, argTy, addr));
       } break;
       case PassBy::CharBoxValueAttribute: {
         TODO(loc, "HLFIR PassBy::CharBoxValueAttribute");
-      } break;
-      case PassBy::BoxChar: {
-        TODO(loc, "HLFIR PassBy::BoxChar");
       } break;
       case PassBy::AddressAndLength:
         // PassBy::AddressAndLength is only used for character results. Results
@@ -401,6 +390,10 @@ public:
         loc, getConverter(), getSymMap(), getStmtCtx(), caller, callSiteType,
         resultType);
     mlir::Value resultFirBase = fir::getBase(result);
+
+    /// Clean-up associations and copy-in.
+    for (auto associate : exprAssociations)
+      builder.create<hlfir::EndAssociateOp>(loc, associate);
     if (!resultFirBase)
       return llvm::None; // subroutine call.
     if (fir::isa_trivial(resultFirBase.getType()))
@@ -463,7 +456,8 @@ private:
   template <typename T>
   hlfir::EntityWithAttributes
   gen(const Fortran::evaluate::FunctionRef<T> &expr) {
-    mlir::Type resType = Fortran::lower::TypeBuilder<T>::genType(getConverter(), expr);
+    mlir::Type resType =
+        Fortran::lower::TypeBuilder<T>::genType(getConverter(), expr);
     return CallBuilder(getLoc(), getConverter(), getSymMap(), getStmtCtx())
         .gen(expr, resType)
         .value();
