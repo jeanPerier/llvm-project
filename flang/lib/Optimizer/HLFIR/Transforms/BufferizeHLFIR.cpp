@@ -7,6 +7,9 @@
 //===----------------------------------------------------------------------===//
 // This file defines a pass that bufferize hlfir.expr. It translates operations
 // producing or consuming hlfir.expr into operations operating on memory.
+// An hlfir.expr is translated to a tuple<variable address, cleanupflag>
+// where cleanupflag is set to true if storage for the expression was allocated
+// in the heap.
 //===----------------------------------------------------------------------===//
 
 #include "flang/Optimizer/Builder/Character.h"
@@ -33,6 +36,41 @@ namespace hlfir {
 
 namespace {
 
+static mlir::Value packageBufferizedExpr(mlir::Location loc,
+                                         fir::FirOpBuilder &builder,
+                                         mlir::Value storage,
+                                         mlir::Value mustFree) {
+  auto tupleType = mlir::TupleType::get(
+      builder.getContext(),
+      mlir::TypeRange{storage.getType(), mustFree.getType()});
+  auto undef = builder.create<fir::UndefOp>(loc, tupleType);
+  auto insert = builder.create<fir::InsertValueOp>(
+      loc, tupleType, undef, mustFree,
+      builder.getArrayAttr(
+          {builder.getIntegerAttr(builder.getIndexType(), 1)}));
+  return builder.create<fir::InsertValueOp>(
+      loc, tupleType, insert, storage,
+      builder.getArrayAttr(
+          {builder.getIntegerAttr(builder.getIndexType(), 0)}));
+}
+
+static mlir::Value packageBufferizedExpr(mlir::Location loc,
+                                         fir::FirOpBuilder &builder,
+                                         mlir::Value storage, bool mustFree) {
+  mlir::Value mustFreeValue = builder.createBool(loc, mustFree);
+  return packageBufferizedExpr(loc, builder, storage, mustFreeValue);
+}
+
+static mlir::Value getBufferizedExprStorage(mlir::Value bufferizedExpr) {
+  auto tupleType = bufferizedExpr.getType().dyn_cast<mlir::TupleType>();
+  if (!tupleType)
+    return bufferizedExpr;
+  if (auto insert = bufferizedExpr.getDefiningOp<fir::InsertValueOp>())
+    if (insert->getOperands()[1].getType() == tupleType.getType(0))
+      return insert->getOperands()[1];
+  TODO(bufferizedExpr.getLoc(), "general extract storage case");
+}
+
 struct AssignOpConversion : public mlir::OpConversionPattern<hlfir::AssignOp> {
   using mlir::OpConversionPattern<hlfir::AssignOp>::OpConversionPattern;
   explicit AssignOpConversion(mlir::MLIRContext *ctx)
@@ -41,7 +79,8 @@ struct AssignOpConversion : public mlir::OpConversionPattern<hlfir::AssignOp> {
   matchAndRewrite(hlfir::AssignOp assign, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<hlfir::AssignOp>(
-        assign, adaptor.getOperands()[0], adaptor.getOperands()[1]);
+        assign, getBufferizedExprStorage(adaptor.getOperands()[0]),
+        getBufferizedExprStorage(adaptor.getOperands()[1]));
     return mlir::success();
   }
 };
@@ -61,8 +100,8 @@ struct ConcatOpConversion : public mlir::OpConversionPattern<hlfir::ConcatOp> {
     if (adaptor.getStrings().size() > 2)
       TODO(loc, "codegen of optimized chained concatenation of more than two "
                 "strings");
-    hlfir::Entity lhs{adaptor.getStrings()[0]};
-    hlfir::Entity rhs{adaptor.getStrings()[1]};
+    hlfir::Entity lhs{getBufferizedExprStorage(adaptor.getStrings()[0])};
+    hlfir::Entity rhs{getBufferizedExprStorage(adaptor.getStrings()[1])};
     auto [lhsExv, c1] = hlfir::translateToExtendedValue(loc, builder, lhs);
     auto [rhsExv, c2] = hlfir::translateToExtendedValue(loc, builder, rhs);
     assert(!c1 && !c2 && "expected variables");
@@ -71,7 +110,9 @@ struct ConcatOpConversion : public mlir::OpConversionPattern<hlfir::ConcatOp> {
             *lhsExv.getCharBox(), *rhsExv.getCharBox());
     auto hlfirTempRes = hlfir::genDeclare(loc, builder, res, "tmp",
                                           fir::FortranVariableFlagsAttr{});
-    rewriter.replaceOp(concat, hlfirTempRes);
+    mlir::Value bufferizedExpr =
+        packageBufferizedExpr(loc, builder, hlfirTempRes, false);
+    rewriter.replaceOp(concat, bufferizedExpr);
     return mlir::success();
   }
 };
