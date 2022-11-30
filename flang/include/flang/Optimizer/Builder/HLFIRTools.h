@@ -181,6 +181,12 @@ mlir::Value genVariableBoxChar(mlir::Location loc, fir::FirOpBuilder &builder,
 Entity loadTrivialScalar(mlir::Location loc, fir::FirOpBuilder &builder,
                          Entity entity);
 
+/// If \p entity is a POINTER or ALLOCATABLE, dereference it and return the
+/// target entity. Return  \p entity otherwise.
+hlfir::Entity derefPointersAndAllocatables(mlir::Location loc,
+                                           fir::FirOpBuilder &builder,
+                                           Entity entity);
+
 /// Compute the lower and upper bounds of an entity.
 llvm::SmallVector<std::pair<mlir::Value, mlir::Value>>
 genBounds(mlir::Location loc, fir::FirOpBuilder &builder, Entity entity);

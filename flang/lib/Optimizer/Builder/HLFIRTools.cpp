@@ -230,8 +230,7 @@ hlfir::Entity hlfir::loadTrivialScalar(mlir::Location loc,
                                        Entity entity) {
   if (entity.isVariable() && entity.isScalar() &&
       fir::isa_trivial(entity.getFortranElementType())) {
-    if (entity.isMutableBox())
-      TODO(loc, "load pointer/allocatable scalar");
+    entity = derefPointersAndAllocatables(loc, builder, entity);
     return Entity{builder.create<fir::LoadOp>(loc, entity)};
   }
   return entity;
@@ -309,4 +308,12 @@ std::pair<mlir::Value, mlir::Value> hlfir::genVariableFirBaseShapeAndParams(
   if (auto variableInterface = entity.getIfVariableInterface())
     return {fir::getBase(exv), variableInterface.getShape()};
   return {fir::getBase(exv), builder.createShape(loc, exv)};
+}
+
+hlfir::Entity hlfir::derefPointersAndAllocatables(mlir::Location loc,
+                                                  fir::FirOpBuilder &builder,
+                                                  Entity entity) {
+  if (entity.isMutableBox())
+    return hlfir::Entity{builder.create<fir::LoadOp>(loc, entity).getResult()};
+  return entity;
 }
