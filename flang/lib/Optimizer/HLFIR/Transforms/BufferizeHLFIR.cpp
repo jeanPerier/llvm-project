@@ -36,6 +36,8 @@ namespace hlfir {
 
 namespace {
 
+/// Helper to create tuple from a bufferized expr storage and clean up
+/// instruction flag.
 static mlir::Value packageBufferizedExpr(mlir::Location loc,
                                          fir::FirOpBuilder &builder,
                                          mlir::Value storage,
@@ -54,6 +56,8 @@ static mlir::Value packageBufferizedExpr(mlir::Location loc,
           {builder.getIntegerAttr(builder.getIndexType(), 0)}));
 }
 
+/// Helper to create tuple from a bufferized expr storage and constant
+/// boolean clean-up flag.
 static mlir::Value packageBufferizedExpr(mlir::Location loc,
                                          fir::FirOpBuilder &builder,
                                          mlir::Value storage, bool mustFree) {
@@ -61,19 +65,28 @@ static mlir::Value packageBufferizedExpr(mlir::Location loc,
   return packageBufferizedExpr(loc, builder, storage, mustFreeValue);
 }
 
+/// Helper to extract the storage from a tuple created by packageBufferizedExpr.
+/// It assumes no tuples are used as HLFIR operation operands, which is
+/// currently enforced by the verifiers that only accept HLFIR value or
+/// variable types which do not include tuples.
 static mlir::Value getBufferizedExprStorage(mlir::Value bufferizedExpr) {
   auto tupleType = bufferizedExpr.getType().dyn_cast<mlir::TupleType>();
   if (!tupleType)
     return bufferizedExpr;
+  assert(tupleType.size() == 2 && "unexpected tuple type");
   if (auto insert = bufferizedExpr.getDefiningOp<fir::InsertValueOp>())
     if (insert.getVal().getType() == tupleType.getType(0))
       return insert.getVal();
   TODO(bufferizedExpr.getLoc(), "general extract storage case");
 }
+
+/// Helper to extract the clean-up flag from a tuple created by
+/// packageBufferizedExpr.
 static mlir::Value getBufferizedExprMustFreeFlag(mlir::Value bufferizedExpr) {
   auto tupleType = bufferizedExpr.getType().dyn_cast<mlir::TupleType>();
   if (!tupleType)
     return bufferizedExpr;
+  assert(tupleType.size() == 2 && "unexpected tuple type");
   if (auto insert = bufferizedExpr.getDefiningOp<fir::InsertValueOp>())
     if (auto insert0 = insert.getAdt().getDefiningOp<fir::InsertValueOp>())
       if (insert0.getVal().getType() == tupleType.getType(1))
@@ -118,7 +131,7 @@ struct ConcatOpConversion : public mlir::OpConversionPattern<hlfir::ConcatOp> {
     fir::ExtendedValue res =
         fir::factory::CharacterExprHelper{builder, loc}.createConcatenate(
             *lhsExv.getCharBox(), *rhsExv.getCharBox());
-    /// Ensure the memory type is the same as the result type.
+    // Ensure the memory type is the same as the result type.
     mlir::Type addrType = fir::ReferenceType::get(
         hlfir::getFortranElementType(concat.getResult().getType()));
     mlir::Value cast = builder.createConvert(loc, addrType, fir::getBase(res));
@@ -199,7 +212,7 @@ public:
     // TODO: make this a pass operating on FuncOp. The issue is that
     // FirOpBuilder helpers may generate new FuncOp because of runtime/llvm
     // intrinsics calls creation. This may create race conflict if the pass is
-    // scheduleed on FuncOp. A solution could be to provide an optional mutex
+    // scheduled on FuncOp. A solution could be to provide an optional mutex
     // when building a FirOpBuilder and locking around FuncOp and GlobalOp
     // creation, but this needs a bit more thinking, so at this point the pass
     // is scheduled on the moduleOp.
