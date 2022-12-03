@@ -513,6 +513,8 @@ public:
         TODO(loc, "genExprAddr of non contiguous variables in HLFIR");
       fir::ExtendedValue exv =
           translateToExtendedValue(loc, loweredExpr, context);
+      if (fir::isa_trivial(fir::getBase(exv).getType()))
+        TODO(loc, "place trivial in memory");
       if (const auto *mutableBox = exv.getBoxOf<fir::MutableBoxValue>())
         exv = fir::factory::genMutableBoxRead(*builder, loc, *mutableBox);
       return exv;
@@ -567,6 +569,8 @@ public:
           Fortran::lower::convertExprToHLFIR(loc, *this, expr, localSymbols,
                                              stmtCtx);
       auto exv = translateToExtendedValue(loc, loweredExpr, stmtCtx);
+      if (fir::isa_trivial(fir::getBase(exv).getType()))
+        TODO(loc, "place trivial in memory");
       return fir::factory::createBoxValue(getFirOpBuilder(), loc, exv);
     }
     return Fortran::lower::createBoxValue(loc, *this, expr, localSymbols,
