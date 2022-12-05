@@ -269,13 +269,15 @@ public:
     auto module = this->getOperation();
     auto *context = &getContext();
     mlir::RewritePatternSet patterns(context);
-    patterns.insert<AssignOpConversion, DeclareOpConversion, DesignateOpConversion>(context);
+    patterns
+        .insert<AssignOpConversion, DeclareOpConversion, DesignateOpConversion>(
+            context);
     mlir::ConversionTarget target(*context);
     target.addIllegalDialect<hlfir::hlfirDialect>();
     target.markUnknownOpDynamicallyLegal(
         [](mlir::Operation *) { return true; });
-    if (mlir::failed(
-            mlir::applyPartialConversion(module, target, std::move(patterns)))) {
+    if (mlir::failed(mlir::applyPartialConversion(module, target,
+                                                  std::move(patterns)))) {
       mlir::emitError(mlir::UnknownLoc::get(context),
                       "failure in HLFIR to FIR conversion pass");
       signalPassFailure();
