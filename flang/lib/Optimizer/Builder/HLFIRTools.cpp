@@ -90,10 +90,14 @@ hlfir::translateToExtendedValue(mlir::Location loc, fir::FirOpBuilder &builder,
 }
 
 mlir::Value hlfir::Entity::getFirBase() const {
-  if (fir::FortranVariableOpInterface variable = getIfVariableInterface())
+  if (fir::FortranVariableOpInterface variable = getIfVariableInterface()) {
     if (auto declareOp =
             mlir::dyn_cast<hlfir::DeclareOp>(variable.getOperation()))
       return declareOp.getOriginalBase();
+    if (auto associateOp =
+            mlir::dyn_cast<hlfir::AssociateOp>(variable.getOperation()))
+      return associateOp.getFirBase();
+  }
   return getBase();
 }
 
