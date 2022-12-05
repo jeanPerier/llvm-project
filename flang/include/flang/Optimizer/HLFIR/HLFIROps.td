@@ -305,17 +305,31 @@ def hlfir_AsExprOp : hlfir_Op<"as_expr", []> {
 
   let description = [{
     Take the value of an array, character or derived expression.
+    This operation can also "move" the operand storage. That is, it can take
+    ownership of it and use the storage for the result in the bufferization
+    pass. The operation is a move if and only if "must_free" flag is provided
+    to indicate what must be done with the moved storage once the expression
+    is not used anymore. It is illegal to use a variable after it has been
+    moved.
   }];
 
-  let arguments = (ins AnyFortranVariable:$var);
+  let arguments = (ins AnyFortranVariable:$var,
+                       Optional<I1>:$must_free);
   let results = (outs hlfir_ExprType);
 
   let assemblyFormat = [{
-    $var attr-dict `:` functional-type(operands, results)
+    $var (`move` $must_free^)? attr-dict `:` functional-type(operands, results)
   }];
 
 
-  let builders = [OpBuilder<(ins "mlir::Value":$var)>];
+  let builders = [OpBuilder<(ins "mlir::Value":$var,  CArg<"mlir::Value", "{}">:$cleanup)>];
+
+  let extraClassDeclaration = [{
+    // Is this operation taking ownership of the variable operand ?
+    bool isMove() {
+      return static_cast<bool>(getMustFree());
+    }
+  }];
 }
 
 
