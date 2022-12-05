@@ -588,7 +588,11 @@ struct UnaryOp<Fortran::evaluate::Parentheses<T>> {
   static hlfir::EntityWithAttributes gen(mlir::Location loc,
                                          fir::FirOpBuilder &builder,
                                          const Op &op, hlfir::Entity lhs) {
-    TODO(loc, "Parentheses lowering to HLFIR");
+    if (lhs.isVariable())
+      return hlfir::EntityWithAttributes{
+          builder.create<hlfir::AsExprOp>(loc, lhs)};
+    return hlfir::EntityWithAttributes{
+        builder.create<fir::NoReassocOp>(loc, lhs.getType(), lhs)};
   }
 };
 
