@@ -292,6 +292,8 @@ void hlfir::genLengthParameters(mlir::Location loc, fir::FirOpBuilder &builder,
     return;
   if (entity.getType().isa<hlfir::ExprType>()) {
     mlir::Value expr = entity;
+    if (auto reassoc = expr.getDefiningOp<hlfir::NoReassocOp>())
+      expr = reassoc.getVal();
     // Going through fir::ExtendedValue would create a temp,
     // which is not desired for an inquiry.
     // TODO: make this an interface when adding further character producing ops.

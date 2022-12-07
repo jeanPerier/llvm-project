@@ -588,7 +588,7 @@ struct UnaryOp<Fortran::evaluate::Parentheses<T>> {
       return hlfir::EntityWithAttributes{
           builder.create<hlfir::AsExprOp>(loc, lhs)};
     return hlfir::EntityWithAttributes{
-        builder.create<fir::NoReassocOp>(loc, lhs.getType(), lhs)};
+        builder.create<hlfir::NoReassocOp>(loc, lhs.getType(), lhs)};
   }
 };
 
