@@ -433,5 +433,105 @@ void hlfir::AsExprOp::build(mlir::OpBuilder &builder,
   return build(builder, result, resultType, var);
 }
 
+//===----------------------------------------------------------------------===//
+// ElementalOp
+//===----------------------------------------------------------------------===//
+
+void hlfir::ElementalOp::build(mlir::OpBuilder &builder,
+                          mlir::OperationState &odsState,
+                          mlir::Type resultType,
+                          mlir::Value shape,
+                          mlir::ValueRange typeparams) {
+  odsState.addOperands(shape);
+  odsState.addOperands(typeparams);
+  mlir::Region *bodyRegion = odsState.addRegion();
+  odsState.addTypes(resultType);
+  if (auto exprType = resultType.dyn_cast<hlfir::ExprType>()) {
+    unsigned dim = exprType.getRank();
+    mlir::Type indexType = builder.getIndexType();
+    for (unsigned d = 0; d < dim; ++d)
+      bodyRegion->front().addArgument(indexType, odsState.location);
+  }
+}
+
+///// hlfir.elemental (%i, %j) %shape typeparams %l1, .... : (operand types) -> fir.expr<T> {}
+//void hlfir::ElementalOp::print(mlir::OpAsmPrinter &p) {
+//  p << " (";
+//  llvm::interleaveComma(getIndicies(), p, [&](auto it) { p << it; });
+//  p << ")";
+//  p << " " << getShape();
+//  auto typeParams = getTypeparams();
+//  if (!typeParams.empty()) {
+//    p << " typeparams " ;
+//    llvm::interleaveComma(typeParams, p, [&](auto it) { p << it; });
+//  }
+//  p.printOptionalAttrDict((*this)->getAttrs());
+//  p << " : ";
+//  p.printFunctionalType(getOperandTypes(), (*this)->getResultTypes()); 
+//  p.printRegion(getRegion(), /*printEntryBlockArgs=*/false,
+//                /*printBlockTerminators*/true);
+//}
+//
+//mlir::ParseResult fir::ElementalOp::parse(mlir::OpAsmParser &parser,
+//                                       mlir::OperationState &result) {
+//  auto &builder = parser.getBuilder();
+//  auto indexType = builder.getIndexType();
+//  llvm::SmallVector<mlir::OpAsmParser::Argument> regionArgs;
+//  llvm::SmallVector<mlir::OpAsmParser::UnresolvedOperand> operands;
+//  if (parser.parseLParen() || parser.parseArgumentList(regionArgs) || parser.parseRParen())
+//    return mlir::failure();
+//  const int numDimension = regionArgs.size();
+//  for (auto& arg : regionArgs)
+//    arg.type = indexType;
+//  if (mlir::succeeded(parser.parseOptionalKeyword("dataArgs")))
+//    if (parser.parseAssignmentList(regionArgs, operands))
+//      return mlir::failure();
+//  const int iterArgSize = operands.size();
+//  mlir::OpAsmParser::UnresolvedOperand shape;
+//  if (parser.parseOperand(shape))
+//    return mlir::failure();
+//  operands.push_back(shape);
+//  if (mlir::succeeded(parser.parseOptionalKeyword("typeparams")))
+//    if (parser.parseOperandList(operands))
+//      return mlir::failure();
+//  const int typeparamsArgSize = operands.size()-1-iterArgSize;
+//     
+////  if (parser.parseKeyword(":"))
+////    return mlir::failure();
+//  mlir::Type funcType;
+//  if (parser.parseType(funcType))
+//    return mlir::failure();
+//  if (!funcType.isa<mlir::FunctionType>())
+//    return mlir::failure();
+//  
+//  auto inputTypes = funcType.cast<mlir::FunctionType>().getInputs();
+//  auto resultTypes = funcType.cast<mlir::FunctionType>().getResults();
+//  if (resultTypes.size() != 1)
+//    return mlir::failure();
+//
+//  result.types.push_back(resultTypes[0]);
+//
+//
+//  if (inputTypes.size() != operands.size())
+//    return mlir::failure();
+//
+//  for (auto operand_type :
+//       llvm::zip(operands, inputTypes))
+//    if (parser.resolveOperand(std::get<0>(operand_type),
+//                              std::get<1>(operand_type), result.operands))
+//      return mlir::failure();
+//
+//  for (unsigned i = numDimension; i < regionArgs.size(); ++i) 
+//    regionArgs[i].type = inputTypes[i-numDimension];
+//  
+//  result.addAttribute("operand_segment_sizes",
+//                      builder.getDenseI32ArrayAttr({iterArgSize,1, typeparamsArgSize}));
+//
+//  auto *body = result.addRegion();
+//  if (parser.parseRegion(*body, regionArgs))
+//    return mlir::failure();
+//  return mlir::success();
+//}
+
 #define GET_OP_CLASSES
 #include "flang/Optimizer/HLFIR/HLFIROps.cpp.inc"

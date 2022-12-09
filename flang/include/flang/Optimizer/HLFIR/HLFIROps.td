@@ -331,5 +331,40 @@ def hlfir_NoReassocOp : hlfir_Op<"no_reassoc", [NoMemoryEffect, SameOperandsAndR
   let assemblyFormat = "$val attr-dict `:` type($val)";
 }
 
+def hlfir_ElementalOp : hlfir_Op<"elemental", []> { 
+  let summary = "elemental expression"; 
+  let description = [{ 
+    TODO
+  }]; 
+
+  let arguments = (ins 
+    AnyShapeType:$shape, 
+    Variadic<AnyIntegerType>:$typeparams
+  ); 
+ 
+  let results = (outs hlfir_ExprType); 
+  let regions = (region SizedRegion<1>:$region);
+
+ //   custom<ElementalOpIndices>($region) $shape (`typeparams` $typeparams^)?
+  let assemblyFormat = [{
+    $shape (`typeparams` $typeparams^)?
+    attr-dict `:` functional-type(operands, results)
+    $region
+    }];
+
+  let extraClassDeclaration = [{
+      mlir::Block *getBody() { return &getRegion().front(); }
+
+      mlir::Block::BlockArgListType getIndicies() {
+       return getBody()->getArguments();
+      }
+  }];
+
+  let skipDefaultBuilders = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$result_type, "mlir::Value":$shape,
+      CArg<"mlir::ValueRange", "{}">:$typeparams)>];
+
+}
 
 #endif // FORTRAN_DIALECT_HLFIR_OPS
