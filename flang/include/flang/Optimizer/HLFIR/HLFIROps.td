@@ -194,6 +194,7 @@ def hlfir_DesignateOp : hlfir_Op<"designate", [AttrSizedOperandSegments,
   let extraClassDeclaration = [{
     using Triplet = std::tuple<mlir::Value, mlir::Value, mlir::Value>;
     using Subscript = std::variant<mlir::Value, Triplet>;
+    using Subscripts = llvm::SmallVector<Subscript, 8>;
   }];
 
   let builders = [
@@ -365,6 +366,33 @@ def hlfir_ElementalOp : hlfir_Op<"elemental", []> {
     OpBuilder<(ins "mlir::Type":$result_type, "mlir::Value":$shape,
       CArg<"mlir::ValueRange", "{}">:$typeparams)>];
 
+}
+
+def hlfir_YieldElementOp : hlfir_Op<"yield_element", [Terminator, HasParent<"ElementalOp">]> {
+  let summary = "Yield the elemental value in an ElementalOp";
+  let description = [{
+  }];
+
+  let arguments = (ins AnyType:$element_value);
+
+  let assemblyFormat = "$element_value attr-dict `:` type($element_value)";
+}
+
+def hlfir_ApplyOp : hlfir_Op<"apply", [NoMemoryEffect]> {
+  let summary = "get the element value of an expression";
+  let description = [{
+  }];
+
+  let arguments = (ins hlfir_ExprType:$expr,
+                   Variadic<Index>:$indices
+                  );
+  let results = (outs AnyFortranValue:$element_value);
+
+  let assemblyFormat = "$expr `,` $indices attr-dict `:` functional-type(operands, results)";
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$expr, "mlir::ValueRange":$indices)>
+  ];
 }
 
 #endif // FORTRAN_DIALECT_HLFIR_OPS
