@@ -253,31 +253,38 @@ hlfir::Entity hlfir::loadTrivialScalar(mlir::Location loc,
   return entity;
 }
 
-hlfir::Entity
-hlfir::getElementAt(mlir::Location loc, fir::FirOpBuilder &builder,
-                    Entity entity,
-                    mlir::Block::BlockArgListType oneBasedIndices) {
+static std::optional<llvm::SmallVector<mlir::Value>>
+getNonDefaultLowerBounds(mlir::Location loc, fir::FirOpBuilder &builder,
+                         hlfir::Entity entity) {
+  if (!entity.hasNonDefaultLowerBounds())
+    return std::nullopt;
+  if (auto varIface = entity.getIfVariableInterface()) {
+    llvm::SmallVector<mlir::Value> lbounds = getExplicitLbounds(varIface);
+    if (!lbounds.empty())
+      return lbounds;
+  }
+  TODO(loc, "get non default lower bounds without FortranVariableInterface");
+}
+
+hlfir::Entity hlfir::getElementAt(mlir::Location loc,
+                                  fir::FirOpBuilder &builder, Entity entity,
+                                  mlir::ValueRange oneBasedIndices) {
   if (entity.isScalar())
     return entity;
   if (entity.getType().isa<hlfir::ExprType>()) {
-    if (auto elementalOp = entity.getDefiningOp<hlfir::ElementalOp>()) {
-      if (elementalOp.getRegion().hasOneBlock()) {
-        mlir::BlockAndValueMapping mapper;
-        mapper.map(elementalOp.getIndicies(), oneBasedIndices);
-        for (auto &op : elementalOp.getRegion().back().getOperations())
-          (void)builder.clone(op, mapper);
-        auto yield =
-            mlir::cast<hlfir::YieldElementOp>(builder.getBlock()->back());
-        auto element = hlfir::Entity{yield.getElementValue()};
-        yield->erase();
-        // FIXME: this will not flight with StatementContext that will still a
-        // cleanup for this later... That would push for doing this later.
-        // Changing the ways clean-up are inserted might be tedious.
-        if (elementalOp->use_empty())
-          elementalOp->erase();
-        return element;
-      }
-    }
+    // Early optimization...
+    // if (auto elementalOp = entity.getDefiningOp<hlfir::ElementalOp>()) {
+    //  auto yield = inlineElementalOp(loc, builder, elementalOp,
+    //  oneBasedIndices); auto element = hlfir::Entity{yield.getElementValue()};
+    //
+    //  yield->erase();
+    //  // FIXME: this will not flight with StatementContext that will still a
+    //  // cleanup for this later... That would push for doing this later.
+    //  // Changing the ways clean-up are inserted might be tedious.
+    //  if (elementalOp->use_empty())
+    //    elementalOp->erase();
+    //  return element;
+    //}
     return hlfir::Entity{
         builder.create<hlfir::ApplyOp>(loc, entity, oneBasedIndices)};
   }
@@ -285,8 +292,21 @@ hlfir::getElementAt(mlir::Location loc, fir::FirOpBuilder &builder,
   genLengthParameters(loc, builder, entity, lenParams);
   mlir::Type resultType = hlfir::getVariableElementType(entity);
   hlfir::DesignateOp::Subscripts subscripts;
-  for (auto indice : oneBasedIndices)
-    subscripts.push_back(indice);
+  if (auto lbounds = getNonDefaultLowerBounds(loc, builder, entity)) {
+    mlir::Type idxTy = builder.getIndexType();
+    mlir::Value one = builder.createIntegerConstant(loc, idxTy, 1);
+    for (auto [oneBased, lb] : llvm::zip(oneBasedIndices, *lbounds)) {
+      auto lbIdx = builder.createConvert(loc, idxTy, lb);
+      auto oneBasedIdx = builder.createConvert(loc, idxTy, oneBased);
+      auto shift = builder.create<mlir::arith::SubIOp>(loc, lbIdx, one);
+      mlir::Value index =
+          builder.create<mlir::arith::AddIOp>(loc, oneBasedIdx, shift);
+      subscripts.push_back(index);
+    }
+  } else {
+    for (auto oneBaseIndex : oneBasedIndices)
+      subscripts.push_back(oneBaseIndex);
+  }
   auto designate = builder.create<hlfir::DesignateOp>(
       loc, resultType, entity, /*component=*/"",
       /*componentShape=*/mlir::Value{}, subscripts,
@@ -356,7 +376,8 @@ mlir::Value hlfir::genShape(mlir::Location loc, fir::FirOpBuilder &builder,
       if (shape.getType().isa<fir::ShapeType>())
         return shape;
       if (shape.getType().isa<fir::ShapeShiftType>())
-        TODO(loc, "fir.shape_shift to fir.shape");
+        if (auto s = shape.getDefiningOp<fir::ShapeShiftOp>())
+          return builder.create<fir::ShapeOp>(loc, s.getExtents());
     }
   } else if (entity.getType().isa<hlfir::ExprType>()) {
     if (auto elemental = entity.getDefiningOp<hlfir::ElementalOp>())
@@ -436,4 +457,43 @@ mlir::Type hlfir::getVariableElementType(hlfir::Entity variable) {
     return fir::BoxType::get(eleTy);
   }
   return fir::ReferenceType::get(eleTy);
+}
+
+hlfir::YieldElementOp
+hlfir::inlineElementalOp(mlir::Location loc, fir::FirOpBuilder &builder,
+                         hlfir::ElementalOp elemental,
+                         mlir::ValueRange oneBasedIndices) {
+  // hlfir.elemental region is a SizedRegion<1>.
+  assert(elemental.getRegion().hasOneBlock() &&
+         "expect elemental region to have one block");
+  mlir::BlockAndValueMapping mapper;
+  mapper.map(elemental.getIndicies(), oneBasedIndices);
+  mlir::Operation *newOp;
+  for (auto &op : elemental.getRegion().back().getOperations())
+    newOp = builder.clone(op, mapper);
+  auto yield = mlir::dyn_cast_or_null<hlfir::YieldElementOp>(newOp);
+  assert(yield && "last ElementalOp operation must be am hlfir.yield_element");
+  return yield;
+}
+
+std::pair<fir::DoLoopOp, llvm::SmallVector<mlir::Value>>
+hlfir::genLoopNest(mlir::Location loc, fir::FirOpBuilder &builder,
+                   mlir::ValueRange extents) {
+  assert(!extents.empty() && "must have at least one extent");
+  auto insPt = builder.saveInsertionPoint();
+  llvm::SmallVector<mlir::Value> indices(extents.size());
+  // Build loop nest from column to row.
+  auto one = builder.create<mlir::arith::ConstantIndexOp>(loc, 1);
+  mlir::Type indexType = builder.getIndexType();
+  unsigned dim = extents.size() - 1;
+  fir::DoLoopOp innerLoop;
+  for (auto extent : llvm::reverse(extents)) {
+    auto ub = builder.createConvert(loc, indexType, extent);
+    innerLoop = builder.create<fir::DoLoopOp>(loc, one, ub, one);
+    builder.setInsertionPointToStart(innerLoop.getBody());
+    // Reverse the indices so they are in column-major order.
+    indices[dim--] = innerLoop.getInductionVar();
+  }
+  builder.restoreInsertionPoint(insPt);
+  return {innerLoop, indices};
 }

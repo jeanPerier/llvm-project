@@ -14,6 +14,7 @@
 #define FORTRAN_OPTIMIZER_BUILDER_HLFIRTOOLS_H
 
 #include "flang/Optimizer/Builder/BoxValue.h"
+#include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FortranVariableInterface.h"
 #include "flang/Optimizer/HLFIR/HLFIRDialect.h"
 
@@ -24,6 +25,8 @@ class FirOpBuilder;
 namespace hlfir {
 
 class AssociateOp;
+class ElementalOp;
+class YieldElementOp;
 
 /// Is this an SSA value type for the value of a Fortran expression?
 inline bool isFortranValueType(mlir::Type type) {
@@ -70,6 +73,9 @@ public:
   bool isValue() const { return isFortranValue(*this); }
   bool isVariable() const { return !isValue(); }
   bool isMutableBox() const { return hlfir::isBoxAddressType(getType()); }
+  bool isBoxAddressOrValue() const {
+    return hlfir::isBoxAddressOrValueType(getType());
+  }
   bool isArray() const {
     mlir::Type type = fir::unwrapPassByRefType(fir::unwrapRefType(getType()));
     if (type.isa<fir::SequenceType>())
@@ -98,6 +104,20 @@ public:
 
   bool isCharacter() const {
     return getFortranElementType().isa<fir::CharacterType>();
+  }
+
+  bool hasNonDefaultLowerBounds() const {
+    if (!isBoxAddressOrValue() || isScalar())
+      return false;
+    if (isMutableBox())
+      return true;
+    if (auto varIface = getIfVariableInterface())
+      if (auto shape = varIface.getShape()) {
+        auto shapeTy = shape.getType();
+        return shapeTy.isa<fir::ShiftType>() ||
+               shapeTy.isa<fir::ShapeShiftType>();
+      }
+    return true;
   }
 
   fir::FortranVariableOpInterface getIfVariableInterface() const {
@@ -197,9 +217,7 @@ hlfir::Entity derefPointersAndAllocatables(mlir::Location loc,
 /// if it is a scalar. The indices are one based. If the entity has non default
 /// lower bounds, the function will adapt the indices in the indexing operation.
 hlfir::Entity getElementAt(mlir::Location loc, fir::FirOpBuilder &builder,
-                           Entity entity,
-                           mlir::Block::BlockArgListType oneBasedIndices);
-
+                           Entity entity, mlir::ValueRange oneBasedIndices);
 /// Compute the lower and upper bounds of an entity.
 llvm::SmallVector<std::pair<mlir::Value, mlir::Value>>
 genBounds(mlir::Location loc, fir::FirOpBuilder &builder, Entity entity);
@@ -225,6 +243,15 @@ std::pair<mlir::Value, mlir::Value> genVariableFirBaseShapeAndParams(
 /// input entity type if it is scalar. Will crash if the entity is not a
 /// variable.
 mlir::Type getVariableElementType(hlfir::Entity variable);
+
+std::pair<fir::DoLoopOp, llvm::SmallVector<mlir::Value>>
+genLoopNest(mlir::Location loc, fir::FirOpBuilder &builder,
+            mlir::ValueRange extents);
+
+hlfir::YieldElementOp inlineElementalOp(mlir::Location loc,
+                                        fir::FirOpBuilder &builder,
+                                        hlfir::ElementalOp elemental,
+                                        mlir::ValueRange oneBasedIndices);
 
 } // namespace hlfir
 

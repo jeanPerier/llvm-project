@@ -24,6 +24,7 @@
 #include "flang/Optimizer/HLFIR/HLFIROps.h"
 #include "flang/Optimizer/HLFIR/Passes.h"
 #include "flang/Optimizer/Support/FIRContext.h"
+#include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
@@ -94,6 +95,26 @@ static mlir::Value getBufferizedExprMustFreeFlag(mlir::Value bufferizedExpr) {
   TODO(bufferizedExpr.getLoc(), "general extract storage case");
 }
 
+static llvm::SmallVector<mlir::Value>
+getIndexExtents(mlir::Location loc, fir::FirOpBuilder &builder,
+                mlir::Value shape) {
+  llvm::SmallVector<mlir::Value> extents;
+  if (auto s = shape.getDefiningOp<fir::ShapeOp>()) {
+    auto e = s.getExtents();
+    extents.insert(extents.end(), e.begin(), e.end());
+  } else if (auto s = shape.getDefiningOp<fir::ShapeShiftOp>()) {
+    auto e = s.getExtents();
+    extents.insert(extents.end(), e.begin(), e.end());
+  } else {
+    // TODO: add fir.get_extent ops on fir.shape<> ops.
+    TODO(loc, "get extents from fir.shape without fir::ShapeOp parent op");
+  }
+  mlir::Type indexType = builder.getIndexType();
+  for (auto &extent : extents)
+    extent = builder.createConvert(loc, indexType, extent);
+  return extents;
+}
+
 static std::pair<hlfir::Entity, mlir::Value>
 createTempFromMold(mlir::Location loc, fir::FirOpBuilder &builder,
                    hlfir::Entity mold) {
@@ -110,6 +131,21 @@ createTempFromMold(mlir::Location loc, fir::FirOpBuilder &builder,
       fir::FortranVariableFlagsAttr{});
   mlir::Value falseVal = builder.createBool(loc, false);
   return {hlfir::Entity{declareOp.getBase()}, falseVal};
+}
+
+static std::pair<hlfir::Entity, mlir::Value>
+createArrayTemp(mlir::Location loc, fir::FirOpBuilder &builder,
+                mlir::Type exprType, mlir::Value shape,
+                mlir::ValueRange extents, mlir::ValueRange lenParams) {
+  mlir::Type sequenceType = hlfir::getFortranElementOrSequenceType(exprType);
+  llvm::StringRef tmpName{".tmp.array"};
+  mlir::Value allocmem = builder.createHeapTemporary(loc, sequenceType, tmpName,
+                                                     extents, lenParams);
+  auto declareOp =
+      builder.create<hlfir::DeclareOp>(loc, allocmem, tmpName, shape, lenParams,
+                                       fir::FortranVariableFlagsAttr{});
+  mlir::Value trueVal = builder.createBool(loc, true);
+  return {hlfir::Entity{declareOp.getBase()}, trueVal};
 }
 
 struct AsExprOpConversion : public mlir::OpConversionPattern<hlfir::AsExprOp> {
@@ -258,6 +294,46 @@ struct NoReassocOpConversion
   }
 };
 
+struct ElementalOpConversion
+    : public mlir::OpConversionPattern<hlfir::ElementalOp> {
+  using mlir::OpConversionPattern<hlfir::ElementalOp>::OpConversionPattern;
+  explicit ElementalOpConversion(mlir::MLIRContext *ctx)
+      : mlir::OpConversionPattern<hlfir::ElementalOp>{ctx} {}
+  mlir::LogicalResult
+  matchAndRewrite(hlfir::ElementalOp elemental, OpAdaptor adaptor,
+                  mlir::ConversionPatternRewriter &rewriter) const override {
+    mlir::Location loc = elemental->getLoc();
+    auto module = elemental->getParentOfType<mlir::ModuleOp>();
+    fir::FirOpBuilder builder(rewriter, fir::getKindMapping(module));
+
+    mlir::Value shape = adaptor.getShape();
+    auto extents = getIndexExtents(loc, builder, shape);
+    auto [temp, cleanup] =
+        createArrayTemp(loc, builder, elemental.getType(), shape, extents,
+                        adaptor.getTypeparams());
+    // Generate a loop nest looping around the fir.elemental shape and clone
+    // fir.elemental region inside the inner loop.
+    auto [innerLoop, oneBasedLoopIndices] =
+        hlfir::genLoopNest(loc, builder, extents);
+    auto insPt = builder.saveInsertionPoint();
+    builder.setInsertionPointToStart(innerLoop.getBody());
+    auto yield =
+        hlfir::inlineElementalOp(loc, builder, elemental, oneBasedLoopIndices);
+    hlfir::Entity elementValue(yield.getElementValue());
+    rewriter.eraseOp(yield);
+    // Assign the element value to the temp element for this iteration.
+    auto tempElement =
+        hlfir::getElementAt(loc, builder, temp, oneBasedLoopIndices);
+    builder.create<hlfir::AssignOp>(loc, elementValue, tempElement);
+    builder.restoreInsertionPoint(insPt);
+
+    mlir::Value bufferizedExpr =
+        packageBufferizedExpr(loc, builder, temp, cleanup);
+    rewriter.replaceOp(elemental, bufferizedExpr);
+    return mlir::success();
+  }
+};
+
 class BufferizeHLFIR : public hlfir::impl::BufferizeHLFIRBase<BufferizeHLFIR> {
 public:
   void runOnOperation() override {
@@ -271,9 +347,10 @@ public:
     auto module = this->getOperation();
     auto *context = &getContext();
     mlir::RewritePatternSet patterns(context);
-    patterns.insert<AsExprOpConversion, AssignOpConversion,
-                    AssociateOpConversion, ConcatOpConversion,
-                    EndAssociateOpConversion, NoReassocOpConversion>(context);
+    patterns
+        .insert<AsExprOpConversion, AssignOpConversion, AssociateOpConversion,
+                ConcatOpConversion, ElementalOpConversion,
+                EndAssociateOpConversion, NoReassocOpConversion>(context);
     mlir::ConversionTarget target(*context);
     target.addIllegalOp<hlfir::AssociateOp, hlfir::EndAssociateOp>();
     target.markUnknownOpDynamicallyLegal([](mlir::Operation *op) {
