@@ -271,11 +271,20 @@ struct EndAssociateOpConversion
   matchAndRewrite(hlfir::EndAssociateOp endAssociate, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
     mlir::Value mustFree = adaptor.getMustFree();
-    if (auto cstMustFree = fir::factory::getIntIfConstant(mustFree))
-      if (*cstMustFree == 0) {
-        rewriter.eraseOp(endAssociate);
-        return mlir::success(); // nothing to do.
-      }
+    mlir::Location loc = endAssociate->getLoc();
+    rewriter.eraseOp(endAssociate);
+    auto genFree = [&]() {
+      mlir::Value var = adaptor.getVar();
+      if (var.getType().isa<fir::BaseBoxType>())
+        TODO(loc, "unbox");
+      rewriter.create<fir::FreeMemOp>(loc, var);
+    };
+    if (auto cstMustFree = fir::factory::getIntIfConstant(mustFree)) {
+      if (*cstMustFree != 0)
+        genFree();
+      // else, nothing to do.
+      return mlir::success();
+    }
     TODO(endAssociate.getLoc(), "conditional free");
   }
 };
@@ -294,6 +303,26 @@ struct NoReassocOpConversion
   }
 };
 
+/// This Listeners allows setting both the builder and the rewriter as
+/// listeners. This is required when a patterns uses a firBuilder helper that
+/// may create illegal operations that will need to be translated and required
+/// notifying the rewriter.
+struct HLFIRListeners : public mlir::OpBuilder::Listener {
+  HLFIRListeners(fir::FirOpBuilder &builder,
+                 mlir::ConversionPatternRewriter &rewriter)
+      : builder{builder}, rewriter{rewriter} {}
+  void notifyOperationInserted(mlir::Operation *op) override {
+    builder.notifyOperationInserted(op);
+    rewriter.notifyOperationInserted(op);
+  }
+  virtual void notifyBlockCreated(mlir::Block *block) override {
+    builder.notifyBlockCreated(block);
+    rewriter.notifyBlockCreated(block);
+  }
+  fir::FirOpBuilder &builder;
+  mlir::ConversionPatternRewriter &rewriter;
+};
+
 struct ElementalOpConversion
     : public mlir::OpConversionPattern<hlfir::ElementalOp> {
   using mlir::OpConversionPattern<hlfir::ElementalOp>::OpConversionPattern;
@@ -305,6 +334,10 @@ struct ElementalOpConversion
     mlir::Location loc = elemental->getLoc();
     auto module = elemental->getParentOfType<mlir::ModuleOp>();
     fir::FirOpBuilder builder(rewriter, fir::getKindMapping(module));
+    // The body of the elemental op may contain operation that will require
+    // to be translated. Notify the rewriter about the cloned operations.
+    HLFIRListeners listeners{builder, rewriter};
+    builder.setListener(&listeners);
 
     mlir::Value shape = adaptor.getShape();
     auto extents = getIndexExtents(loc, builder, shape);
