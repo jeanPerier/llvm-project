@@ -80,6 +80,12 @@ public:
   }
   bool isScalar() const { return !isArray(); }
 
+  bool isPolymorphic() const {
+    if (auto exprType = getType().dyn_cast<hlfir::ExprType>())
+      return exprType.isPolymorphic();
+    return fir::isPolymorphicType(getType());
+  }
+
   mlir::Type getFortranElementType() const {
     return hlfir::getFortranElementType(getType());
   }
@@ -187,9 +193,20 @@ hlfir::Entity derefPointersAndAllocatables(mlir::Location loc,
                                            fir::FirOpBuilder &builder,
                                            Entity entity);
 
+/// Get element entity(oneBasedIndices) if entity is an array, or return entity
+/// if it is a scalar. The indices are one based. If the entity has non default
+/// lower bounds, the function will adapt the indices in the indexing operation.
+hlfir::Entity getElementAt(mlir::Location loc, fir::FirOpBuilder &builder,
+                           Entity entity,
+                           mlir::Block::BlockArgListType oneBasedIndices);
+
 /// Compute the lower and upper bounds of an entity.
 llvm::SmallVector<std::pair<mlir::Value, mlir::Value>>
 genBounds(mlir::Location loc, fir::FirOpBuilder &builder, Entity entity);
+
+/// Compute fir.shape<> (no lower bounds) for an entity.
+mlir::Value genShape(mlir::Location loc, fir::FirOpBuilder &builder,
+                     Entity entity);
 
 /// Read length parameters into result if this entity has any.
 void genLengthParameters(mlir::Location loc, fir::FirOpBuilder &builder,
@@ -203,6 +220,11 @@ void genLengthParameters(mlir::Location loc, fir::FirOpBuilder &builder,
 std::pair<mlir::Value, mlir::Value> genVariableFirBaseShapeAndParams(
     mlir::Location loc, fir::FirOpBuilder &builder, Entity entity,
     llvm::SmallVectorImpl<mlir::Value> &typeParams);
+
+/// Get the variable type for an element of an array type entity. Returns the
+/// input entity type if it is scalar. Will crash if the entity is not a
+/// variable.
+mlir::Type getVariableElementType(hlfir::Entity variable);
 
 } // namespace hlfir
 

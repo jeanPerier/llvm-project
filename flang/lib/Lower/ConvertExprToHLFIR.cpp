@@ -72,7 +72,7 @@ private:
   /// become the operands of an hlfir.declare.
   struct PartInfo {
     fir::FortranVariableOpInterface base;
-    llvm::SmallVector<hlfir::DesignateOp::Subscript, 8> subscripts;
+    hlfir::DesignateOp::Subscripts subscripts;
     mlir::Value resultShape;
     llvm::SmallVector<mlir::Value> typeParams;
   };
@@ -706,11 +706,50 @@ private:
   gen(const Fortran::evaluate::Operation<D, R, LO, RO> &op) {
     auto &builder = getBuilder();
     mlir::Location loc = getLoc();
-    if (op.Rank() != 0)
-      TODO(loc, "elemental operations in HLFIR");
-    auto left = hlfir::loadTrivialScalar(loc, builder, gen(op.left()));
-    auto right = hlfir::loadTrivialScalar(loc, builder, gen(op.right()));
-    return BinaryOp<D>::gen(loc, builder, op.derived(), left, right);
+    const int rank = op.Rank();
+    if (rank == 0) {
+      auto left = hlfir::loadTrivialScalar(loc, builder, gen(op.left()));
+      auto right = hlfir::loadTrivialScalar(loc, builder, gen(op.right()));
+      return BinaryOp<D>::gen(loc, builder, op.derived(), left, right);
+    }
+    // Elemental expression.
+    auto left =
+        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.left()));
+    auto right =
+        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.right()));
+    // Get expr type and shape
+    mlir::Type elementType =
+        Fortran::lower::getFIRType(builder.getContext(), R::category, R::kind,
+                                   /*params=*/std::nullopt);
+    mlir::Type exprType = hlfir::ExprType::get(builder.getContext(),
+                                               hlfir::ExprType::Shape(rank, -1),
+                                               elementType, false);
+    // TODO: merge shape, get cst shape from front-end if possible.
+    mlir::Value shape;
+    if (left.isArray()) {
+      shape = hlfir::genShape(loc, builder, left);
+    } else {
+      assert(right.isArray() && "must have at least one array operand");
+      shape = hlfir::genShape(loc, builder, right);
+    }
+    // Get type params
+    llvm::SmallVector<mlir::Value, 1> typeParams;
+    if (elementType.isa<fir::CharacterType>())
+      TODO(loc, "character elemental expressions");
+    auto elementalOp =
+        builder.create<hlfir::ElementalOp>(loc, exprType, shape, typeParams);
+    auto insertPt = builder.saveInsertionPoint();
+    builder.setInsertionPointToStart(elementalOp.getBody());
+    auto leftElement =
+        hlfir::getElementAt(loc, builder, left, elementalOp.getIndicies());
+    auto rightElement =
+        hlfir::getElementAt(loc, builder, right, elementalOp.getIndicies());
+    auto leftVal = hlfir::loadTrivialScalar(loc, builder, leftElement);
+    auto rightVal = hlfir::loadTrivialScalar(loc, builder, rightElement);
+    auto res = BinaryOp<D>::gen(loc, builder, op.derived(), leftVal, rightVal);
+    builder.create<hlfir::YieldElementOp>(loc, res);
+    builder.restoreInsertionPoint(insertPt);
+    return hlfir::EntityWithAttributes{elementalOp};
   }
 
   template <int KIND>
