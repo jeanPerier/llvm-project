@@ -503,6 +503,26 @@ struct BinaryOp<Fortran::evaluate::SetLength<KIND>> {
   }
 };
 
+template <int KIND>
+struct BinaryOp<Fortran::evaluate::Concat<KIND>> {
+  using Op = Fortran::evaluate::Concat<KIND>;
+  static hlfir::EntityWithAttributes gen(mlir::Location loc,
+                                         fir::FirOpBuilder &builder, const Op &,
+                                         hlfir::Entity lhs, hlfir::Entity rhs) {
+    llvm::SmallVector<mlir::Value> lengths;
+    hlfir::genLengthParameters(loc, builder, lhs, lengths);
+    hlfir::genLengthParameters(loc, builder, rhs, lengths);
+    assert(lengths.size() == 2 && "lacks rhs or lhs length");
+    mlir::Type idxType = builder.getIndexType();
+    mlir::Value lhsLen = builder.createConvert(loc, idxType, lengths[0]);
+    mlir::Value rhsLen = builder.createConvert(loc, idxType, lengths[1]);
+    mlir::Value len = builder.create<mlir::arith::AddIOp>(loc, lhsLen, rhsLen);
+    auto concat =
+        builder.create<hlfir::ConcatOp>(loc, mlir::ValueRange{lhs, rhs}, len);
+    return hlfir::EntityWithAttributes{concat.getResult()};
+  }
+};
+
 //===--------------------------------------------------------------------===//
 // Unary Operation implementation
 //===--------------------------------------------------------------------===//
@@ -750,25 +770,6 @@ private:
     builder.create<hlfir::YieldElementOp>(loc, res);
     builder.restoreInsertionPoint(insertPt);
     return hlfir::EntityWithAttributes{elementalOp};
-  }
-
-  template <int KIND>
-  hlfir::EntityWithAttributes gen(const Fortran::evaluate::Concat<KIND> &op) {
-    auto lhs = gen(op.left());
-    auto rhs = gen(op.right());
-    llvm::SmallVector<mlir::Value> lengths;
-    auto &builder = getBuilder();
-    mlir::Location loc = getLoc();
-    hlfir::genLengthParameters(loc, builder, lhs, lengths);
-    hlfir::genLengthParameters(loc, builder, rhs, lengths);
-    assert(lengths.size() == 2 && "lacks rhs or lhs length");
-    mlir::Type idxType = builder.getIndexType();
-    mlir::Value lhsLen = builder.createConvert(loc, idxType, lengths[0]);
-    mlir::Value rhsLen = builder.createConvert(loc, idxType, lengths[1]);
-    mlir::Value len = builder.create<mlir::arith::AddIOp>(loc, lhsLen, rhsLen);
-    auto concat =
-        builder.create<hlfir::ConcatOp>(loc, mlir::ValueRange{lhs, rhs}, len);
-    return hlfir::EntityWithAttributes{concat.getResult()};
   }
 
   hlfir::EntityWithAttributes
