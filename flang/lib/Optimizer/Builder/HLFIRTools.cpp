@@ -184,7 +184,7 @@ hlfir::AssociateOp hlfir::genAssociateExpr(mlir::Location loc,
   assert(value.isValue() && "must not be a variable");
   mlir::Value shape{};
   if (value.isArray())
-    TODO(loc, "associating array expressions");
+    shape = genShape(loc, builder, value);
 
   mlir::Value source = value;
   // Lowered scalar expression values for numerical and logical may have a
@@ -405,6 +405,10 @@ void hlfir::genLengthParameters(mlir::Location loc, fir::FirOpBuilder &builder,
     } else if (auto asExpr = expr.getDefiningOp<hlfir::AsExprOp>()) {
       hlfir::genLengthParameters(loc, builder, hlfir::Entity{asExpr.getVar()},
                                  result);
+      return;
+    } else if (auto elemental = expr.getDefiningOp<hlfir::ElementalOp>()) {
+      result.append(elemental.getTypeparams().begin(),
+                    elemental.getTypeparams().end());
       return;
     }
     TODO(loc, "inquire type parameters of hlfir.expr");

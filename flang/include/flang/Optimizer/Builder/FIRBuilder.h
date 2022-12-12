@@ -432,15 +432,15 @@ public:
   /// Dump the current function. (debug)
   LLVM_DUMP_METHOD void dumpFunc();
 
-private:
-  /// Set attributes (e.g. FastMathAttr) to \p op operation
-  /// based on the current attributes setting.
-  void setCommonAttributes(mlir::Operation *op) const;
-
   /// FirOpBuilder hook for creating new operation.
   void notifyOperationInserted(mlir::Operation *op) override {
     setCommonAttributes(op);
   }
+
+private:
+  /// Set attributes (e.g. FastMathAttr) to \p op operation
+  /// based on the current attributes setting.
+  void setCommonAttributes(mlir::Operation *op) const;
 
   const KindMapping &kindMap;
 
