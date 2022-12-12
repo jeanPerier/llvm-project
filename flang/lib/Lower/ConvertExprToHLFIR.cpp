@@ -761,6 +761,43 @@ private:
     auto &builder = getBuilder();
     mlir::Location loc = getLoc();
     const int rank = op.Rank();
+    BinaryOp<D> binaryOp(op.derived);
+    auto left = gen(op.left());
+    auto right = gen(op.right())
+    return binaryOp.gen(loc, builder, left, right);
+
+    auto left =
+        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.left()));
+    auto right =
+        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.right()));
+    llvm::SmallVector<mlir::Value, 1> typeParams;
+    binaryOp.genResultTypeParams(loc, builder, right, typeParams);
+    if (left.isScalar() || right.isScalar())
+      return binaryOp.genElementValue(loc, builder, left, right);
+    // Elemental expression.
+    mlir::Value shape = binaryOp.genShape(loc, builder, left, right);
+    mlir::Type elementType = binaryOp.genElementType(builder.getContext());
+    hlfir::ExprType::Shape exprTypeShape = binaryOp.getResultTypeShape(shape);
+    mlir::Type exprType = hlfir::ExprType::get(builder.getContext(),
+                                               exprTypeShape,
+                                               elementType, binaryOp.isPolymorphic());
+    auto elementalOp =
+        builder.create<hlfir::ElementalOp>(loc, exprType, shape, typeParams);
+    auto insertPt = builder.saveInsertionPoint();
+    builder.setInsertionPointToStart(elementalOp.getBody());
+    auto leftElement =
+        hlfir::getElementAt(loc, builder, leftElement, elementalOp.getIndicies());
+    auto rightElement =
+        hlfir::getElementAt(loc, builder, rightElement, elementalOp.getIndicies());
+    binaryOp.genElementValue(loc, builder, leftElement, rightElement);
+    builder.create<hlfir::YieldElementOp>(loc, res);
+    builder.restoreInsertionPoint(insertPt);
+    return hlfir::EntityWithAttributes{elementalOp};
+     
+    
+    
+
+    
     if (rank == 0) {
       auto left = hlfir::loadTrivialScalar(loc, builder, gen(op.left()));
       auto right = hlfir::loadTrivialScalar(loc, builder, gen(op.right()));
@@ -777,7 +814,7 @@ private:
         }
       }();
     }
-    // Elemental expression.
+    // Elemental array expression.
     auto left =
         hlfir::derefPointersAndAllocatables(loc, builder, gen(op.left()));
     auto right =
