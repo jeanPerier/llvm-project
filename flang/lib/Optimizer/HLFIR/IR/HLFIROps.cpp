@@ -116,6 +116,22 @@ void hlfir::DesignateOp::build(
         fortran_attrs);
 }
 
+void hlfir::DesignateOp::build(mlir::OpBuilder &builder,
+                               mlir::OperationState &result,
+                               mlir::Type result_type, mlir::Value memref,
+                               mlir::ValueRange indices,
+                               mlir::ValueRange typeparams,
+                               fir::FortranVariableFlagsAttr fortran_attrs) {
+  llvm::SmallVector<bool> isTriplet(indices.size(), false);
+  auto isTripletAttr =
+      mlir::DenseBoolArrayAttr::get(builder.getContext(), isTriplet);
+  build(builder, result, result_type, memref,
+        /*componentAttr=*/mlir::StringAttr{}, /*component_shape=*/mlir::Value{},
+        indices, isTripletAttr, /*substring*/ mlir::ValueRange{},
+        /*complexPartAttr=*/mlir::BoolAttr{}, /*shape=*/mlir::Value{},
+        typeparams, fortran_attrs);
+}
+
 static mlir::ParseResult parseDesignatorIndices(
     mlir::OpAsmParser &parser,
     llvm::SmallVectorImpl<mlir::OpAsmParser::UnresolvedOperand> &indices,
@@ -455,7 +471,7 @@ void hlfir::ElementalOp::build(mlir::OpBuilder &builder,
 }
 
 ///// hlfir.elemental (%i, %j) %shape typeparams %l1, .... : (operand types) ->
-///fir.expr<T> {}
+/// fir.expr<T> {}
 // void hlfir::ElementalOp::print(mlir::OpAsmPrinter &p) {
 //   p << " (";
 //   llvm::interleaveComma(getIndicies(), p, [&](auto it) { p << it; });
@@ -542,11 +558,12 @@ void hlfir::ElementalOp::build(mlir::OpBuilder &builder,
 
 void hlfir::ApplyOp::build(mlir::OpBuilder &builder,
                            mlir::OperationState &odsState, mlir::Value expr,
+                           mlir::ValueRange indices,
                            mlir::ValueRange typeparams) {
   mlir::Type resultType = expr.getType();
   if (auto exprType = resultType.dyn_cast<hlfir::ExprType>())
     resultType = exprType.getElementExprType();
-  build(builder, odsState, resultType, expr, typeparams);
+  build(builder, odsState, resultType, expr, indices, typeparams);
 }
 
 #define GET_OP_CLASSES

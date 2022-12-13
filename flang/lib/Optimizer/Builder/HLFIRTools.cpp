@@ -271,6 +271,8 @@ hlfir::Entity hlfir::getElementAt(mlir::Location loc,
                                   mlir::ValueRange oneBasedIndices) {
   if (entity.isScalar())
     return entity;
+  llvm::SmallVector<mlir::Value> lenParams;
+  genLengthParameters(loc, builder, entity, lenParams);
   if (entity.getType().isa<hlfir::ExprType>()) {
     // Early optimization...
     // if (auto elementalOp = entity.getDefiningOp<hlfir::ElementalOp>()) {
@@ -285,14 +287,13 @@ hlfir::Entity hlfir::getElementAt(mlir::Location loc,
     //    elementalOp->erase();
     //  return element;
     //}
-    return hlfir::Entity{
-        builder.create<hlfir::ApplyOp>(loc, entity, oneBasedIndices)};
+    return hlfir::Entity{builder.create<hlfir::ApplyOp>(
+        loc, entity, oneBasedIndices, lenParams)};
   }
-  llvm::SmallVector<mlir::Value> lenParams;
-  genLengthParameters(loc, builder, entity, lenParams);
   mlir::Type resultType = hlfir::getVariableElementType(entity);
-  hlfir::DesignateOp::Subscripts subscripts;
+  hlfir::DesignateOp designate;
   if (auto lbounds = getNonDefaultLowerBounds(loc, builder, entity)) {
+    llvm::SmallVector<mlir::Value> indices;
     mlir::Type idxTy = builder.getIndexType();
     mlir::Value one = builder.createIntegerConstant(loc, idxTy, 1);
     for (auto [oneBased, lb] : llvm::zip(oneBasedIndices, *lbounds)) {
@@ -301,17 +302,14 @@ hlfir::Entity hlfir::getElementAt(mlir::Location loc,
       auto shift = builder.create<mlir::arith::SubIOp>(loc, lbIdx, one);
       mlir::Value index =
           builder.create<mlir::arith::AddIOp>(loc, oneBasedIdx, shift);
-      subscripts.push_back(index);
+      indices.push_back(index);
     }
+    designate = builder.create<hlfir::DesignateOp>(loc, resultType, entity,
+                                                   indices, lenParams);
   } else {
-    for (auto oneBaseIndex : oneBasedIndices)
-      subscripts.push_back(oneBaseIndex);
+    designate = builder.create<hlfir::DesignateOp>(loc, resultType, entity,
+                                                   oneBasedIndices, lenParams);
   }
-  auto designate = builder.create<hlfir::DesignateOp>(
-      loc, resultType, entity, /*component=*/"",
-      /*componentShape=*/mlir::Value{}, subscripts,
-      /*substring=*/mlir::ValueRange{}, /*complexPart=*/llvm::None,
-      /*shape=*/mlir::Value{}, lenParams);
   return mlir::cast<fir::FortranVariableOpInterface>(designate.getOperation());
 }
 
@@ -410,6 +408,8 @@ void hlfir::genLengthParameters(mlir::Location loc, fir::FirOpBuilder &builder,
       result.append(elemental.getTypeparams().begin(),
                     elemental.getTypeparams().end());
       return;
+    } else if (auto apply = expr.getDefiningOp<hlfir::ApplyOp>()) {
+      result.append(apply.getTypeparams().begin(), apply.getTypeparams().end());
     }
     TODO(loc, "inquire type parameters of hlfir.expr");
   }

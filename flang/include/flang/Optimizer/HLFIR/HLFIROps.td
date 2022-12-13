@@ -204,7 +204,13 @@ def hlfir_DesignateOp : hlfir_Op<"designate", [AttrSizedOperandSegments,
       CArg<"mlir::ValueRange", "{}">:$substring,
       CArg<"llvm::Optional<bool>", "{}">:$complex_part,
       CArg<"mlir::Value", "{}">:$shape, CArg<"mlir::ValueRange", "{}">:$typeparams,
-      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>];
+      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>,
+
+    OpBuilder<(ins "mlir::Type":$result_type, "mlir::Value":$memref,
+      "mlir::ValueRange":$indices,
+      CArg<"mlir::ValueRange", "{}">:$typeparams,
+      CArg<"fir::FortranVariableFlagsAttr", "{}">:$fortran_attrs)>
+    ];
 
   let hasVerifier = 1;
 }
@@ -378,20 +384,25 @@ def hlfir_YieldElementOp : hlfir_Op<"yield_element", [Terminator, HasParent<"Ele
   let assemblyFormat = "$element_value attr-dict `:` type($element_value)";
 }
 
-def hlfir_ApplyOp : hlfir_Op<"apply", [NoMemoryEffect]> {
+def hlfir_ApplyOp : hlfir_Op<"apply", [NoMemoryEffect, AttrSizedOperandSegments]> {
   let summary = "get the element value of an expression";
   let description = [{
   }];
 
   let arguments = (ins hlfir_ExprType:$expr,
-                   Variadic<Index>:$indices
+                   Variadic<Index>:$indices,
+                   Variadic<AnyIntegerType>:$typeparams
                   );
   let results = (outs AnyFortranValue:$element_value);
 
-  let assemblyFormat = "$expr `,` $indices attr-dict `:` functional-type(operands, results)";
+  let assemblyFormat = [{
+    $expr `,` $indices (`typeparams` $typeparams^)?
+    attr-dict `:` functional-type(operands, results)
+  }];
 
   let builders = [
-    OpBuilder<(ins "mlir::Value":$expr, "mlir::ValueRange":$indices)>
+    OpBuilder<(ins "mlir::Value":$expr, "mlir::ValueRange":$indices,
+      "mlir::ValueRange":$typeparams)>
   ];
 }
 
