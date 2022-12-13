@@ -344,8 +344,7 @@ struct BinaryOp<Fortran::evaluate::Extremum<
       Fortran::evaluate::Type<Fortran::common::TypeCategory::Character, KIND>>;
   static hlfir::EntityWithAttributes gen(mlir::Location loc,
                                          fir::FirOpBuilder &, const Op &,
-                                         hlfir::Entity, hlfir::Entity,
-                                         mlir::ValueRange) {
+                                         hlfir::Entity, hlfir::Entity) {
     fir::emitFatalError(loc, "Fortran::evaluate::Extremum are unexpected");
   }
   static void genResultTypeParams(mlir::Location loc, fir::FirOpBuilder &,
@@ -518,8 +517,7 @@ struct BinaryOp<Fortran::evaluate::SetLength<KIND>> {
   using Op = Fortran::evaluate::SetLength<KIND>;
   static hlfir::EntityWithAttributes gen(mlir::Location loc,
                                          fir::FirOpBuilder &, const Op &,
-                                         hlfir::Entity, hlfir::Entity,
-                                         mlir::ValueRange) {
+                                         hlfir::Entity, hlfir::Entity) {
     TODO(loc, "SetLength lowering to HLFIR");
   }
   static void
@@ -533,15 +531,15 @@ struct BinaryOp<Fortran::evaluate::SetLength<KIND>> {
 template <int KIND>
 struct BinaryOp<Fortran::evaluate::Concat<KIND>> {
   using Op = Fortran::evaluate::Concat<KIND>;
-  static hlfir::EntityWithAttributes gen(mlir::Location loc,
-                                         fir::FirOpBuilder &builder, const Op &,
-                                         hlfir::Entity lhs, hlfir::Entity rhs,
-                                         mlir::ValueRange resultTypeParams) {
-    auto concat = builder.create<hlfir::ConcatOp>(
-        loc, mlir::ValueRange{lhs, rhs}, resultTypeParams[0]);
+  hlfir::EntityWithAttributes gen(mlir::Location loc,
+                                  fir::FirOpBuilder &builder, const Op &,
+                                  hlfir::Entity lhs, hlfir::Entity rhs) {
+    assert(len && "genResultTypeParams must have been called");
+    auto concat =
+        builder.create<hlfir::ConcatOp>(loc, mlir::ValueRange{lhs, rhs}, len);
     return hlfir::EntityWithAttributes{concat.getResult()};
   }
-  static void
+  void
   genResultTypeParams(mlir::Location loc, fir::FirOpBuilder &builder,
                       hlfir::Entity lhs, hlfir::Entity rhs,
                       llvm::SmallVectorImpl<mlir::Value> &resultTypeParams) {
@@ -552,9 +550,12 @@ struct BinaryOp<Fortran::evaluate::Concat<KIND>> {
     mlir::Type idxType = builder.getIndexType();
     mlir::Value lhsLen = builder.createConvert(loc, idxType, lengths[0]);
     mlir::Value rhsLen = builder.createConvert(loc, idxType, lengths[1]);
-    auto len = builder.create<mlir::arith::AddIOp>(loc, lhsLen, rhsLen);
+    len = builder.create<mlir::arith::AddIOp>(loc, lhsLen, rhsLen);
     resultTypeParams.push_back(len);
   }
+
+private:
+  mlir::Value len{};
 };
 
 //===--------------------------------------------------------------------===//
@@ -644,6 +645,13 @@ struct UnaryOp<Fortran::evaluate::Parentheses<T>> {
     return hlfir::EntityWithAttributes{
         builder.create<hlfir::NoReassocOp>(loc, lhs.getType(), lhs)};
   }
+
+  static void
+  genResultTypeParams(mlir::Location loc, fir::FirOpBuilder &builder,
+                      hlfir::Entity lhs,
+                      llvm::SmallVectorImpl<mlir::Value> &resultTypeParams) {
+    hlfir::genLengthParameters(loc, builder, lhs, resultTypeParams);
+  }
 };
 
 template <Fortran::common::TypeCategory TC1, int KIND,
@@ -663,6 +671,13 @@ struct UnaryOp<
                                                  KIND, /*params=*/std::nullopt);
     mlir::Value res = builder.convertWithSemantics(loc, type, lhs);
     return hlfir::EntityWithAttributes{res};
+  }
+
+  static void
+  genResultTypeParams(mlir::Location loc, fir::FirOpBuilder &builder,
+                      hlfir::Entity lhs,
+                      llvm::SmallVectorImpl<mlir::Value> &resultTypeParams) {
+    hlfir::genLengthParameters(loc, builder, lhs, resultTypeParams);
   }
 };
 
@@ -749,10 +764,47 @@ private:
   gen(const Fortran::evaluate::Operation<D, R, O> &op) {
     auto &builder = getBuilder();
     mlir::Location loc = getLoc();
-    if (op.Rank() != 0)
-      TODO(loc, "elemental operations in HLFIR");
-    auto left = hlfir::loadTrivialScalar(loc, builder, gen(op.left()));
-    return UnaryOp<D>::gen(loc, builder, op.derived(), left);
+    const int rank = op.Rank();
+    UnaryOp<D> unaryOp;
+    auto left =
+        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.left()));
+    llvm::SmallVector<mlir::Value, 1> typeParams;
+    if constexpr (R::category == Fortran::common::TypeCategory::Character) {
+      unaryOp.genResultTypeParams(loc, builder, left, typeParams);
+    }
+    auto genKernel =
+        [&loc, &builder, &op,
+         &unaryOp](hlfir::Entity lhsScalar) -> hlfir::EntityWithAttributes {
+      auto leftVal = hlfir::loadTrivialScalar(loc, builder, lhsScalar);
+      return unaryOp.gen(loc, builder, op.derived(), leftVal);
+    };
+    if (rank == 0)
+      return genKernel(left);
+    // Elemental expression.
+    mlir::Type elementType;
+    if constexpr (R::category == Fortran::common::TypeCategory::Derived) {
+      elementType = Fortran::lower::translateDerivedTypeToFIRType(
+          getConverter(), op.derived().GetType().GetDerivedTypeSpec());
+    } else {
+      elementType =
+          Fortran::lower::getFIRType(builder.getContext(), R::category, R::kind,
+                                     /*params=*/std::nullopt);
+    }
+    mlir::Type exprType = hlfir::ExprType::get(builder.getContext(),
+                                               hlfir::ExprType::Shape(rank, -1),
+                                               elementType, false);
+    mlir::Value shape;
+    shape = hlfir::genShape(loc, builder, left);
+    auto elementalOp =
+        builder.create<hlfir::ElementalOp>(loc, exprType, shape, typeParams);
+    auto insertPt = builder.saveInsertionPoint();
+    builder.setInsertionPointToStart(elementalOp.getBody());
+    auto leftElement =
+        hlfir::getElementAt(loc, builder, left, elementalOp.getIndicies());
+    auto elementResult = genKernel(leftElement);
+    builder.create<hlfir::YieldElementOp>(loc, elementResult);
+    builder.restoreInsertionPoint(insertPt);
+    return hlfir::EntityWithAttributes{elementalOp};
   }
 
   template <typename D, typename R, typename LO, typename RO>
@@ -761,65 +813,26 @@ private:
     auto &builder = getBuilder();
     mlir::Location loc = getLoc();
     const int rank = op.Rank();
-    BinaryOp<D> binaryOp(op.derived);
-    auto left = gen(op.left());
-    auto right = gen(op.right())
-    return binaryOp.gen(loc, builder, left, right);
-
+    BinaryOp<D> binaryOp;
     auto left =
         hlfir::derefPointersAndAllocatables(loc, builder, gen(op.left()));
     auto right =
         hlfir::derefPointersAndAllocatables(loc, builder, gen(op.right()));
     llvm::SmallVector<mlir::Value, 1> typeParams;
-    binaryOp.genResultTypeParams(loc, builder, right, typeParams);
-    if (left.isScalar() || right.isScalar())
-      return binaryOp.genElementValue(loc, builder, left, right);
-    // Elemental expression.
-    mlir::Value shape = binaryOp.genShape(loc, builder, left, right);
-    mlir::Type elementType = binaryOp.genElementType(builder.getContext());
-    hlfir::ExprType::Shape exprTypeShape = binaryOp.getResultTypeShape(shape);
-    mlir::Type exprType = hlfir::ExprType::get(builder.getContext(),
-                                               exprTypeShape,
-                                               elementType, binaryOp.isPolymorphic());
-    auto elementalOp =
-        builder.create<hlfir::ElementalOp>(loc, exprType, shape, typeParams);
-    auto insertPt = builder.saveInsertionPoint();
-    builder.setInsertionPointToStart(elementalOp.getBody());
-    auto leftElement =
-        hlfir::getElementAt(loc, builder, leftElement, elementalOp.getIndicies());
-    auto rightElement =
-        hlfir::getElementAt(loc, builder, rightElement, elementalOp.getIndicies());
-    binaryOp.genElementValue(loc, builder, leftElement, rightElement);
-    builder.create<hlfir::YieldElementOp>(loc, res);
-    builder.restoreInsertionPoint(insertPt);
-    return hlfir::EntityWithAttributes{elementalOp};
-     
-    
-    
-
-    
-    if (rank == 0) {
-      auto left = hlfir::loadTrivialScalar(loc, builder, gen(op.left()));
-      auto right = hlfir::loadTrivialScalar(loc, builder, gen(op.right()));
-
-      return [&]() -> hlfir::EntityWithAttributes {
-        if constexpr (R::category == Fortran::common::TypeCategory::Character) {
-          llvm::SmallVector<mlir::Value, 1> typeParams;
-          BinaryOp<D>::genResultTypeParams(loc, builder, left, right,
-                                           typeParams);
-          return BinaryOp<D>::gen(loc, builder, op.derived(), left, right,
-                                  typeParams);
-        } else {
-          return BinaryOp<D>::gen(loc, builder, op.derived(), left, right);
-        }
-      }();
+    if constexpr (R::category == Fortran::common::TypeCategory::Character) {
+      binaryOp.genResultTypeParams(loc, builder, left, right, typeParams);
     }
-    // Elemental array expression.
-    auto left =
-        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.left()));
-    auto right =
-        hlfir::derefPointersAndAllocatables(loc, builder, gen(op.right()));
-    // Get expr type and shape
+    auto genKernel =
+        [&loc, &builder, &op,
+         &binaryOp](hlfir::Entity lhsScalar,
+                    hlfir::Entity rhsScalar) -> hlfir::EntityWithAttributes {
+      auto leftVal = hlfir::loadTrivialScalar(loc, builder, lhsScalar);
+      auto rightVal = hlfir::loadTrivialScalar(loc, builder, rhsScalar);
+      return binaryOp.gen(loc, builder, op.derived(), leftVal, rightVal);
+    };
+    if (rank == 0)
+      return genKernel(left, right);
+    // Elemental expression.
     mlir::Type elementType =
         Fortran::lower::getFIRType(builder.getContext(), R::category, R::kind,
                                    /*params=*/std::nullopt);
@@ -834,11 +847,6 @@ private:
       assert(right.isArray() && "must have at least one array operand");
       shape = hlfir::genShape(loc, builder, right);
     }
-    // Compute result type parameters from array operands
-    llvm::SmallVector<mlir::Value, 1> typeParams;
-    if constexpr (R::category == Fortran::common::TypeCategory::Character) {
-      BinaryOp<D>::genResultTypeParams(loc, builder, left, right, typeParams);
-    }
     auto elementalOp =
         builder.create<hlfir::ElementalOp>(loc, exprType, shape, typeParams);
     auto insertPt = builder.saveInsertionPoint();
@@ -847,17 +855,8 @@ private:
         hlfir::getElementAt(loc, builder, left, elementalOp.getIndicies());
     auto rightElement =
         hlfir::getElementAt(loc, builder, right, elementalOp.getIndicies());
-    auto leftVal = hlfir::loadTrivialScalar(loc, builder, leftElement);
-    auto rightVal = hlfir::loadTrivialScalar(loc, builder, rightElement);
-    auto res = [&]() -> hlfir::EntityWithAttributes {
-      if constexpr (R::category == Fortran::common::TypeCategory::Character) {
-        return BinaryOp<D>::gen(loc, builder, op.derived(), leftVal, rightVal,
-                                typeParams);
-      } else {
-        return BinaryOp<D>::gen(loc, builder, op.derived(), leftVal, rightVal);
-      }
-    }();
-    builder.create<hlfir::YieldElementOp>(loc, res);
+    auto elementResult = genKernel(leftElement, rightElement);
+    builder.create<hlfir::YieldElementOp>(loc, elementResult);
     builder.restoreInsertionPoint(insertPt);
     return hlfir::EntityWithAttributes{elementalOp};
   }

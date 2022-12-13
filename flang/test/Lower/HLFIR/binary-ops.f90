@@ -345,8 +345,8 @@ subroutine cmplx_ctor_2(z, x)
 end subroutine
 ! CHECK-LABEL: func.func @_QPcmplx_ctor_2(
 ! CHECK:  %[[VAL_2:.*]]:2 = hlfir.declare %{{.*}}x"} : (!fir.ref<f64>) -> (!fir.ref<f64>, !fir.ref<f64>)
-! CHECK:  %[[VAL_4:.*]] = fir.load %[[VAL_2]]#0 : !fir.ref<f64>
-! CHECK:  %[[VAL_5:.*]] = arith.constant 1.000000e+00 : f64
+! CHECK:  %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
+! CHECK:  %[[VAL_5:.*]] = fir.load %[[VAL_2]]#0 : !fir.ref<f64>
 ! CHECK:  %[[VAL_6:.*]] = fir.undefined !fir.complex<8>
-! CHECK:  %[[VAL_7:.*]] = fir.insert_value %[[VAL_6]], %[[VAL_4]], [0 : index] : (!fir.complex<8>, f64) -> !fir.complex<8>
-! CHECK:  %[[VAL_8:.*]] = fir.insert_value %[[VAL_7]], %[[VAL_5]], [1 : index] : (!fir.complex<8>, f64) -> !fir.complex<8>
+! CHECK:  %[[VAL_7:.*]] = fir.insert_value %[[VAL_6]], %[[VAL_5]], [0 : index] : (!fir.complex<8>, f64) -> !fir.complex<8>
+! CHECK:  %[[VAL_8:.*]] = fir.insert_value %[[VAL_7]], %[[VAL_4]], [1 : index] : (!fir.complex<8>, f64) -> !fir.complex<8>
