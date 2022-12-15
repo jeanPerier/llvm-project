@@ -74,6 +74,7 @@ def hlfir_ExprType : TypeDef<hlfir_Dialect, "Expr"> {
       return hlfir::ExprType::get(eleTy.getContext(), Shape{}, eleTy,
                 isPolymorphic());
     }
+    static constexpr int getUnknownExtent() {return -1;}
   }];
 
   let hasCustomAssemblyFormat = 1;
