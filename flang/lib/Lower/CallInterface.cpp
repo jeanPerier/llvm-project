@@ -426,7 +426,7 @@ Fortran::lower::CalleeInterface::addEntryBlockAndMapArguments() {
 }
 
 bool Fortran::lower::CalleeInterface::hasHostAssociated() const {
-  return funit.parentHasHostAssoc();
+  return funit.parentHasTupleHostAssoc();
 }
 
 mlir::Type Fortran::lower::CalleeInterface::getHostAssociatedTy() const {
