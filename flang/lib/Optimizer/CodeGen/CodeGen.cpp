@@ -163,13 +163,11 @@ protected:
   mlir::Value getValueFromBox(mlir::Location loc, mlir::Value box,
                               mlir::Type resultTy,
                               mlir::ConversionPatternRewriter &rewriter,
-                              unsigned boxValue) const {
+                              int boxValue) const {
     if (box.getType().isa<mlir::LLVM::LLVMPointerType>()) {
       auto pty = mlir::LLVM::LLVMPointerType::get(resultTy);
       auto p = rewriter.create<mlir::LLVM::GEPOp>(
-          loc, pty, box,
-          llvm::ArrayRef<mlir::LLVM::GEPArg>{
-              0, static_cast<std::int32_t>(boxValue)});
+          loc, pty, box, llvm::ArrayRef<mlir::LLVM::GEPArg>{0, boxValue});
       return rewriter.create<mlir::LLVM::LoadOp>(loc, resultTy, p);
     }
     return rewriter.create<mlir::LLVM::ExtractValueOp>(loc, box, boxValue);
@@ -189,7 +187,7 @@ protected:
 
   llvm::SmallVector<mlir::Value, 3>
   getDimsFromBox(mlir::Location loc, llvm::ArrayRef<mlir::Type> retTys,
-                 mlir::Value box, unsigned dim,
+                 mlir::Value box, int dim,
                  mlir::ConversionPatternRewriter &rewriter) const {
     mlir::Value l0 = getDimFieldFromBox(loc, box, dim, 0, retTys[0], rewriter);
     mlir::Value l1 = getDimFieldFromBox(loc, box, dim, 1, retTys[1], rewriter);
@@ -205,19 +203,19 @@ protected:
            "descriptor inquiry with runtime dim can only be done on descriptor "
            "in memory");
     auto pty = mlir::LLVM::LLVMPointerType::get(ty);
-    mlir::LLVM::GEPOp p =
-        genGEP(loc, pty, rewriter, box, 0, kDimsPosInBox, dim, off);
+    mlir::LLVM::GEPOp p = genGEP(loc, pty, rewriter, box, 0,
+                                 static_cast<int>(kDimsPosInBox), dim, off);
     return rewriter.create<mlir::LLVM::LoadOp>(loc, ty, p);
   }
 
   mlir::Value
-  getDimFieldFromBox(mlir::Location loc, mlir::Value box, unsigned dim, int off,
+  getDimFieldFromBox(mlir::Location loc, mlir::Value box, int dim, int off,
                      mlir::Type ty,
                      mlir::ConversionPatternRewriter &rewriter) const {
     if (box.getType().isa<mlir::LLVM::LLVMPointerType>()) {
       auto pty = mlir::LLVM::LLVMPointerType::get(ty);
-      mlir::LLVM::GEPOp p =
-          genGEP(loc, pty, rewriter, box, 0, kDimsPosInBox, dim, off);
+      mlir::LLVM::GEPOp p = genGEP(loc, pty, rewriter, box, 0,
+                                   static_cast<int>(kDimsPosInBox), dim, off);
       return rewriter.create<mlir::LLVM::LoadOp>(loc, ty, p);
     }
     return rewriter.create<mlir::LLVM::ExtractValueOp>(
