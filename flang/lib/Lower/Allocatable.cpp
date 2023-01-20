@@ -936,6 +936,15 @@ void Fortran::lower::associateMutableBox(
     return;
   }
 
+  if (converter.getLoweringOptions().getLowerToHighLevelFIR()) {
+    // TODO: avoid emboxing for nothing.
+    // genExprAddr is definitely the weirdest... Should I really reproduce what
+    // it is doing...
+    fir::ExtendedValue rhs = converter.genExprBox(loc, source, stmtCtx);
+    fir::factory::associateMutableBox(builder, loc, box, rhs, lbounds);
+    return;
+  }
+
   // The right hand side is not be evaluated into a temp. Array sections can
   // typically be represented as a value of type `!fir.box`. However, an
   // expression that uses vector subscripts cannot be emboxed. In that case,

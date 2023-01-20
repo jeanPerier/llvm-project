@@ -83,6 +83,14 @@ fir::ExtendedValue convertToValue(mlir::Location loc,
                                   Fortran::lower::AbstractConverter &,
                                   hlfir::Entity entity,
                                   Fortran::lower::StatementContext &);
+
+/// Lower an evaluate::Expr to a fir::MutableBoxValue value.
+/// This can only be called if the Expr is a POINTER or ALLOCATABLE,
+/// otherwise, this will crash.
+fir::MutableBoxValue
+convertExprToMutableBox(mlir::Location loc, Fortran::lower::AbstractConverter &,
+                        const Fortran::lower::SomeExpr &,
+                        Fortran::lower::SymMap &);
 } // namespace Fortran::lower
 
 #endif // FORTRAN_LOWER_CONVERTEXPRTOHLFIR_H

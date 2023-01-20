@@ -1335,3 +1335,20 @@ fir::ExtendedValue Fortran::lower::convertExprToValue(
       HlfirBuilder(loc, converter, symMap, stmtCtx).gen(expr);
   return convertToValue(loc, converter, loweredExpr, stmtCtx);
 }
+
+fir::MutableBoxValue Fortran::lower::convertExprToMutableBox(
+    mlir::Location loc, Fortran::lower::AbstractConverter &converter,
+    const Fortran::lower::SomeExpr &expr, Fortran::lower::SymMap &symMap) {
+  // Pointers and Allocatable cannot be temporary expressions. Temporaries may
+  // be created while lowering it (e.g. if any indices expression of a
+  // designator create temporaries), but they can be destroyed before using the
+  // lowered pointer or allocatable;
+  Fortran::lower::StatementContext localStmtCtx;
+  hlfir::EntityWithAttributes loweredExpr =
+      HlfirBuilder(loc, converter, symMap, localStmtCtx).gen(expr);
+  fir::ExtendedValue exv = Fortran::lower::translateToExtendedValue(
+      loc, converter.getFirOpBuilder(), loweredExpr, localStmtCtx);
+  auto *mutableBox = exv.getBoxOf<fir::MutableBoxValue>();
+  assert(mutableBox && "expression could not be lowered to mutable box");
+  return *mutableBox;
+}
