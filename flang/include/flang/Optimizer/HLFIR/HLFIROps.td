@@ -523,4 +523,90 @@ def hlfir_DestroyOp : hlfir_Op<"destroy", []> {
   let assemblyFormat = "$expr attr-dict `:` qualified(type($expr))";
 }
 
+def hlfir_CopyInOp : hlfir_Op<"copy_in", []> {
+  let summary = "copy a variable into a contiguous temporary if it is not contiguous";
+  let description = [{
+    Copy a variable into a contiguous temporary if the variable is not
+    an absent optional and is not contiguous at runtime.
+    Otherwise, returns the potentially absent variable storage.
+    This is meant to be used in combination with the hlfir.copy_out operation
+    that deletes the temporary if it was created and copy the data back if needed.
+    This operation allows passing non contiguous arrays as procedure reference
+    dummy arguments that must be contiguous, which is possible in Fortran (that
+    mandates that any pointers made to these dummy arguments are invalidated after
+    the call).
+
+    To deal with the optional case, this operation can optionally support a
+    null input box or an input box containing a null address (but it cannot
+    support both at the same time).  In such case, if the input box matches
+    the absence criterion at runtime, the operation will return a null output
+    address or box and "false".  This allows implementing the passing of non
+    contiguous OPTIONAL assumed shapes (null box) to contiguous OPTIONAL
+    dummies, or the passing of disassociated pointers (null address in box)
+    to contiguous OPTIONAL dummies.
+  }];
+
+  let arguments = (ins fir_BaseBoxType:$var,
+                   OptionalAttr<BoolAttr>:$handle_optional);
+  let results = (outs AnyRefOrBoxLike, I1);
+
+  let assemblyFormat = [{
+    $var custom<CopyInHandleOptional>($handle_optional)
+    attr-dict `:` functional-type(operands, results)
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$var, "std::optional<bool>":$handle_optional,
+      "bool":$return_box)>
+  ];
+
+  let extraClassDeclaration = [{
+    mlir::Value getCopiedIn() {
+      return getResult(0);
+    }
+    mlir::Value getWasCopied() {
+      return getResult(1);
+    }
+
+    /// "handle_optional" value to be passed to the operation builder when input
+    /// box may be a null box.
+    static constexpr bool kHandleNullBox = true;
+
+    /// "handle_optional" value to be passed to the operation builder when input
+    /// box may contain a null address.
+    static constexpr bool kHandleNullAddr = !kHandleNullBox;
+
+    /// Does this operation handle a null input box?
+    bool getHandleNullBox() {
+      return getHandleOptional() && *getHandleOptional() == kHandleNullBox;
+    }
+
+    /// Does this operation handle an input box containing a null address?
+    bool getHandleNullAddr() {
+      return getHandleOptional() && *getHandleOptional() == kHandleNullAddr;
+    }
+  }];
+}
+
+def hlfir_CopyOutOp : hlfir_Op<"copy_out", []> {
+  let summary = "copy out a variable after a copy in";
+  let description = [{
+    If the variable was copied in a temporary in the related hlfir.copy_in,
+    optionally copy back the temporary value to it (that may have been
+    modified between the hlfir.copy_in and hlfir.copy_out). Then deallocate
+    the temporary.
+    The copy back is done if $var is provided $was_copied is true.
+    The deallocation of $temp is done if $was_copied is true.
+  }];
+
+  let arguments = (ins AnyRefOrBoxLike:$temp,
+                       I1:$was_copied,
+                       Optional<fir_BaseBoxType>:$var);
+
+  let assemblyFormat = [{
+    $temp `,` $was_copied (`to` $var^)?
+    attr-dict `:` functional-type(operands, results)
+  }];
+}
+
 #endif // FORTRAN_DIALECT_HLFIR_OPS

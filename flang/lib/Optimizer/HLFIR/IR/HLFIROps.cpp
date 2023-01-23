@@ -515,5 +515,52 @@ void hlfir::NullOp::build(mlir::OpBuilder &builder,
                fir::ReferenceType::get(builder.getNoneType()));
 }
 
+//===----------------------------------------------------------------------===//
+// CopyInOp
+//===----------------------------------------------------------------------===//
+
+static mlir::ParseResult
+parseCopyInHandleOptional(mlir::OpAsmParser &parser,
+                          mlir::BoolAttr &handleOptional) {
+  if (mlir::succeeded(parser.parseOptionalKeyword("handle_null_box")))
+    handleOptional = mlir::BoolAttr::get(parser.getContext(),
+                                         hlfir::CopyInOp::kHandleNullBox);
+  else if (mlir::succeeded(parser.parseOptionalKeyword("handle_null_addr")))
+    handleOptional = mlir::BoolAttr::get(parser.getContext(),
+                                         hlfir::CopyInOp::kHandleNullAddr);
+  return mlir::success();
+}
+
+static void printCopyInHandleOptional(mlir::OpAsmPrinter &p, hlfir::CopyInOp,
+                                      mlir::BoolAttr handleOptionalAttr) {
+  if (handleOptionalAttr) {
+    if (handleOptionalAttr.getValue() == hlfir::CopyInOp::kHandleNullBox)
+      p << "handle_null_box";
+    else
+      p << "handle_null_addr";
+  }
+}
+
+void hlfir::CopyInOp::build(mlir::OpBuilder &builder,
+                            mlir::OperationState &odsState, mlir::Value var,
+                            std::optional<bool> handleOptional,
+                            bool returnBox) {
+  mlir::Type baseType = hlfir::getFortranElementOrSequenceType(var.getType());
+  mlir::Type resType;
+  if (returnBox) {
+    resType = fir::ReferenceType::get(baseType);
+  } else {
+    if (var.getType().isa<fir::ClassType>())
+      resType = fir::ClassType::get(resType);
+    else
+      resType = fir::BoxType::get(resType);
+  }
+  auto handleOptionalAttr =
+      handleOptional.has_value()
+          ? mlir::BoolAttr::get(builder.getContext(), *handleOptional)
+          : mlir::BoolAttr{};
+  return build(builder, odsState, resType, var, handleOptionalAttr);
+}
+
 #define GET_OP_CLASSES
 #include "flang/Optimizer/HLFIR/HLFIROps.cpp.inc"
