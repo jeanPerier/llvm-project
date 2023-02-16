@@ -14,10 +14,10 @@
 #include "flang/Lower/StatementContext.h"
 #include "flang/Lower/SymbolMap.h"
 #include "flang/Optimizer/Builder/HLFIRTools.h"
+#include "flang/Optimizer/Builder/Runtime/RTBuilder.h"
 #include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/HLFIR/HLFIROps.h"
 #include "flang/Runtime/array-constructor.h"
-#include "flang/Optimizer/Builder/Runtime/RTBuilder.h"
 
 // Array constructors are lowered with three different strategies.
 // All strategies are not possible with all array constructors.
@@ -288,61 +288,75 @@ private:
 };
 
 // TODO: add and implement RuntimeTempStrategy.
-#define START_STRUCT_BUILDER(NAME) struct NAME ## Builder {
-#define DEFINE_MEMBER_TYPE_GETTER(TYPE, NAME)         \
-  static mlir::Type NAME ## Type(mlir::MLIRContext* ctx) {\
-    return fir::runtime::getModel<TYPE>()(ctx);       \
-  } 
-#define START_BUILDER_AND_DEFINE_TYPE_GETTER(SOME_STRUCT) \
-    SOME_STRUCT(START_STRUCT_BUILDER, DEFINE_MEMBER_TYPE_GETTER)
+#define START_STRUCT_BUILDER(NAME) struct NAME##Builder {
+#define DEFINE_MEMBER_TYPE_GETTER(TYPE, NAME)                                  \
+  static mlir::Type NAME##Type(mlir::MLIRContext *ctx) {                       \
+    return fir::runtime::getModel<TYPE>()(ctx);                                \
+  }
+#define START_BUILDER_AND_DEFINE_TYPE_GETTER(SOME_STRUCT)                      \
+  SOME_STRUCT(START_STRUCT_BUILDER, DEFINE_MEMBER_TYPE_GETTER)
 
-#define DECLARE_RECORD(NAME) \
-      auto rec = fir::RecordType::get(ctx, ".rtstruct."#NAME);
-#define PUSH_MEMBER_TYPE(TYPE, NAME) \
-      cs.emplace_back(#NAME, fir::runtime::getModel<TYPE>()(ctx));
-#define DEFINE_GET_TYPE(SOME_STRUCT) \
-   static mlir::Type getStructType(mlir::MLIRContext* ctx) {  \
-      std::vector<std::pair<std::string, mlir::Type>> ps; \
-      std::vector<std::pair<std::string, mlir::Type>> cs; \
-      SOME_STRUCT(DECLARE_RECORD, PUSH_MEMBER_TYPE) \
-      rec.finalize(ps, cs); return rec; }
+#define DECLARE_RECORD(NAME)                                                   \
+  auto rec = fir::RecordType::get(ctx, ".rtstruct." #NAME);
+#define PUSH_MEMBER_TYPE(TYPE, NAME)                                           \
+  cs.emplace_back(#NAME, fir::runtime::getModel<TYPE>()(ctx));
+#define DEFINE_GET_TYPE(SOME_STRUCT)                                           \
+  static mlir::Type getStructType(mlir::MLIRContext *ctx) {                    \
+    std::vector<std::pair<std::string, mlir::Type>> ps;                        \
+    std::vector<std::pair<std::string, mlir::Type>> cs;                        \
+    SOME_STRUCT(DECLARE_RECORD, PUSH_MEMBER_TYPE)                              \
+    rec.finalize(ps, cs);                                                      \
+    return rec;                                                                \
+  }
 
 #define IGNORE_NAME(NAME)
-#define DEFINE_MEMBER_ADDR_GETTER(TYPE, NAME) \
-    static mlir::Value NAME ## Address(mlir::Location loc, fir::FirOpBuilder& builder, mlir::Value structAddr) {\
-        auto fieldTy = fir::FieldType::get(builder.getContext()); \
-        mlir::Value field = builder.create<fir::FieldIndexOp>( \
-                      loc, fieldTy, #NAME, \
-                      fir::unwrapRefType(structAddr.getType()), mlir::ValueRange{}); \
-        mlir::Type coorTy = builder.getRefType(NAME ## Type(builder.getContext())); \
-        mlir::Value coor = builder.create<fir::CoordinateOp>(loc, coorTy, \
-                                                    structAddr, field); \
-        return coor; }
-#define DEFINE_GET_ADDR(SOME_STRUCT) \
+#define DEFINE_MEMBER_ADDR_GETTER(TYPE, NAME)                                  \
+  static mlir::Value NAME##Address(mlir::Location loc,                         \
+                                   fir::FirOpBuilder &builder,                 \
+                                   mlir::Value structAddr) {                   \
+    auto fieldTy = fir::FieldType::get(builder.getContext());                  \
+    mlir::Value field = builder.create<fir::FieldIndexOp>(                     \
+        loc, fieldTy, #NAME, fir::unwrapRefType(structAddr.getType()),         \
+        mlir::ValueRange{});                                                   \
+    mlir::Type coorTy = builder.getRefType(NAME##Type(builder.getContext()));  \
+    mlir::Value coor =                                                         \
+        builder.create<fir::CoordinateOp>(loc, coorTy, structAddr, field);     \
+    return coor;                                                               \
+  }
+#define DEFINE_GET_ADDR(SOME_STRUCT)                                           \
   SOME_STRUCT(IGNORE_NAME, DEFINE_MEMBER_ADDR_GETTER)
 
-#define DEFINE_STRUCT_BUILDER(SOME_STRUCT) \
-  START_BUILDER_AND_DEFINE_TYPE_GETTER(SOME_STRUCT) \
-  DEFINE_GET_TYPE(SOME_STRUCT) \
-  DEFINE_GET_ADDR(SOME_STRUCT) };
+#define DEFINE_STRUCT_BUILDER(SOME_STRUCT)                                     \
+  START_BUILDER_AND_DEFINE_TYPE_GETTER(SOME_STRUCT)                            \
+  DEFINE_GET_TYPE(SOME_STRUCT)                                                 \
+  DEFINE_GET_ADDR(SOME_STRUCT)                                                 \
+  }                                                                            \
+  ;
 
-
-using namespace Fortran::runtime;
+using Descriptor = Fortran::runtime::Descriptor;
 DEFINE_STRUCT_BUILDER(ARRAY_CONSTRUCTOR_TEMP_STRUCT)
-  
-static mlir::Value getAndInitRuntimeArrayConstructorTemp(mlir::Location loc, fir::FirOpBuilder&builder) {
-  mlir::Value cookie = builder.createTemporary(loc, ArrayConstructorTemporaryBuilder::getStructType(builder.getContext()));
-  mlir::Value zero = builder.createIntegerConstant(loc, ArrayConstructorTemporaryBuilder::nextValuePositionType(builder.getContext()), 0);  
-  mlir::Value nextValuePositionAddr = ArrayConstructorTemporaryBuilder::nextValuePositionAddress(loc, builder, cookie);
+
+static mlir::Value
+getAndInitRuntimeArrayConstructorTemp(mlir::Location loc,
+                                      fir::FirOpBuilder &builder) {
+  mlir::Value cookie = builder.createTemporary(
+      loc,
+      ArrayConstructorTemporaryBuilder::getStructType(builder.getContext()));
+  mlir::Value zero = builder.createIntegerConstant(
+      loc,
+      ArrayConstructorTemporaryBuilder::nextValuePositionType(
+          builder.getContext()),
+      0);
+  mlir::Value nextValuePositionAddr =
+      ArrayConstructorTemporaryBuilder::nextValuePositionAddress(loc, builder,
+                                                                 cookie);
   builder.create<fir::StoreOp>(loc, zero, nextValuePositionAddr);
-  mlir::Value allocationSizeAddr = ArrayConstructorTemporaryBuilder::allocationSizeAddress(loc, builder, cookie);
+  mlir::Value allocationSizeAddr =
+      ArrayConstructorTemporaryBuilder::allocationSizeAddress(loc, builder,
+                                                              cookie);
   builder.create<fir::StoreOp>(loc, zero, allocationSizeAddr);
   return cookie;
 }
-  
-      
-    
-
 
 /// Wrapper class that dispatch to the selected array constructor lowering
 /// strategy and does nothing else.
