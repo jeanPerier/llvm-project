@@ -28,5 +28,12 @@ namespace fir::runtime {
 void genAssign(fir::FirOpBuilder &builder, mlir::Location loc,
                mlir::Value destBox, mlir::Value sourceBox);
 
+void genAssignExplicitLengthCharacter(fir::FirOpBuilder &builder,
+                                      mlir::Location loc, mlir::Value destBox,
+                                      mlir::Value sourceBox);
+
+void genAssignPolymorphic(fir::FirOpBuilder &builder, mlir::Location loc,
+                          mlir::Value destBox, mlir::Value sourceBox);
+
 } // namespace fir::runtime
 #endif // FORTRAN_OPTIMIZER_BUILDER_RUNTIME_ASSIGN_H
