@@ -34,7 +34,7 @@
 #define DEBUG_TYPE "flang-lower-expr"
 
 static llvm::cl::opt<bool> useHlfirIntrinsicOps(
-    "use-hlfir-intrinsic-ops", llvm::cl::init(true),
+    "use-hlfir-intrinsic-ops", llvm::cl::init(false),
     llvm::cl::desc("Lower via HLFIR transformational intrinsic operations such as hlfir.sum"));
 
 /// Helper to package a Value and its properties into an ExtendedValue.
