@@ -772,5 +772,38 @@ void hlfir::CopyInOp::build(mlir::OpBuilder &builder,
                var_is_present);
 }
 
+//===----------------------------------------------------------------------===//
+// ForallOp
+//===----------------------------------------------------------------------===//
+
+mlir::ParseResult hlfir::ForallOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
+  mlir::Region &lbRegion = *result.addRegion();
+  if (parser.parseKeyword("lb") || parser.parseRegion(lbRegion, /*arguments=*/{},
+                                   /*argTypes=*/{}))
+    return mlir::failure();
+  mlir::Region &ubRegion = *result.addRegion();
+  if (parser.parseKeyword("ub") || parser.parseRegion(ubRegion, /*arguments=*/{},
+                                   /*argTypes=*/{}))
+    return mlir::failure();
+  mlir::Region &strideRegion = *result.addRegion();
+  if (succeeded(parser.parseOptionalKeyword("stride")))
+    if (parser.parseRegion(strideRegion, /*arguments=*/{},
+                                   /*argTypes=*/{}))
+      return mlir::failure();
+  mlir::Region &maskRegion = *result.addRegion();
+  if (succeeded(parser.parseOptionalKeyword("mask")))
+    if (parser.parseRegion(maskRegion))
+      return mlir::failure();
+  mlir::Region &bodyRegion = *result.addRegion();
+  mlir::OptionalParseResult parseResult = parser.parseOptionalRegion(bodyRegion);
+  if (parseResult.has_value() && failed(*parseResult))
+    return mlir::failure(); 
+  return mlir::success();
+}
+
+void hlfir::ForallOp::print(mlir::OpAsmPrinter &p) {
+  
+}
+
 #define GET_OP_CLASSES
 #include "flang/Optimizer/HLFIR/HLFIROps.cpp.inc"
