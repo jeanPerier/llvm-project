@@ -618,6 +618,17 @@ def hlfir_YieldElementOp : hlfir_Op<"yield_element", [Terminator, HasParent<"Ele
   let assemblyFormat = "$element_value attr-dict `:` type($element_value)";
 }
 
+def hlfir_YieldOp : hlfir_Op<"yield", [Terminator, HasParent<"ForallOp">]> {
+  let summary = "Yield a value or variable inside a forall";
+  let description = [{
+    // TODO
+  }];
+
+  let arguments = (ins AnyType:$entity);
+
+  let assemblyFormat = "$entity attr-dict `:` type($entity)";
+}
+
 def hlfir_ApplyOp : hlfir_Op<"apply", [NoMemoryEffect, AttrSizedOperandSegments]> {
   let summary = "get the element value of an expression";
   let description = [{
@@ -761,6 +772,22 @@ def hlfir_CopyOutOp : hlfir_Op<"copy_out", []> {
     $temp `,` $was_copied (`to` $var^)?
     attr-dict `:` functional-type(operands, results)
   }];
+}
+
+
+def hlfir_ForallOp : hlfir_Op<"forall", []> {
+  let summary = "represent a Fortran forall";
+  let description = [{
+    // TODO
+  }];
+
+  let regions = (region   MinSizedRegion<1>:$lb_region,
+                       MinSizedRegion<1>:$ub_region,
+                       AnyRegion:$stride_region,
+                       AnyRegion:$mask_region,
+                       MaxSizedRegion<1>:$body);
+  
+  let hasCustomAssemblyFormat = 1;
 }
 
 #endif // FORTRAN_DIALECT_HLFIR_OPS
