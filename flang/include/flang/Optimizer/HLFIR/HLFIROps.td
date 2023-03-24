@@ -618,15 +618,17 @@ def hlfir_YieldElementOp : hlfir_Op<"yield_element", [Terminator, HasParent<"Ele
   let assemblyFormat = "$element_value attr-dict `:` type($element_value)";
 }
 
-def hlfir_YieldOp : hlfir_Op<"yield", [Terminator, HasParent<"ForallOp">]> {
+def hlfir_YieldOp : hlfir_Op<"yield", [Terminator, ParentOneOf<["ForallOp", "ForallMaskOp", "RegionAssignOp", "WhereOp"]>, SingleBlockImplicitTerminator<"fir::FirEndOp">]> {
   let summary = "Yield a value or variable inside a forall";
   let description = [{
     // TODO
   }];
 
   let arguments = (ins AnyType:$entity);
+  let regions = (region  MaxSizedRegion<1>:$cleanup);
 
-  let assemblyFormat = "$entity attr-dict `:` type($entity)";
+  let assemblyFormat = "$entity attr-dict `:` type($entity) custom<YieldOpCleanup>($cleanup)";
+  
 }
 
 def hlfir_ApplyOp : hlfir_Op<"apply", [NoMemoryEffect, AttrSizedOperandSegments]> {
@@ -783,11 +785,101 @@ def hlfir_ForallOp : hlfir_Op<"forall", []> {
 
   let regions = (region   MinSizedRegion<1>:$lb_region,
                        MinSizedRegion<1>:$ub_region,
-                       AnyRegion:$stride_region,
+                       AnyRegion:$step_region,
                        AnyRegion:$mask_region,
-                       MaxSizedRegion<1>:$body);
+                       SizedRegion<1>:$body);
+
+  let extraClassDeclaration = [{
+    mlir::Value getForallIndexValue() {
+      return getBody().getArguments()[0]; 
+    }
+  }];
   
   let hasCustomAssemblyFormat = 1;
+}
+
+def hlfir_ForallIndexOp : hlfir_Op<"forall_index", [fir_FortranVariableOpInterface]> {
+  let summary = "represent a Fortran forall index declaration";
+  let description = [{
+    // TODO
+  }];
+
+  let arguments = (ins Index:$index,
+                       Builtin_StringAttr:$name);
+
+  let results = (outs AnyFortranVariable);
+
+  let assemblyFormat = [{
+    $name $index attr-dict `:` functional-type(operands, results)
+  }];
+
+  let extraClassDeclaration = [{
+    // Implement FortranVariableInterface interface.
+    std::optional<fir::FortranVariableFlagsEnum> getFortranAttrs() const {
+      return std::nullopt;
+    }
+    mlir::Value getShape() const {return mlir::Value{};}
+    mlir::OperandRange getExplicitTypeParams() const {
+      // Return an empty range.
+      return {(*this)->getOperands().begin(), (*this)->getOperands().begin()};
+    }
+  }];
+}
+
+def hlfir_ForallMaskOp : hlfir_Op<"forall_mask", []> {
+  let summary = "represent a Fortran forall mask";
+  let description = [{
+    // TODO
+  }];
+
+  let regions = (region  SizedRegion<1>:$mask_region,
+                         MaxSizedRegion<1>:$body);
+
+  /// The format is "$mask_region `do` $body" with an implicit terminator for
+  /// the $body region.
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+  }];
+}
+
+
+def hlfir_WhereOp : hlfir_Op<"where", []> {
+  let summary = "represent a Fortran where";
+  let description = [{
+    // TODO
+  }];
+
+  let regions = (region  SizedRegion<1>:$mask_region,
+                         SizedRegion<1>:$where_region,
+                         MaxSizedRegion<1>:$elsewhere_region);
+
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+  }];
+}
+
+def hlfir_RegionAssignOp : hlfir_Op<"region_assign", []> {
+  let summary = "represent a Fortran assignment using regions for the LHS and RHS evaluation";
+  let description = [{
+    // TODO
+  }];
+
+  let regions = (region  SizedRegion<1>:$rhs,
+                         SizedRegion<1>:$lhs,
+                         MaxSizedRegion<1>:$user_defined_assignment);
+
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    mlir::Value getUserAssignmentRhs() {
+      return getUserDefinedAssignment().getArguments()[0]; 
+    }
+    mlir::Value getUserAssignmentLhs() {
+      return getUserDefinedAssignment().getArguments()[1]; 
+    }
+  }];
 }
 
 #endif // FORTRAN_DIALECT_HLFIR_OPS
