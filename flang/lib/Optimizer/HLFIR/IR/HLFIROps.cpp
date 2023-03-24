@@ -778,32 +778,186 @@ void hlfir::CopyInOp::build(mlir::OpBuilder &builder,
 
 mlir::ParseResult hlfir::ForallOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
   mlir::Region &lbRegion = *result.addRegion();
-  if (parser.parseKeyword("lb") || parser.parseRegion(lbRegion, /*arguments=*/{},
-                                   /*argTypes=*/{}))
+  if (parser.parseKeyword("lb") || parser.parseRegion(lbRegion))
     return mlir::failure();
   mlir::Region &ubRegion = *result.addRegion();
-  if (parser.parseKeyword("ub") || parser.parseRegion(ubRegion, /*arguments=*/{},
-                                   /*argTypes=*/{}))
+  if (parser.parseKeyword("ub") || parser.parseRegion(ubRegion))
     return mlir::failure();
-  mlir::Region &strideRegion = *result.addRegion();
-  if (succeeded(parser.parseOptionalKeyword("stride")))
-    if (parser.parseRegion(strideRegion, /*arguments=*/{},
-                                   /*argTypes=*/{}))
+  mlir::Region &stepRegion = *result.addRegion();
+  if (succeeded(parser.parseOptionalKeyword("step")))
+    if (parser.parseRegion(stepRegion))
       return mlir::failure();
   mlir::Region &maskRegion = *result.addRegion();
   if (succeeded(parser.parseOptionalKeyword("mask")))
     if (parser.parseRegion(maskRegion))
       return mlir::failure();
   mlir::Region &bodyRegion = *result.addRegion();
-  mlir::OptionalParseResult parseResult = parser.parseOptionalRegion(bodyRegion);
-  if (parseResult.has_value() && failed(*parseResult))
-    return mlir::failure(); 
+  mlir::OpAsmParser::Argument bodyArg;
+  if (parser.parseLParen() || parser.parseArgument(bodyArg) ||
+      parser.parseColon() || parser.parseType(bodyArg.type) ||
+      parser.parseRParen())
+    return mlir::failure();
+  if (parser.parseRegion(bodyRegion, {bodyArg}))
+    return mlir::failure();
+  if (!bodyRegion.empty())
+    hlfir::YieldOp::ensureTerminator(bodyRegion,  parser.getBuilder(), result.location);
   return mlir::success();
 }
 
 void hlfir::ForallOp::print(mlir::OpAsmPrinter &p) {
-  
+  p << " lb ";
+  p.printRegion(getLbRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  p << " ub ";
+  p.printRegion(getUbRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  if (!getStepRegion().empty()) {
+    p << " step ";
+    p.printRegion(getStepRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  }
+  if (!getMaskRegion().empty()) {
+    p << " mask ";
+    p.printRegion(getMaskRegion(), /*printEntryBlockArgs=*/true,
+                  /*printBlockTerminators=*/true);
+  }
+  mlir::Value forallIndex = getForallIndexValue();
+  p << " (" << forallIndex << ": " << forallIndex.getType() << ") ";
+  p.printRegion(getBody(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/false);
 }
 
+//===----------------------------------------------------------------------===//
+// ForallMaskOp
+//===----------------------------------------------------------------------===//
+
+mlir::ParseResult hlfir::ForallMaskOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
+  mlir::Region &maskRegion = *result.addRegion();
+  if (parser.parseRegion(maskRegion))
+    return mlir::failure();
+  mlir::Region &bodyRegion = *result.addRegion();
+  if (parser.parseKeyword("do") || parser.parseRegion(bodyRegion))
+    return mlir::failure();
+  if (!bodyRegion.empty())
+    hlfir::YieldOp::ensureTerminator(bodyRegion,  parser.getBuilder(), result.location);
+  return mlir::success();
+}
+
+void hlfir::ForallMaskOp::print(mlir::OpAsmPrinter &p) {
+  p << " ";
+  p.printRegion(getMaskRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  p << " do ";
+  p.printRegion(getBody(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/false);
+}
+
+//===----------------------------------------------------------------------===//
+// RegionAssignOp
+//===----------------------------------------------------------------------===//
+
+mlir::ParseResult hlfir::RegionAssignOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
+  mlir::Region &rhsRegion = *result.addRegion();
+  if (parser.parseRegion(rhsRegion))
+    return mlir::failure();
+  mlir::Region &lhsRegion = *result.addRegion();
+  if (parser.parseKeyword("to") || parser.parseRegion(lhsRegion))
+    return mlir::failure();
+  mlir::Region &userDefinedAssignmentRegion = *result.addRegion();
+  if (succeeded(parser.parseOptionalKeyword("user_defined_assignment"))) {
+    mlir::OpAsmParser::Argument rhsArg, lhsArg;
+    if (parser.parseLParen() ||
+      parser.parseArgument(rhsArg) || parser.parseColon() || parser.parseType(rhsArg.type) ||
+      parser.parseKeyword("to") ||
+      parser.parseArgument(lhsArg) || parser.parseColon() || parser.parseType(lhsArg.type) ||
+        parser.parseRParen())
+    if (parser.parseRegion(userDefinedAssignmentRegion, {rhsArg, lhsArg}))
+      return mlir::failure();
+  }
+  if (!userDefinedAssignmentRegion.empty())
+    hlfir::YieldOp::ensureTerminator(userDefinedAssignmentRegion,  parser.getBuilder(), result.location);
+  return mlir::success();
+}
+
+void hlfir::RegionAssignOp::print(mlir::OpAsmPrinter &p) {
+  p << " ";
+  p.printRegion(getRhs(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  p << " to ";
+  p.printRegion(getLhs(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  if (!getUserDefinedAssignment().empty()) {
+    mlir::Value userAssignmentRhs = getUserAssignmentRhs();
+    mlir::Value userAssignmentLhs = getUserAssignmentLhs();
+    p << " (" << userAssignmentRhs << ": " << userAssignmentRhs.getType() << " to ";
+    p << " (" << userAssignmentLhs << ": " << userAssignmentLhs.getType() << ") ";
+    p.printRegion(getUserDefinedAssignment(), /*printEntryBlockArgs=*/false,
+                    /*printBlockTerminators=*/false);
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// WhereOp
+//===----------------------------------------------------------------------===//
+
+mlir::ParseResult hlfir::WhereOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
+  mlir::Region &maskRegion = *result.addRegion();
+  if (parser.parseRegion(maskRegion))
+    return mlir::failure();
+  mlir::Region &whereRegion = *result.addRegion();
+  if (parser.parseKeyword("do") || parser.parseRegion(whereRegion))
+    return mlir::failure();
+  if (!whereRegion.empty())
+    hlfir::YieldOp::ensureTerminator(whereRegion,  parser.getBuilder(), result.location);
+  mlir::Region &elsewhereRegion = *result.addRegion();
+  if (succeeded(parser.parseOptionalKeyword("elsewhere"))) {
+    if (parser.parseRegion(elsewhereRegion))
+      return mlir::failure();
+    if (!elsewhereRegion.empty())
+      hlfir::YieldOp::ensureTerminator(elsewhereRegion, parser.getBuilder(), result.location);
+  }
+  return mlir::success();
+}
+
+void hlfir::WhereOp::print(mlir::OpAsmPrinter &p) {
+  p << " ";
+  p.printRegion(getMaskRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/true);
+  p << " do ";
+  p.printRegion(getWhereRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/false);
+  if (!getElsewhereRegion().empty()) {
+    p << " elsewhere ";
+    p.printRegion(getElsewhereRegion(), /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/false);
+
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// YieldOp
+//===----------------------------------------------------------------------===//
+
+static mlir::ParseResult parseYieldOpCleanup(
+    mlir::OpAsmParser &parser,
+    mlir::Region& cleanup) {
+  if (succeeded(parser.parseOptionalKeyword("cleanup"))) {
+    if (parser.parseRegion(cleanup, /*arguments=*/{},
+                                   /*argTypes=*/{}))
+      return mlir::failure(); 
+    hlfir::YieldOp::ensureTerminator(cleanup,  parser.getBuilder(), parser.getBuilder().getUnknownLoc());
+  }
+  
+  return mlir::success();
+}
+
+static void printYieldOpCleanup(
+    mlir::OpAsmPrinter &p, hlfir::YieldOp yieldOp, mlir::Region& cleanup) {
+  if (!cleanup.empty()) {
+    p << "cleanup ";
+    p.printRegion(cleanup, /*printEntryBlockArgs=*/false,
+                  /*printBlockTerminators=*/false);
+  }
+}
 #define GET_OP_CLASSES
 #include "flang/Optimizer/HLFIR/HLFIROps.cpp.inc"
