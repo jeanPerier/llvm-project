@@ -22,6 +22,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include <iterator>
 
@@ -29,35 +30,6 @@ namespace hlfir {
 #define GEN_PASS_DEF_INLINEELEMENTALS
 #include "flang/Optimizer/HLFIR/Passes.h.inc"
 } // namespace hlfir
-
-// inline sourceBlock into targetBlock - inserting the new operations
-// after insertAfterOp
-static void inlineBySplice(mlir::Block *sourceBlock, mlir::Block *targetBlock,
-                           mlir::Operation *insertAfterOp) {
-  assert(insertAfterOp->getBlock() == targetBlock);
-
-  // get an iterator for insertAfterOp
-  decltype(targetBlock->begin()) opIterator;
-  for (auto it = targetBlock->begin(); it != targetBlock->end(); ++it) {
-    mlir::Operation *op = &*it;
-    if (op == insertAfterOp) {
-      opIterator = it;
-      break;
-    }
-  }
-
-  // inline
-  targetBlock->getOperations().splice(opIterator, sourceBlock->getOperations());
-}
-
-// apply IRMapping to operation arguments in the given block
-static void mapArgumentValues(mlir::Block *block,
-                              const mlir::IRMapping &mapper) {
-  for (mlir::Operation &op : block->getOperations())
-    for (mlir::OpOperand &operand : op.getOpOperands())
-      if (mlir::Value mappedVal = mapper.lookupOrNull(operand.get()))
-        operand.set(mappedVal);
-}
 
 /// If the elemental has only two uses and those two are an apply operation and
 /// a destory operation, return those two, otherwise return {}
@@ -92,52 +64,22 @@ public:
   mlir::LogicalResult
   matchAndRewrite(hlfir::ElementalOp elemental,
                   mlir::PatternRewriter &rewriter) const override {
-    // the option must not be {}, otherwise the op would already be "legal" and
-    // MLIR would not try to apply this transformation to "legalise" the op:
-    // see target.addDynamicallyLegalOp<hlfir::ElementalOp> in runOnOperaion()
     std::optional<std::pair<hlfir::ApplyOp, hlfir::DestroyOp>> maybeTuple =
         getTwoUses(elemental);
-    assert(maybeTuple &&
-           "if the tuple is empty, this operation should be marked legal");
+    if (!maybeTuple)
+      return mlir::failure();
+
+    mlir::ModuleOp mod = elemental->getParentOfType<mlir::ModuleOp>();
+    fir::FirOpBuilder builder(rewriter, fir::getKindMapping(mod));
     auto [apply, destroy] = *maybeTuple;
-
-    assert(elemental.getRegion().hasOneBlock() &&
-           "expect elemental region to have one block");
-    mlir::Block *sourceBlock = &elemental.getRegion().back();
-    mlir::Block *targetBlock = apply->getBlock();
-
-    // the terminator operation for a hlfir.elemental is always a hlfir.yield
-    auto yield = mlir::cast<hlfir::YieldElementOp>(sourceBlock->back());
-
-    // Inline using splice so that the mlir operations are not re-instantiated.
-    //
-    // When operations are erased, this is recorded and erasures are done in a
-    // batch at the end of the pass. If erased operations are cloned, the
-    // state saying they are erased is not reproduced, resulting in the clones
-    // not being erased. We can't avoid cloning them because there isn't an easy
-    // way to keep track of which operations we have erased between multiple
-    // applications of this transformation because matchAndRewrite cannot store
-    // state.
-    //
-    // To get around this, we inline by splicing the instructions from the
-    // source block's operations list into the target block's operation list.
-    // This way the exact same operation instances are used, and all state is
-    // preserved.
-    inlineBySplice(sourceBlock, targetBlock, apply);
-
-    // map inlined elemental block arguments to the arguments passed to the
-    // hlfir.apply
-    mlir::IRMapping mapper;
-    mapper.map(elemental.getIndices(), apply.getIndices());
-    mapArgumentValues(targetBlock, mapper);
-
-    // remove the old elemental and all of the bookkeeping
+    builder.setInsertionPointAfter(apply);
+    hlfir::YieldElementOp yield = hlfir::inlineElementalOp(
+        elemental.getLoc(), builder, elemental, apply.getIndices());
     rewriter.replaceAllUsesWith(apply.getResult(), yield.getElementValue());
     rewriter.eraseOp(yield);
     rewriter.eraseOp(apply);
     rewriter.eraseOp(destroy);
     rewriter.eraseOp(elemental);
-
     return mlir::success();
   }
 };
@@ -150,18 +92,10 @@ public:
     mlir::MLIRContext *context = &getContext();
     mlir::RewritePatternSet patterns(context);
     patterns.insert<InlineElementalConversion>(context);
-
-    mlir::ConversionTarget target(*context);
-    target.markUnknownOpDynamicallyLegal(
-        [](mlir::Operation *) { return true; });
-    target.addDynamicallyLegalOp<hlfir::ElementalOp>(
-        [](hlfir::ElementalOp elemental) { return !getTwoUses(elemental); });
-
-    if (mlir::failed(
-            mlir::applyFullConversion(func, target, std::move(patterns)))) {
-      mlir::emitError(func->getLoc(), "failure in HLFIR elemental inlining");
-      signalPassFailure();
-    }
+    mlir::GreedyRewriteConfig config;
+    // Prevent the pattern driver from merging blocks.
+    config.enableRegionSimplification = false;
+    (void)applyPatternsAndFoldGreedily(func, std::move(patterns), config);
   }
 };
 } // namespace

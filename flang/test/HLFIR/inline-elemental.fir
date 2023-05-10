@@ -37,11 +37,11 @@ func.func @inline_to_elemental(%arg0: !fir.box<!fir.array<?xi32>> {fir.bindc_nam
 // CHECK-SAME:      %[[B_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "b"}
 // CHECK-SAME:      %[[C_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "c"}
 // CHECK-SAME:      %[[D_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "d"}
+// CHECK-NEXT:    %[[C0:.*]] = arith.constant 0 : index
 // CHECK-DAG:     %[[A:.*]]:2 = hlfir.declare %[[A_ARG]]
 // CHECK-DAG:     %[[B:.*]]:2 = hlfir.declare %[[B_ARG]]
 // CHECK-DAG:     %[[C:.*]]:2 = hlfir.declare %[[C_ARG]]
 // CHECK-DAG:     %[[D:.*]]:2 = hlfir.declare %[[D_ARG]]
-// CHECK-NEXT:    %[[C0:.*]] = arith.constant 0 : index
 // CHECK-NEXT:    %[[B_DIM0:.*]]:3 = fir.box_dims %[[B]]#0, %[[C0]]
 // CHECK-NEXT:    %[[B_SHAPE:.*]] = fir.shape %[[B_DIM0]]#1
 // CHECK-NEXT:    %[[EXPR:.*]] = hlfir.elemental %[[B_SHAPE]]
@@ -101,15 +101,14 @@ func.func @inline_to_loop(%arg0: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "
 // CHECK-SAME:      %[[B_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "b"}
 // CHECK-SAME:      %[[C_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "c"}
 // CHECK-SAME:      %[[D_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "d"}
+// CHECK-DAG:     %[[C0:.*]] = arith.constant 0 : index
+// CHECK-DAG:     %[[C1:.*]] = arith.constant 1
 // CHECK-DAG:     %[[A:.*]]:2 = hlfir.declare %[[A_ARG]]
 // CHECK-DAG:     %[[B:.*]]:2 = hlfir.declare %[[B_ARG]]
 // CHECK-DAG:     %[[C:.*]]:2 = hlfir.declare %[[C_ARG]]
 // CHECK-DAG:     %[[D:.*]]:2 = hlfir.declare %[[D_ARG]]
-// CHECK-NEXT:    %[[C0:.*]] = arith.constant 0 : index
 // CHECK-NEXT:    %[[B_DIM0:.*]]:3 = fir.box_dims %[[B]]#0, %[[C0]]
-// CHECK-NEXT:    %[[B_SHAPE:.*]] = fir.shape %[[B_DIM0]]#1
 // CHECK-NEXT:    %[[ARRAY:.*]] = fir.array_load %[[A]]#0
-// CHECK-NEXT:    %[[C1:.*]] = arith.constant 1
 // CHECK-NEXT:    %[[MAX:.*]] = arith.subi %[[B_DIM0]]#1, %[[C1]]
 // CHECK-NEXT:    %[[LOOP:.*]] = fir.do_loop %[[I:.*]] = %[[C0]] to %[[MAX]] step %[[C1]] unordered iter_args(%[[LOOP_ARRAY:.*]] = %[[ARRAY]])
 // inline the elemental:
@@ -157,13 +156,10 @@ func.func @inline_to_apply(%arg0: !fir.ref<i32> {fir.bindc_name = "a"}, %arg1: !
 // CHECK-SAME:      %[[A_ARG:.*]]: !fir.ref<i32> {fir.bindc_name = "a"}
 // CHECK-SAME:      %[[B_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "b"}
 // CHECK-SAME:      %[[C_ARG:.*]]: !fir.box<!fir.array<?xi32>> {fir.bindc_name = "c"}
+// CHECK-DAG:     %[[C1:.*]] = arith.constant 1 : index
 // CHECK-DAG:     %[[A:.*]]:2 = hlfir.declare %[[A_ARG]]
 // CHECK-DAG:     %[[B:.*]]:2 = hlfir.declare %[[B_ARG]]
 // CHECK-DAG:     %[[C:.*]]:2 = hlfir.declare %[[C_ARG]]
-// CHECK-NEXT:    %[[C0:.*]] = arith.constant 0 : index
-// CHECK-NEXT:    %[[B_DIM0:.*]]:3 = fir.box_dims %[[B]]#0, %[[C0]]
-// CHECK-NEXT:    %[[B_SHAPE:.*]] = fir.shape %[[B_DIM0]]#1
-// CHECK-NEXT:    %[[C1:.*]] = arith.constant 1 : index
 // inline the elemental:
 // CHECK-NEXT:    %[[B_1_REF:.*]] = hlfir.designate %[[B]]#0 (%[[C1]])
 // CHECK-NEXT:    %[[C_1_REF:.*]] = hlfir.designate %[[C]]#0 (%[[C1]])
@@ -225,12 +221,9 @@ func.func @_QPreproducer(%arg0: !fir.box<!fir.array<?xf32>> {fir.bindc_name = "a
 }
 // CHECK-LABEL: func.func @_QPreproducer
 // CHECK-SAME:      %[[A_ARG:.*]]: !fir.box<!fir.array<?xf32>> {fir.bindc_name = "a"}
+// CHECK-DAG:     %[[C0:.*]] = arith.constant 0
+// CHECK-DAG:     %[[CST:.*]] = arith.constant 1.0000
 // CHECK-NEXT:    %[[A_VAR:.*]]:2 = hlfir.declare %[[A_ARG]]
-// CHECK-NEXT:    %[[CST:.*]] = arith.constant 1.0000
-// CHECK-NEXT:    %[[C0:.*]] = arith.constant 0
-// CHECK-NEXT:    %[[A_DIMS:.*]]:3 = fir.box_dims %[[A_VAR]]#0, %[[C0]]
-// CHECK-NEXT:    %[[SHAPE:.*]] = fir.shape %[[A_DIMS]]#1
-// CHECK-NEXT:    %[[C0_0:.*]] = arith.constant 0
 // CHECK-NEXT:    %[[A_DIMS_0:.*]]:3 = fir.box_dims %[[A_VAR]]#0, %[[C0]]
 // CHECK-NEXT:    %[[SHAPE_0:.*]] = fir.shape %[[A_DIMS_0]]#1
 // all in one elemental:
