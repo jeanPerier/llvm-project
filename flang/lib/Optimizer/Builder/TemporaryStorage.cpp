@@ -12,6 +12,7 @@
 #include "flang/Optimizer/Builder/TemporaryStorage.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Builder/HLFIRTools.h"
+#include "flang/Optimizer/Builder/Runtime/TemporaryStack.h"
 #include "flang/Optimizer/Builder/Todo.h"
 #include "flang/Optimizer/HLFIR/HLFIROps.h"
 
@@ -153,4 +154,56 @@ fir::factory::SimpleCopy::SimpleCopy(mlir::Location loc,
 void fir::factory::SimpleCopy::destroy(mlir::Location loc,
                                        fir::FirOpBuilder &builder) {
   builder.create<hlfir::EndAssociateOp>(loc, copy);
+}
+
+//===----------------------------------------------------------------------===//
+// fir::factory::AnyValueStack implementation.
+//===----------------------------------------------------------------------===//
+
+fir::factory::AnyValueStack::AnyValueStack(mlir::Location loc,
+                                           fir::FirOpBuilder &builder,
+                                           mlir::Type valueStaticType)
+    : counter{loc, builder,
+              builder.createIntegerConstant(loc, builder.getI64Type(), 0),
+              /*stackThroughLoops=*/true} {
+  opaquePtr = fir::runtime::genCreateValueStack(loc, builder);
+  mlir::Type baseType = hlfir::getFortranElementOrSequenceType(valueStaticType);
+  mlir::Type heapType = fir::HeapType::get(baseType);
+  mlir::Type boxType;
+  if (hlfir::isPolymorphicType(valueStaticType))
+    boxType = fir::ClassType::get(heapType);
+  else
+    boxType = fir::BoxType::get(heapType);
+  retValueBox = builder.createTemporary(loc, boxType);
+}
+
+void fir::factory::AnyValueStack::pushValue(mlir::Location loc,
+                                            fir::FirOpBuilder &builder,
+                                            mlir::Value value) {
+  hlfir::Entity entity{value};
+  mlir::Type valueType = entity.getFortranElementType();
+  auto [box, maybeCleanUp] =
+      hlfir::convertToBox(loc, builder, entity, valueType);
+  fir::runtime::genPushValue(loc, builder, opaquePtr, fir::getBase(box));
+  if (maybeCleanUp)
+    (*maybeCleanUp)();
+}
+
+void fir::factory::AnyValueStack::resetFetchPosition(
+    mlir::Location loc, fir::FirOpBuilder &builder) {
+  counter.reset(loc, builder);
+}
+
+mlir::Value fir::factory::AnyValueStack::fetch(mlir::Location loc,
+                                               fir::FirOpBuilder &builder) {
+  mlir::Value indexValue = counter.getAndIncrementIndex(loc, builder);
+  fir::runtime::genValueAt(loc, builder, opaquePtr, indexValue, retValueBox);
+  /// Dereference the allocatable "retValueBox", and load if trivial scalar
+  /// value.
+  return hlfir::loadTrivialScalar(loc, builder, hlfir::Entity{retValueBox});
+}
+
+void fir::factory::AnyValueStack::destroy(mlir::Location loc,
+                                          fir::FirOpBuilder &builder) {
+  fir::runtime::genDestroyValueStack(loc, builder, opaquePtr);
 }
