@@ -789,11 +789,14 @@ void OrderedAssignmentRewriter::generateSaveEntity(
 
   if (!mlir::isa<hlfir::YieldOp>(region.back().back()))
     TODO(loc, "creating temporary storage for vector subscripted LHS");
-  if (isLeftHandSide(region)) // Need to save the address, not the values.
-    TODO(loc, "creating temporary storage for LHS");
 
   // Evaluate the region inside the loop nest (if any).
-  auto [entity, oldYield] = generateYieldedEntity(region);
+  auto [clonedValue, oldYield] = generateYieldedEntity(region);
+  hlfir::Entity entity{clonedValue};
+  if (isLeftHandSide(region)) // Need to save the address, not the values.
+    TODO(loc, "creating temporary storage for LHS");
+  else
+    entity = hlfir::loadTrivialScalar(loc, builder, entity);
   mlir::Type entityType = entity.getType();
 
   static constexpr char tempName[] = ".tmp.forall";
@@ -801,9 +804,8 @@ void OrderedAssignmentRewriter::generateSaveEntity(
     // Value evaluated outside of any loops (this may be the first MASK of a
     // WHERE construct, or an LHS/RHS temp of hlfir.region_assign outside of
     // WHERE/FORALL).
-    insertSavedEntity(region, fir::factory::SimpleCopy(loc, builder,
-                                                       hlfir::Entity{entity},
-                                                       tempName));
+    insertSavedEntity(region,
+                      fir::factory::SimpleCopy(loc, builder, entity, tempName));
   } else {
     // Need to create a temporary for values computed inside loops.
     // Create temporary storage outside of the loop nest given the entity
