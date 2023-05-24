@@ -132,6 +132,9 @@ public:
   void destroy(mlir::Location loc, fir::FirOpBuilder &builder);
 
 private:
+  /// Keep the original value type. Values may be stored by the runtime
+  /// with a different type (i1 cannot be passed by descriptor).
+  mlir::Type valueStaticType;
   /// Runtime cookie created by the runtime. It is a pointer to an opaque
   /// runtime data structure that manages the stack.
   mlir::Value opaquePtr;

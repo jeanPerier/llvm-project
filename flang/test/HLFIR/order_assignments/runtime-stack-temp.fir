@@ -119,3 +119,61 @@ func.func @test_runtime_stack(%arg0: !fir.box<!fir.array<?xi32>>, %n: !fir.ref<i
 // CHECK:           %[[VAL_61:.*]] = fir.call @_FortranADestroyValueStack(%[[VAL_22]]) : (!fir.llvm_ptr<i8>) -> none
 // CHECK:           return
 // CHECK:         }
+
+
+// i1 needs to be passed as logical<> to be stored. Check converts are
+// introduced as expected.
+func.func @_QPdealing_with_i1(%x: !fir.ref<!fir.array<10x20xi32>>) {
+  %c42_i32 = arith.constant 42 : i32
+  %c10_i64 = arith.constant 10 : i64
+  %c1_i64 = arith.constant 1 : i64
+  hlfir.forall lb {
+    hlfir.yield %c1_i64 : i64
+  } ub {
+    hlfir.yield %c10_i64 : i64
+  }  (%arg1: i64) {
+    hlfir.forall lb {
+      hlfir.yield %c1_i64 : i64
+    } ub {
+      hlfir.yield %arg1 : i64
+    }  (%arg2: i64) {
+      hlfir.forall_mask {
+        %1 = hlfir.designate %x (%arg2, %arg1)  : (!fir.ref<!fir.array<10x20xi32>>, i64, i64) -> !fir.ref<i32>
+        %2 = fir.load %1 : !fir.ref<i32>
+        %3 = arith.cmpi sgt, %2, %c42_i32 : i32
+        hlfir.yield %3 : i1
+      } do {
+        hlfir.region_assign {
+          hlfir.yield %c42_i32 : i32
+        } to {
+          %1 = hlfir.designate %x (%arg1, %arg2)  : (!fir.ref<!fir.array<10x20xi32>>, i64, i64) -> !fir.ref<i32>
+          hlfir.yield %1 : !fir.ref<i32>
+        }
+      }
+    }
+  }
+  return
+}
+// CHECK-LABEL:   func.func @_QPdealing_with_i1(
+// CHECK:           %[[VAL_1:.*]] = fir.alloca !fir.logical<1>
+// CHECK:           %[[VAL_2:.*]] = fir.alloca !fir.box<!fir.heap<!fir.logical<1>>>
+// CHECK:           fir.do_loop
+// CHECK:             fir.do_loop
+// CHECK:               %[[VAL_26:.*]] = arith.cmpi sgt
+// CHECK:               %[[VAL_27:.*]] = fir.convert %[[VAL_26]] : (i1) -> !fir.logical<1>
+// CHECK:               fir.store %[[VAL_27]] to %[[VAL_1]] : !fir.ref<!fir.logical<1>>
+// CHECK:               %[[VAL_28:.*]] = fir.embox %[[VAL_1]] : (!fir.ref<!fir.logical<1>>) -> !fir.box<!fir.logical<1>>
+// CHECK:               %[[VAL_29:.*]] = fir.convert %[[VAL_28]] : (!fir.box<!fir.logical<1>>) -> !fir.box<none>
+// CHECK:               %[[VAL_30:.*]] = fir.call @_FortranAPushValue(%{{.*}}, %[[VAL_29]]) : (!fir.llvm_ptr<i8>, !fir.box<none>) -> none
+// CHECK:             }
+// CHECK:           }
+// CHECK:           fir.do_loop
+// CHECK:             fir.do_loop
+// CHECK:               %[[VAL_43:.*]] = fir.convert %[[VAL_2]] : (!fir.ref<!fir.box<!fir.heap<!fir.logical<1>>>>) -> !fir.ref<!fir.box<none>>
+// CHECK:               %[[VAL_44:.*]] = fir.call @_FortranAValueAt(%{{.*}}, %{{.*}}, %[[VAL_43]])
+// CHECK:               %[[VAL_45:.*]] = fir.load %[[VAL_2]] : !fir.ref<!fir.box<!fir.heap<!fir.logical<1>>>>
+// CHECK:               %[[VAL_46:.*]] = fir.box_addr %[[VAL_45]] : (!fir.box<!fir.heap<!fir.logical<1>>>) -> !fir.heap<!fir.logical<1>>
+// CHECK:               %[[VAL_47:.*]] = fir.load %[[VAL_46]] : !fir.heap<!fir.logical<1>>
+// CHECK:               %[[VAL_48:.*]] = fir.convert %[[VAL_47]] : (!fir.logical<1>) -> i1
+// CHECK:             }
+// CHECK:           }

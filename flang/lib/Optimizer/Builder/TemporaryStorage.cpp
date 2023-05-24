@@ -163,12 +163,21 @@ void fir::factory::SimpleCopy::destroy(mlir::Location loc,
 fir::factory::AnyValueStack::AnyValueStack(mlir::Location loc,
                                            fir::FirOpBuilder &builder,
                                            mlir::Type valueStaticType)
-    : counter{loc, builder,
+    : valueStaticType{valueStaticType},
+      counter{loc, builder,
               builder.createIntegerConstant(loc, builder.getI64Type(), 0),
               /*stackThroughLoops=*/true} {
   opaquePtr = fir::runtime::genCreateValueStack(loc, builder);
-  mlir::Type baseType = hlfir::getFortranElementOrSequenceType(valueStaticType);
-  mlir::Type heapType = fir::HeapType::get(baseType);
+  // Compute the storage type. I1 are stored as fir.logical<1>. This is required
+  // to use descriptor.
+  mlir::Type storageType =
+      hlfir::getFortranElementOrSequenceType(valueStaticType);
+  mlir::Type i1Type = builder.getI1Type();
+  if (storageType == i1Type)
+    storageType = fir::LogicalType::get(builder.getContext(), 1);
+  assert(hlfir::getFortranElementType(storageType) != i1Type &&
+         "array of i1 should not be used");
+  mlir::Type heapType = fir::HeapType::get(storageType);
   mlir::Type boxType;
   if (hlfir::isPolymorphicType(valueStaticType))
     boxType = fir::ClassType::get(heapType);
@@ -181,9 +190,10 @@ void fir::factory::AnyValueStack::pushValue(mlir::Location loc,
                                             fir::FirOpBuilder &builder,
                                             mlir::Value value) {
   hlfir::Entity entity{value};
-  mlir::Type valueType = entity.getFortranElementType();
+  mlir::Type storageElementType =
+      hlfir::getFortranElementType(retValueBox.getType());
   auto [box, maybeCleanUp] =
-      hlfir::convertToBox(loc, builder, entity, valueType);
+      hlfir::convertToBox(loc, builder, entity, storageElementType);
   fir::runtime::genPushValue(loc, builder, opaquePtr, fir::getBase(box));
   if (maybeCleanUp)
     (*maybeCleanUp)();
@@ -200,7 +210,11 @@ mlir::Value fir::factory::AnyValueStack::fetch(mlir::Location loc,
   fir::runtime::genValueAt(loc, builder, opaquePtr, indexValue, retValueBox);
   /// Dereference the allocatable "retValueBox", and load if trivial scalar
   /// value.
-  return hlfir::loadTrivialScalar(loc, builder, hlfir::Entity{retValueBox});
+  mlir::Value result =
+      hlfir::loadTrivialScalar(loc, builder, hlfir::Entity{retValueBox});
+  if (valueStaticType == builder.getI1Type())
+    return builder.createConvert(loc, valueStaticType, result);
+  return result;
 }
 
 void fir::factory::AnyValueStack::destroy(mlir::Location loc,
