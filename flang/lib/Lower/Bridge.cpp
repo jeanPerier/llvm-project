@@ -3263,26 +3263,56 @@ private:
     // Lower LHS in its own region.
     builder.createBlock(&regionAssignOp.getLhsRegion());
     Fortran::lower::StatementContext lhsContext;
+    mlir::Value lhsYield = nullptr;
     if (!lhsHasVectorSubscripts) {
       hlfir::Entity lhs = evaluateLhs(lhsContext);
       auto lhsYieldOp = builder.create<hlfir::YieldOp>(loc, lhs);
       genCleanUpInRegionIfAny(loc, builder, lhsYieldOp.getCleanup(),
                               lhsContext);
+      lhsYield = lhs;
     } else {
       hlfir::ElementalAddrOp elementalAddr =
           Fortran::lower::convertVectorSubscriptedExprToElementalAddr(
               loc, *this, assign.lhs, localSymbols, lhsContext);
       genCleanUpInRegionIfAny(loc, builder, elementalAddr.getCleanup(),
                               lhsContext);
+      lhsYield = elementalAddr.getYieldOp().getEntity();
     }
+    assert(lhsYield && "must have been set");
 
     // Add "realloc" flag to hlfir.region_assign.
     if (isWholeAllocatableAssignment)
       TODO(loc, "assignment to a whole allocatable inside FORALL");
-    // Generate the hlfir.region_assign userDefinedAssignment region.
-    if (userDefinedAssignment)
-      TODO(loc, "HLFIR user defined assignment");
 
+    // Generate the hlfir.region_assign userDefinedAssignment region.
+    if (userDefinedAssignment) {
+      // Get argument type.
+      //  - Elemental? Should get array or element type? -> element type.
+      //  - Vector subscript -> get element type? Yes.
+      //  - What if RHS has hlfir.expr type? -> Try to keep expr type
+      //  - What if LHS is allocatable/pointer? (check derrefed in LHS region).
+      //  - Inquires inside region assign region will not be able to get shape
+      //  from operands.
+      // Preserve fir.box/fir.class aspect...
+      // TODO: it seems whole alloc LHS disable the semantic resolution of the
+      // user defined assignment...
+      mlir::Type rhsType = rhs.getType();
+      mlir::Type lhsType = lhsYield.getType();
+      if (userDefinedAssignment->IsElemental()) {
+        rhsType = hlfir::getEntityElementType(rhs);
+        lhsType = hlfir::getEntityElementType(hlfir::Entity{lhsYield});
+      }
+      builder.createBlock(&regionAssignOp.getUserDefinedAssignment(),
+                          mlir::Region::iterator{}, {rhsType, lhsType},
+                          {loc, loc});
+      auto end = builder.create<fir::FirEndOp>(loc);
+      builder.setInsertionPoint(end);
+      hlfir::Entity lhsBlockArg{regionAssignOp.getUserAssignmentLhs()};
+      hlfir::Entity rhsBlockArg{regionAssignOp.getUserAssignmentRhs()};
+      Fortran::lower::convertUserDefinedAssignmentToHLFIR(
+          loc, *this, *userDefinedAssignment, lhsBlockArg, rhsBlockArg,
+          localSymbols);
+    }
     builder.setInsertionPointAfter(regionAssignOp);
   }
 
