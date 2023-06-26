@@ -123,10 +123,16 @@ public:
         fir::runtime::genAssignExplicitLengthCharacter(builder, loc, to, from);
       } else if (lhs.isPolymorphic()) {
         // Indicate the runtime that the LHS must have the RHS dynamic type
-        // after the assignment.
-        fir::runtime::genAssignPolymorphic(builder, loc, to, from);
+        // after the assignment. AssignTemporary() behaves this way as well.
+        if (assignOp.isTemporaryLHS())
+          fir::runtime::genAssignTemporary(builder, loc, to, from);
+        else
+          fir::runtime::genAssignPolymorphic(builder, loc, to, from);
       } else {
-        fir::runtime::genAssign(builder, loc, to, from);
+        if (assignOp.isTemporaryLHS())
+          fir::runtime::genAssignTemporary(builder, loc, to, from);
+        else
+          fir::runtime::genAssign(builder, loc, to, from);
       }
     } else if (lhs.isArray()) {
       // Use the runtime for simplicity. An optimization pass will be added to
@@ -138,13 +144,17 @@ public:
       // reference.
       auto toMutableBox = builder.createTemporary(loc, to.getType());
       builder.create<fir::StoreOp>(loc, to, toMutableBox);
-      fir::runtime::genAssign(builder, loc, toMutableBox, from);
+      if (assignOp.isTemporaryLHS())
+        fir::runtime::genAssignTemporary(builder, loc, toMutableBox, from);
+      else
+        fir::runtime::genAssign(builder, loc, toMutableBox, from);
     } else {
       // genScalarAssignment() must take care of potential overlap
       // between LHS and RHS. Note that the overlap is possible
       // also for components of LHS/RHS, and the Assign() runtime
       // must take care of it.
-      fir::factory::genScalarAssignment(builder, loc, lhsExv, rhsExv);
+      fir::factory::genScalarAssignment(builder, loc, lhsExv, rhsExv,
+                                        assignOp.isTemporaryLHS());
     }
     rewriter.eraseOp(assignOp);
     return mlir::success();
