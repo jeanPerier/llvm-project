@@ -1289,7 +1289,7 @@ void fir::factory::genRecordAssignment(fir::FirOpBuilder &builder,
                         fir::getBase(rhs).getType().isa<fir::BaseBoxType>();
   auto recTy = baseTy.dyn_cast<fir::RecordType>();
   assert(recTy && "must be a record type");
-  if (hasBoxOperands || !recordTypeCanBeMemCopied(recTy)) {
+  if (needFinalization || hasBoxOperands || !recordTypeCanBeMemCopied(recTy)) {
     auto to = fir::getBase(builder.createBox(loc, lhs));
     auto from = fir::getBase(builder.createBox(loc, rhs));
     // The runtime entry point may modify the LHS descriptor if it is
@@ -1304,12 +1304,6 @@ void fir::factory::genRecordAssignment(fir::FirOpBuilder &builder,
     else
       fir::runtime::genAssign(builder, loc, toMutableBox, from);
     return;
-  }
-
-  // Finalize LHS on intrinsic assignment.
-  if (needFinalization) {
-    mlir::Value box = builder.createBox(loc, lhs);
-    fir::runtime::genDerivedTypeDestroy(builder, loc, box);
   }
 
   // Otherwise, the derived type has compile time constant size and for which
