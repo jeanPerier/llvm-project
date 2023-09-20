@@ -4833,7 +4833,8 @@ Symbol &DeclarationVisitor::DeclareProcEntity(
       } else if (interface->test(Symbol::Flag::Subroutine)) {
         symbol.set(Symbol::Flag::Subroutine);
       }
-      if (IsBindCProcedure(*interface)) {
+      if (IsBindCProcedure(*interface) && !IsPointer(symbol) &&
+          !IsDummy(symbol)) {
         // Inherit BIND_C attribute from the interface, but not the NAME="..."
         // if any. This is not clearly described in the standard, but matches
         // the behavior of other compilers.
