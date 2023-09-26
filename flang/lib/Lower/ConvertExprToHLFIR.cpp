@@ -1403,6 +1403,22 @@ struct UnaryOp<Fortran::evaluate::Parentheses<T>> {
   }
 };
 
+static fir::CharBoxValue genUnboxChar(mlir::Location loc,
+                                      fir::FirOpBuilder &builder,
+                                      mlir::Value boxChar) {
+  if (auto emboxChar = boxChar.getDefiningOp<fir::EmboxCharOp>())
+    return {emboxChar.getMemref(), emboxChar.getLen()};
+  mlir::Type refType = fir::ReferenceType::get(
+      boxChar.getType().cast<fir::BoxCharType>().getEleTy());
+  auto unboxed = builder.create<fir::UnboxCharOp>(
+      loc, refType, builder.getIndexType(), boxChar);
+  mlir::Value addr = unboxed.getResult(0);
+  mlir::Value len = unboxed.getResult(1);
+  if (auto varIface = boxChar.getDefiningOp<fir::FortranVariableOpInterface>())
+    if (mlir::Value explicitlen = varIface.getExplicitCharLen())
+      len = explicitlen;
+  return {addr, len};
+}
 template <Fortran::common::TypeCategory TC1, int KIND,
           Fortran::common::TypeCategory TC2>
 struct UnaryOp<
@@ -1414,7 +1430,6 @@ struct UnaryOp<
                                          hlfir::Entity lhs) {
     if constexpr (TC1 == Fortran::common::TypeCategory::Character &&
                   TC2 == TC1) {
-      // TODO(loc, "character conversion in HLFIR");
       auto kindMap = builder.getKindMap();
       mlir::Type fromTy = lhs.getFortranElementType();
       mlir::Value origBufferSize = genCharLength(loc, builder, lhs);
@@ -1435,8 +1450,15 @@ struct UnaryOp<
       // allocate space on the stack for toBuffer
       auto dest = builder.create<fir::AllocaOp>(loc, toTy,
                                                 mlir::ValueRange{bufferSize});
-      builder.create<fir::CharConvertOp>(loc, lhs.getFirBase(), origBufferSize,
-                                         dest);
+      auto src = lhs.getFirBase();
+      if (lhs.getType().isa<hlfir::ExprType>()) {
+        if (auto asExpr = lhs.getDefiningOp<hlfir::AsExprOp>()) {
+          src = asExpr.getVar();
+        }
+      } else if (lhs.getType().isa<fir::BoxCharType>())
+        if (!lhs.getDefiningOp<hlfir::DeclareOp>())
+          src = genUnboxChar(loc, builder, lhs).getAddr();
+      builder.create<fir::CharConvertOp>(loc, src, origBufferSize, dest);
 
       return hlfir::EntityWithAttributes{builder.create<hlfir::DeclareOp>(
           loc, dest, "ctor.temp", /*shape=*/nullptr,
