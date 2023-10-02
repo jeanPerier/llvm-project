@@ -28,18 +28,18 @@ end subroutine charconvert1
 ! CHECK:     hlfir.yield_element %[[VAL_43]]#0 : !fir.boxchar<1>
 ! CHECK:   }
 
-subroutine test2(x)
+subroutine charconvert2(x)
   integer,intent(in) :: x
   character(kind=4) :: cx
   cx = achar(x)
-end subroutine test2
-! CHECK-LABEL: func.func @_QPtest2
+end subroutine charconvert2
+! CHECK-LABEL: func.func @_QPcharconvert2
 ! CHECK-SAME: %[[ARG0:.*]]: !fir.ref<i32>
 ! CHECK:   %[[VAL_0:.*]] = fir.alloca !fir.char<1>
 ! CHECK:   %[[C1:.*]] = arith.constant 1 : index
-! CHECK:   %[[VAL_1:.*]] = fir.alloca !fir.char<4> {bindc_name = "cx", uniq_name = "_QFtest2Ecx"}
-! CHECK:   %[[VAL_2:.*]]:2 = hlfir.declare %[[VAL_1]] typeparams %[[C1]] {uniq_name = "_QFtest2Ecx"} : (!fir.ref<!fir.char<4>>, index) -> (!fir.ref<!fir.char<4>>, !fir.ref<!fir.char<4>>)
-! CHECK:   %[[VAL_3:.*]]:2 = hlfir.declare %[[ARG0]] {fortran_attrs = #fir.var_attrs<intent_in>, uniq_name = "_QFtest2Ex"} : (!fir.ref<i32>) -> (!fir.ref<i32>, !fir.ref<i32>)
+! CHECK:   %[[VAL_1:.*]] = fir.alloca !fir.char<4> {bindc_name = "cx", uniq_name = "_QFcharconvert2Ecx"}
+! CHECK:   %[[VAL_2:.*]]:2 = hlfir.declare %[[VAL_1]] typeparams %[[C1]] {uniq_name = "_QFcharconvert2Ecx"} : (!fir.ref<!fir.char<4>>, index) -> (!fir.ref<!fir.char<4>>, !fir.ref<!fir.char<4>>)
+! CHECK:   %[[VAL_3:.*]]:2 = hlfir.declare %[[ARG0]] {fortran_attrs = #fir.var_attrs<intent_in>, uniq_name = "_QFcharconvert2Ex"} : (!fir.ref<i32>) -> (!fir.ref<i32>, !fir.ref<i32>)
 ! CHECK:   %[[VAL_4:.*]] = fir.load %[[VAL_3]]#0 : !fir.ref<i32>
 ! CHECK:   %[[VAL_5:.*]] = fir.convert %[[VAL_4]] : (i32) -> i64
 ! CHECK:   %[[VAL_6:.*]] = fir.convert %[[VAL_5]] : (i64) -> i8

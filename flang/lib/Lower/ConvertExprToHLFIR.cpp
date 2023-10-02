@@ -1403,7 +1403,7 @@ struct UnaryOp<Fortran::evaluate::Parentheses<T>> {
   }
 };
 
-static fir::CharBoxValue genUnboxChar(mlir::Location loc,
+/*static fir::CharBoxValue genUnboxChar(mlir::Location loc,
                                       fir::FirOpBuilder &builder,
                                       mlir::Value boxChar) {
   if (auto emboxChar = boxChar.getDefiningOp<fir::EmboxCharOp>())
@@ -1418,7 +1418,7 @@ static fir::CharBoxValue genUnboxChar(mlir::Location loc,
     if (mlir::Value explicitlen = varIface.getExplicitCharLen())
       len = explicitlen;
   return {addr, len};
-}
+}*/
 template <Fortran::common::TypeCategory TC1, int KIND,
           Fortran::common::TypeCategory TC2>
 struct UnaryOp<
@@ -1450,15 +1450,18 @@ struct UnaryOp<
       // allocate space on the stack for toBuffer
       auto dest = builder.create<fir::AllocaOp>(loc, toTy,
                                                 mlir::ValueRange{bufferSize});
-      auto src = lhs.getFirBase();
+      /*auto src = lhs.getFirBase();
       if (lhs.getType().isa<hlfir::ExprType>()) {
         if (auto asExpr = lhs.getDefiningOp<hlfir::AsExprOp>()) {
           src = asExpr.getVar();
         }
       } else if (lhs.getType().isa<fir::BoxCharType>())
         if (!lhs.getDefiningOp<hlfir::DeclareOp>())
-          src = genUnboxChar(loc, builder, lhs).getAddr();
-      builder.create<fir::CharConvertOp>(loc, src, origBufferSize, dest);
+          src = genUnboxChar(loc, builder, lhs).getAddr();*/
+      auto src = hlfir::convertToAddress(loc, builder, lhs,
+                                         lhs.getFortranElementType());
+      builder.create<fir::CharConvertOp>(loc, src.first.getCharBox()->getAddr(),
+                                         origBufferSize, dest);
 
       return hlfir::EntityWithAttributes{builder.create<hlfir::DeclareOp>(
           loc, dest, "ctor.temp", /*shape=*/nullptr,
