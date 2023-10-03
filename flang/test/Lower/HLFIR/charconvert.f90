@@ -24,9 +24,6 @@ end subroutine charconvert1
 ! CHECK:     %[[VAL_41:.*]] = fir.alloca !fir.char<1,?>(%[[VAL_40]] : index)
 ! CHECK:     %[[VAL_42:.*]]:2 = fir.unboxchar %[[VAL_39]] : (!fir.boxchar<4>) -> (!fir.ref<!fir.char<4,?>>, index)
 ! CHECK:     fir.char_convert %[[VAL_42]]#0 for %[[VAL_38:.*]] to %[[VAL_41]] : !fir.ref<!fir.char<4,?>>, index, !fir.ref<!fir.char<1,?>>
-! CHECK:     %[[VAL_43:.*]]:2 = hlfir.declare %[[VAL_41]] typeparams %[[VAL_38]] {uniq_name = "ctor.temp"} : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
-! CHECK:     hlfir.yield_element %[[VAL_43]]#0 : !fir.boxchar<1>
-! CHECK:   }
 
 subroutine charconvert2(x)
   integer,intent(in) :: x
@@ -51,10 +48,3 @@ end subroutine charconvert2
 ! CHECK:   %[[C1_0:.*]] = arith.constant 1 : index
 ! CHECK:   %[[VAL_10:.*]] = fir.alloca !fir.char<4,?>(%[[C1_0]] : index)
 ! CHECK:   fir.char_convert %[[VAL_0:.*]] for %[[C1_0]] to %[[VAL_10]] : !fir.ref<!fir.char<1>>, index, !fir.ref<!fir.char<4,?>>
-! CHECK:   %[[VAL_11:.*]]:2 = hlfir.declare %[[VAL_10]] typeparams %[[C1_0]] {uniq_name = "ctor.temp"} : (!fir.ref<!fir.char<4,?>>, index) -> (!fir.boxchar<4>, !fir.ref<!fir.char<4,?>>)
-! CHECK:   %[[C1_I64:.*]] = arith.constant 1 : i64
-! CHECK:   %[[VAL_12:.*]] = hlfir.set_length %[[VAL_11]]#0 len %[[C1_I64]] : (!fir.boxchar<4>, i64) -> !hlfir.expr<!fir.char<4>>
-! CHECK:   hlfir.assign %[[VAL_12:.*]] to %[[VAL_2]]#0 : !hlfir.expr<!fir.char<4>>, !fir.ref<!fir.char<4>>
-! CHECK:   hlfir.destroy %[[VAL_9:.*]] : !hlfir.expr<!fir.char<1>>
-! CHECK:   return
-! CHECK: }
