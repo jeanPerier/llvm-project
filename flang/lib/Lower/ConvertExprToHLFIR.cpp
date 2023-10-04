@@ -1439,7 +1439,7 @@ struct UnaryOp<
       builder.create<fir::CharConvertOp>(loc, src.first.getCharBox()->getAddr(),
                                          origBufferSize, dest);
       if (src.second.has_value())
-        src.second.value();
+        src.second.value()();
 
       return hlfir::EntityWithAttributes{builder.create<hlfir::DeclareOp>(
           loc, dest, "ctor.temp", /*shape=*/nullptr,

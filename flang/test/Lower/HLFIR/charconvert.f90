@@ -48,3 +48,24 @@ end subroutine charconvert2
 ! CHECK:   %[[C1_0:.*]] = arith.constant 1 : index
 ! CHECK:   %[[VAL_10:.*]] = fir.alloca !fir.char<4,?>(%[[C1_0]] : index)
 ! CHECK:   fir.char_convert %[[VAL_0:.*]] for %[[C1_0]] to %[[VAL_10]] : !fir.ref<!fir.char<1>>, index, !fir.ref<!fir.char<4,?>>
+
+subroutine charconvert3(c, c4)
+  character(kind=1, len=*) :: c
+  character(kind=4, len=*) :: c4
+  c4 = c // c
+end subroutine
+
+! CHECK-LABEL: func.func @_QPcharconvert3
+! CHECK-SAME: %[[ARG0:.*]]: !fir.boxchar<1> {{.*}}, %[[ARG1:.*]]: !fir.boxchar<4> 
+! CHECK:   %[[VAL_0:.*]]:2 = fir.unboxchar %[[ARG0]] : (!fir.boxchar<1>) -> (!fir.ref<!fir.char<1,?>>, index)
+! CHECK:   %[[VAL_1:.*]]:2 = hlfir.declare %[[VAL_0]]#0 typeparams %[[VAL_0]]#1 {uniq_name = "_QFcharconvert3Ec"} : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
+! CHECK:   %[[VAL_2:.*]]:2 = fir.unboxchar %[[ARG1]] : (!fir.boxchar<4>) -> (!fir.ref<!fir.char<4,?>>, index)
+! CHECK:   %[[VAL_3:.*]]:2 = hlfir.declare %[[VAL_2]]#0 typeparams %[[VAL_2]]#1 {uniq_name = "_QFcharconvert3Ec4"} : (!fir.ref<!fir.char<4,?>>, index) -> (!fir.boxchar<4>, !fir.ref<!fir.char<4,?>>)
+! CHECK:   %[[VAL_4:.*]] = arith.addi %[[VAL_0]]#1, %[[VAL_0]]#1 : index
+! CHECK:   %[[VAL_5:.*]] = hlfir.concat %[[VAL_1]]#0, %[[VAL_1]]#0 len %[[VAL_4]] : (!fir.boxchar<1>, !fir.boxchar<1>, index) -> !hlfir.expr<!fir.char<1,?>>
+! CHECK:   %[[VAL_6:.*]] = fir.alloca !fir.char<4,?>(%[[VAL_4]] : index)
+! CHECK:   %[[VAL_7:.*]]:3 = hlfir.associate %[[VAL_5]] typeparams %[[VAL_4]] {uniq_name = "adapt.valuebyref"} : (!hlfir.expr<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>, i1)
+! CHECK:   fir.char_convert %[[VAL_7]]#1 for %[[VAL_4:.*]] to %[[VAL_6]] : !fir.ref<!fir.char<1,?>>, index, !fir.ref<!fir.char<4,?>>
+! CHECK:   hlfir.end_associate %[[VAL_7]]#1, %[[VAL_7]]#2 : !fir.ref<!fir.char<1,?>>, i1
+! CHECK:   %[[VAL_8:.*]]:2 = hlfir.declare %[[VAL_6]] typeparams %[[VAL_4]] {uniq_name = "ctor.temp"} : (!fir.ref<!fir.char<4,?>>, index) -> (!fir.boxchar<4>, !fir.ref<!fir.char<4,?>>)
+! CHECK:   hlfir.assign %[[VAL_8]]#0 to %[[VAL_3]]#0 : !fir.boxchar<4>, !fir.boxchar<4>
