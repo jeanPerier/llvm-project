@@ -1,4 +1,4 @@
-// RUN: fir-opt --fir-to-llvm-ir %s | FileCheck %s
+// RUN: fir-opt --fir-to-llvm-ir="default-data-layout=true" %s | FileCheck %s
 
 module attributes {omp.is_target_device = false} {
 

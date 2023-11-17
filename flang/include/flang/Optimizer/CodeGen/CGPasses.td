@@ -23,12 +23,15 @@ def FIRToLLVMLowering : Pass<"fir-to-llvm-ir", "mlir::ModuleOp"> {
     will also convert ops in the standard and FIRCG dialects.
   }];
   let constructor = "::fir::createFIRToLLVMPass()";
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["mlir::LLVM::LLVMDialect", "mlir::DLTIDialect"];
   let options = [
     Option<"forcedTargetTriple", "target", "std::string", /*default=*/"",
            "Override module's target triple.">,
     Option<"applyTBAA", "apply-tbaa", "bool", /*default=*/"false",
-           "Attach TBAA tags to memory accessing operations.">
+           "Attach TBAA tags to memory accessing operations.">,
+    Option<"allowDefaultLayout", "default-data-layout", "bool",
+           /*default=*/"false",
+           "Allow default layout to be used if not specified on the module.">
   ];
 }
 

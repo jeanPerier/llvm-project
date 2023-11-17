@@ -1,7 +1,7 @@
 // Test translation to llvm IR of fir.rebox with substring array sections.
 
-// RUN: fir-opt -o - -cg-rewrite --fir-to-llvm-ir -cse %s | FileCheck %s
-// RUN: tco -o - -cg-rewrite --fir-to-llvm-ir -cse %s | FileCheck %s
+// RUN: fir-opt -o - -cg-rewrite --fir-to-llvm-ir="default-data-layout=true" -cse %s | FileCheck %s
+// RUN: tco -o - -cg-rewrite --fir-to-llvm-ir="default-data-layout=true" -cse %s | FileCheck %s
 
 // Test a fir.rebox with a substring on a character array with constant
 // length (like c(:)(2:*) where c is a fir.box array with constant length).

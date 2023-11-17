@@ -16,6 +16,7 @@
 #include "flang/Optimizer/Dialect/FIRAttr.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
+#include "flang/Optimizer/Support/DataLayout.h"
 #include "flang/Optimizer/Support/InternalNames.h"
 #include "flang/Optimizer/Support/TypeCode.h"
 #include "flang/Optimizer/Support/Utils.h"
@@ -34,6 +35,7 @@
 #include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/DLTI/DLTI.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/Transforms/AddComdats.h"
 #include "mlir/Dialect/OpenACC/OpenACC.h"
@@ -124,8 +126,10 @@ template <typename FromOp>
 class FIROpConversion : public mlir::ConvertOpToLLVMPattern<FromOp> {
 public:
   explicit FIROpConversion(const fir::LLVMTypeConverter &lowering,
-                           const fir::FIRToLLVMPassOptions &options)
-      : mlir::ConvertOpToLLVMPattern<FromOp>(lowering), options(options) {}
+                           const fir::FIRToLLVMPassOptions &options,
+                           const mlir::DataLayout &dataLayout)
+      : mlir::ConvertOpToLLVMPattern<FromOp>(lowering),
+        options(options), dataLayout{dataLayout} {}
 
 protected:
   mlir::Type convertType(mlir::Type ty) const {
@@ -394,7 +398,29 @@ protected:
     lowerTy().attachTBAATag(op, baseFIRType, accessFIRType, gep);
   }
 
+  /// Return value of the stride in bytes between adjacent elements
+  /// of LLVM type \p llTy. The result is returned as a value of
+  /// \p idxTy integer type.
+  mlir::Value genTypeStrideInBytes(mlir::Location loc, mlir::Type idxTy,
+                                   mlir::ConversionPatternRewriter &rewriter,
+                                   mlir::Type llTy) const {
+    unsigned typeSize = llvm::alignTo(dataLayout.getTypeSize(llTy),
+                                      dataLayout.getTypeABIAlignment(llTy));
+    return genConstantIndex(loc, idxTy, rewriter,
+                            static_cast<std::int64_t>(typeSize));
+  }
+
+  /// Compute the allocation size in bytes of the element type of
+  /// \p llTy pointer type. The result is returned as a value of \p idxTy
+  /// integer type.
+  mlir::Value genTypeAllocSizeInBytes(mlir::Location loc, mlir::Type idxTy,
+                                      mlir::ConversionPatternRewriter &rewriter,
+                                      mlir::Type llTy) const {
+    return genTypeStrideInBytes(loc, idxTy, rewriter, llTy);
+  }
+
   const fir::FIRToLLVMPassOptions &options;
+  const mlir::DataLayout &dataLayout;
 };
 
 /// FIR conversion pattern template
@@ -1168,42 +1194,6 @@ getMalloc(fir::AllocMemOp op, mlir::ConversionPatternRewriter &rewriter) {
                                         /*isVarArg=*/false));
 }
 
-/// Helper function for generating the LLVM IR that computes the distance
-/// in bytes between adjacent elements pointed to by a pointer
-/// of type \p ptrTy. The result is returned as a value of \p idxTy integer
-/// type.
-static mlir::Value
-computeElementDistance(mlir::Location loc, mlir::Type llvmObjectType,
-                       mlir::Type idxTy,
-                       mlir::ConversionPatternRewriter &rewriter) {
-  // Note that we cannot use something like
-  // mlir::LLVM::getPrimitiveTypeSizeInBits() for the element type here. For
-  // example, it returns 10 bytes for mlir::Float80Type for targets where it
-  // occupies 16 bytes. Proper solution is probably to use
-  // mlir::DataLayout::getTypeABIAlignment(), but DataLayout is not being set
-  // yet (see llvm-project#57230). For the time being use the '(intptr_t)((type
-  // *)0 + 1)' trick for all types. The generated instructions are optimized
-  // into constant by the first pass of InstCombine, so it should not be a
-  // performance issue.
-  auto llvmPtrTy = ::getLlvmPtrType(llvmObjectType.getContext());
-  auto nullPtr = rewriter.create<mlir::LLVM::ZeroOp>(loc, llvmPtrTy);
-  auto gep = rewriter.create<mlir::LLVM::GEPOp>(
-      loc, llvmPtrTy, llvmObjectType, nullPtr,
-      llvm::ArrayRef<mlir::LLVM::GEPArg>{1});
-  return rewriter.create<mlir::LLVM::PtrToIntOp>(loc, idxTy, gep);
-}
-
-/// Return value of the stride in bytes between adjacent elements
-/// of LLVM type \p llTy. The result is returned as a value of
-/// \p idxTy integer type.
-static mlir::Value
-genTypeStrideInBytes(mlir::Location loc, mlir::Type idxTy,
-                     mlir::ConversionPatternRewriter &rewriter,
-                     mlir::Type llTy) {
-  // Create a pointer type and use computeElementDistance().
-  return computeElementDistance(loc, llTy, idxTy, rewriter);
-}
-
 namespace {
 /// Lower a `fir.allocmem` instruction into `llvm.call @malloc`
 struct AllocMemOpConversion : public FIROpConversion<fir::AllocMemOp> {
@@ -1220,7 +1210,8 @@ struct AllocMemOpConversion : public FIROpConversion<fir::AllocMemOp> {
     mlir::Type llvmObjectTy = convertObjectType(dataTy);
     if (fir::isRecordWithTypeParameters(fir::unwrapSequenceType(dataTy)))
       TODO(loc, "fir.allocmem codegen of derived type with length parameters");
-    mlir::Value size = genTypeSizeInBytes(loc, ity, rewriter, llvmObjectTy);
+    mlir::Value size =
+        genTypeAllocSizeInBytes(loc, ity, rewriter, llvmObjectTy);
     if (auto scaleSize = genAllocationScaleSize(heap, ity, rewriter))
       size = rewriter.create<mlir::LLVM::MulOp>(loc, ity, size, scaleSize);
     for (mlir::Value opnd : adaptor.getOperands())
@@ -1230,15 +1221,6 @@ struct AllocMemOpConversion : public FIROpConversion<fir::AllocMemOp> {
     rewriter.replaceOpWithNewOp<mlir::LLVM::CallOp>(
         heap, ::getLlvmPtrType(heap.getContext()), size, heap->getAttrs());
     return mlir::success();
-  }
-
-  /// Compute the allocation size in bytes of the element type of
-  /// \p llTy pointer type. The result is returned as a value of \p idxTy
-  /// integer type.
-  mlir::Value genTypeSizeInBytes(mlir::Location loc, mlir::Type idxTy,
-                                 mlir::ConversionPatternRewriter &rewriter,
-                                 mlir::Type llTy) const {
-    return computeElementDistance(loc, llTy, idxTy, rewriter);
   }
 };
 } // namespace
@@ -1347,8 +1329,8 @@ struct EmboxCommonConversion : public FIROpConversion<OP> {
                                    fir::CharacterType charTy,
                                    mlir::ValueRange lenParams) const {
     auto i64Ty = mlir::IntegerType::get(rewriter.getContext(), 64);
-    mlir::Value size =
-        genTypeStrideInBytes(loc, i64Ty, rewriter, this->convertType(charTy));
+    mlir::Value size = this->genTypeStrideInBytes(loc, i64Ty, rewriter,
+                                                  this->convertType(charTy));
     if (charTy.hasConstantLen())
       return size; // Length accounted for in the genTypeStrideInBytes GEP.
     // Otherwise,  multiply the single character size by the length.
@@ -1375,19 +1357,20 @@ struct EmboxCommonConversion : public FIROpConversion<OP> {
         fir::getTypeCode(boxEleTy, this->lowerTy().getKindMap()));
     if (fir::isa_integer(boxEleTy) || boxEleTy.dyn_cast<fir::LogicalType>() ||
         fir::isa_real(boxEleTy) || fir::isa_complex(boxEleTy))
-      return {genTypeStrideInBytes(loc, i64Ty, rewriter,
-                                   this->convertType(boxEleTy)),
+      return {this->genTypeStrideInBytes(loc, i64Ty, rewriter,
+                                         this->convertType(boxEleTy)),
               typeCodeVal};
     if (auto charTy = boxEleTy.dyn_cast<fir::CharacterType>())
       return {getCharacterByteSize(loc, rewriter, charTy, lenParams),
               typeCodeVal};
     if (fir::isa_ref_type(boxEleTy)) {
       auto ptrTy = ::getLlvmPtrType(rewriter.getContext());
-      return {genTypeStrideInBytes(loc, i64Ty, rewriter, ptrTy), typeCodeVal};
+      return {this->genTypeStrideInBytes(loc, i64Ty, rewriter, ptrTy),
+              typeCodeVal};
     }
     if (boxEleTy.isa<fir::RecordType>())
-      return {genTypeStrideInBytes(loc, i64Ty, rewriter,
-                                   this->convertType(boxEleTy)),
+      return {this->genTypeStrideInBytes(loc, i64Ty, rewriter,
+                                         this->convertType(boxEleTy)),
               typeCodeVal};
     fir::emitFatalError(loc, "unhandled type in fir.box code generation");
   }
@@ -3663,8 +3646,9 @@ struct NegcOpConversion : public FIROpConversion<fir::NegcOp> {
 template <typename FromOp>
 struct MustBeDeadConversion : public FIROpConversion<FromOp> {
   explicit MustBeDeadConversion(const fir::LLVMTypeConverter &lowering,
-                                const fir::FIRToLLVMPassOptions &options)
-      : FIROpConversion<FromOp>(lowering, options) {}
+                                const fir::FIRToLLVMPassOptions &options,
+                                const mlir::DataLayout &dataLayout)
+      : FIROpConversion<FromOp>(lowering, options, dataLayout) {}
   using OpAdaptor = typename FromOp::Adaptor;
 
   mlir::LogicalResult
@@ -3801,6 +3785,26 @@ public:
     fir::LLVMTypeConverter typeConverter{getModule(),
                                          options.applyTBAA || applyTBAA,
                                          options.forceUnifiedTBAATree};
+
+    // Codegen will require querying the type storage sizes, if it was
+    // not set already, create a DataLayoutSpec for the ModuleOp now.
+    if (!mod.getDataLayoutSpec()) {
+      fir::support::setMLIRDataLayoutFromAttributes(mod, allowDefaultLayout);
+      if (!mod.getDataLayoutSpec()) {
+        mlir::emitError(mod.getLoc(),
+                        "module operation must carry a data layout attribute "
+                        "to generate llvm IR from FIR");
+        return signalPassFailure();
+      }
+    }
+
+    // If there is already a DataLayoutSpec attached to the Module, the triple
+    // is ignored for all the getTypeSize() with the assumption that the data
+    // layout spec cover all the types which cannot easily be checked here. The
+    // DataLayoutSpec should not be used to selectively override the triple
+    // here. Note that Flang lowering does not add such attribute.
+
+    mlir::DataLayout dataLayout(mod);
     mlir::RewritePatternSet pattern(context);
     pattern.insert<
         AbsentOpConversion, AddcOpConversion, AddrOfOpConversion,
@@ -3824,8 +3828,8 @@ public:
         TypeInfoOpConversion, UnboxCharOpConversion, UnboxProcOpConversion,
         UndefOpConversion, UnreachableOpConversion,
         UnrealizedConversionCastOpConversion, XArrayCoorOpConversion,
-        XEmboxOpConversion, XReboxOpConversion, ZeroOpConversion>(typeConverter,
-                                                                  options);
+        XEmboxOpConversion, XReboxOpConversion, ZeroOpConversion>(
+        typeConverter, options, dataLayout);
     mlir::populateFuncToLLVMConversionPatterns(typeConverter, pattern);
     mlir::populateOpenMPToLLVMConversionPatterns(typeConverter, pattern);
     mlir::arith::populateArithToLLVMConversionPatterns(typeConverter, pattern);

@@ -1,6 +1,6 @@
 // Test FIR to LLVM IR conversion invalid cases and diagnostics.
 
-// RUN: fir-opt --split-input-file --fir-to-llvm-ir="target=x86_64-unknown-linux-gnu" --verify-diagnostics %s
+// RUN: fir-opt --split-input-file --fir-to-llvm-ir="target=x86_64-unknown-linux-gnu default-data-layout=true" --verify-diagnostics %s
 
 
 // Test `fir.shape` conversion failure because the op has uses.

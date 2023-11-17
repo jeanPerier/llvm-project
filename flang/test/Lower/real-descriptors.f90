@@ -40,12 +40,12 @@ program p
   complex(kind=16) :: c16
 
   read(in,*) x2
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr (half, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 25, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 2, i32 {{[0-9]*}}, i8 0, i8 25, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z4)", x2
 
   read(in,*) x3
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr (bfloat, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 26, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 2, i32 {{[0-9]*}}, i8 0, i8 26, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z4)", x3
 
@@ -58,23 +58,23 @@ program p
   print "(z16)", x8
 
   read(in,*) x10
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr (x86_fp80, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 29, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 16, i32 {{[0-9]*}}, i8 0, i8 29, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z20)", x10
 
   read(in,*) x16
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr (fp128, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 31, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 16, i32 {{[0-9]*}}, i8 0, i8 31, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z32)", x16
 
   print*
   read(in,*) c2
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr ({ half, half }, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 32, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 4, i32 {{[0-9]*}}, i8 0, i8 32, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z4,' ',z4)", c2
 
   read(in,*) c3
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr ({ bfloat, bfloat }, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 33, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 4, i32 {{[0-9]*}}, i8 0, i8 33, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z4,' ',z4)", c3
 
@@ -87,12 +87,12 @@ program p
   print "(z16,' ',z16)", c8
 
   read(in,*) c10
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr ({ x86_fp80, x86_fp80 }, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 36, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 32, i32 {{[0-9]*}}, i8 0, i8 36, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z20,' ',z20)", c10
 
   read(in,*) c16
-  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 ptrtoint (ptr getelementptr ({ fp128, fp128 }, ptr null, i32 1) to i64), i32 {{[0-9]*}}, i8 0, i8 38, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
+  ! CHECK:      insertvalue { ptr, i64, i32, i8, i8, i8, i8 } { ptr undef, i64 32, i32 {{[0-9]*}}, i8 0, i8 38, i8 0, i8 0 }, ptr %{{[0-9]*}}, 0
   ! CHECK:      call i1 @_FortranAioOutputDescriptor(ptr %{{[0-9]*}}, ptr %{{[0-9]*}})
   print "(z32,' ',z32)", c16
 end

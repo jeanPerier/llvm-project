@@ -2,8 +2,8 @@
 // This is a debug option to allow manually writing derived type fir.embox without
 // having to care with providing an ABI compliant derived type descriptor object.
 // Missing derived type descriptor pointers are replaced by null pointers.
-// RUN: tco --ignore-missing-type-desc -o - %s | FileCheck %s
-// RUN: %flang_fc1 -emit-llvm  -mmlir --ignore-missing-type-desc -o - %s | FileCheck %s
+// RUN: tco --ignore-missing-type-desc -o - %s | FileCheck %s --check-prefixes="CHECK,DEFAULT-LAYOUT"
+// RUN: %flang_fc1 -emit-llvm  -mmlir --ignore-missing-type-desc -o - %s | FileCheck %s -check-prefix=CHECK
 
 !some_freestyle_type = !fir.type<some_not_mangled_type{j:i32}>
 
@@ -16,7 +16,7 @@ func.func @test_embox(%addr: !fir.ref<!some_freestyle_type>) {
 }
 // CHECK-LABEL: define void @test_embox(
 // CHECK-SAME: ptr %[[ADDR:.*]])
-// CHECK: insertvalue { ptr, i64, i32, i8, i8, i8, i8, ptr, [1 x i64] }
-// CHECK-SAME: { ptr undef, i64 ptrtoint (ptr getelementptr (%some_not_mangled_type, ptr null, i32 1) to i64),
+// CHECK: insertvalue { ptr, i64, i32, i8, i8, i8, i8, ptr, [1 x i64] } { ptr undef,
+// DEFAULT-LAYOUT-SAME: i64 4,
 // CHECK-SAME: i32 20180515, i8 0, i8 42, i8 0, i8 1, ptr null, [1 x i64] undef },
 // CHECK-SAME: ptr %[[ADDR]], 0

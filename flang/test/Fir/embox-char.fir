@@ -2,7 +2,7 @@
 // is computed in elements of the type used for the GEP
 // computing the base of the slice.
 
-// RUN: fir-opt -o - -cg-rewrite --fir-to-llvm-ir %s | FileCheck %s
+// RUN: fir-opt -o - -cg-rewrite --fir-to-llvm-ir="default-data-layout=true" %s | FileCheck %s
 // RUN: tco -o - -cg-rewrite --fir-to-llvm-ir %s | FileCheck %s
 
 // subroutine test(x)
@@ -40,9 +40,7 @@
 // CHECK:           %[[VAL_30_ST0:.*]] = llvm.load %[[VAL_29]] : !llvm.ptr -> i64
 // CHECK:           %[[VAL_31_LEN:.*]] = llvm.sdiv %[[VAL_16_BYTESIZE]], %[[VAL_13_WIDTH]]  : i64
 // CHECK:           %[[VAL_32:.*]] = llvm.mlir.constant(44 : i32) : i32
-// CHECK:           %[[VAL_33:.*]] = llvm.mlir.zero : !llvm.ptr
-// CHECK:           %[[VAL_34:.*]] = llvm.getelementptr %[[VAL_33]][1] : (!llvm.ptr) -> !llvm.ptr, i32
-// CHECK:           %[[VAL_35:.*]] = llvm.ptrtoint %[[VAL_34]] : !llvm.ptr to i64
+// CHECK:           %[[VAL_35:.*]] = llvm.mlir.constant(4 : i64) : i64
 // CHECK:           %[[VAL_36_BYTESIZE:.*]] = llvm.mul %[[VAL_35]], %[[VAL_31_LEN]]  : i64
 // CHECK:           %[[VAL_37:.*]] = llvm.mlir.undef : !llvm.struct<(ptr, i64, i32, i8, i8, i8, i8, array<2 x array<3 x i64>>)>
 // CHECK:           %[[VAL_38:.*]] = llvm.insertvalue %[[VAL_36_BYTESIZE]], %[[VAL_37]][1] : !llvm.struct<(ptr, i64, i32, i8, i8, i8, i8, array<2 x array<3 x i64>>)>
@@ -136,9 +134,7 @@ func.func @test_char4(%arg0: !fir.ref<!fir.box<!fir.heap<!fir.array<?x?x!fir.cha
 // CHECK:           %[[VAL_29:.*]] = llvm.getelementptr %[[VAL_10]][0, 7, %[[VAL_11]], 2] : (!llvm.ptr, i64) -> !llvm.ptr, !llvm.struct<(ptr, i64, i32, i8, i8, i8, i8, array<2 x array<3 x i64>>)>
 // CHECK:           %[[VAL_30_ST0:.*]] = llvm.load %[[VAL_29]] : !llvm.ptr -> i64
 // CHECK:           %[[VAL_32:.*]] = llvm.mlir.constant(40 : i32) : i32
-// CHECK:           %[[VAL_33:.*]] = llvm.mlir.zero : !llvm.ptr
-// CHECK:           %[[VAL_34:.*]] = llvm.getelementptr %[[VAL_33]][1] : (!llvm.ptr) -> !llvm.ptr, i8
-// CHECK:           %[[VAL_35:.*]] = llvm.ptrtoint %[[VAL_34]] : !llvm.ptr to i64
+// CHECK:           %[[VAL_35:.*]] = llvm.mlir.constant(1 : i64) : i64
 // CHECK:           %[[VAL_36_BYTESIZE:.*]] = llvm.mul %[[VAL_35]], %[[VAL_16_BYTESIZE]]  : i64
 // CHECK:           %[[VAL_37:.*]] = llvm.mlir.undef : !llvm.struct<(ptr, i64, i32, i8, i8, i8, i8, array<2 x array<3 x i64>>)>
 // CHECK:           %[[VAL_38:.*]] = llvm.insertvalue %[[VAL_36_BYTESIZE]], %[[VAL_37]][1] : !llvm.struct<(ptr, i64, i32, i8, i8, i8, i8, array<2 x array<3 x i64>>)>
