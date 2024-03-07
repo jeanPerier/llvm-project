@@ -1054,10 +1054,16 @@ static PreparedDummyArgument preparePresentUserCallActualArgument(
   // Create dummy type with actual argument rank when the dummy is an assumed
   // rank. That way, all the operation to create dummy descriptors are ranked if
   // the actual argument is ranked, which allows simple code generation.
+  // Also do the same when the dummy is a sequence associated descriptor
+  // because the actual shape/rank may mismatch with the dummy, and the dummy may
+  // be an assumed-size array, so any descriptor manipulation should use the
+  // actual argument shape information. A descriptor with the dummy shape
+  // information will be created later when all actual arguments are ready.
+  llvm::errs() << loc << " " << arg.isSequenceAssociatedDescriptor() << "\n";
   mlir::Type dummyTypeWithActualRank = dummyType;
   if (auto baseBoxDummy = mlir::dyn_cast<fir::BaseBoxType>(dummyType))
     if (baseBoxDummy.isAssumedRank() ||
-        arg.testTKR(Fortran::common::IgnoreTKR::Rank))
+        arg.testTKR(Fortran::common::IgnoreTKR::Rank) || arg.isSequenceAssociatedDescriptor())
       dummyTypeWithActualRank =
           baseBoxDummy.getBoxTypeWithNewShape(actual.getType());
   // Preserve the actual type in the argument preparation in case IgnoreTKR(t)

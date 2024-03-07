@@ -174,6 +174,12 @@ public:
     /// May the dummy argument require INTENT(OUT) finalization
     /// on entry to the invoked procedure? Provides conservative answer.
     bool mayRequireIntentoutFinalization() const;
+    /// Is the dummy argument an explicit-shape or assumed-size array that
+    /// must be passed by descriptor? Sequence association imply the actual
+    /// argument shape/rank may differ with the dummy shape/rank (see F'2023
+    /// section 15.5.2.12), so care is needed when creating the descriptor
+    /// for the dummy argument.
+    bool isSequenceAssociatedDescriptor() const;
     /// How entity is passed by.
     PassEntityBy passBy;
     /// What is the entity (SymbolRef for callee/ActualArgument* for caller)

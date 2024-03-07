@@ -1388,6 +1388,18 @@ bool Fortran::lower::CallInterface<
 }
 
 template <typename T>
+bool Fortran::lower::CallInterface<T>::PassedEntity::isSequenceAssociatedDescriptor()
+    const {
+  if (!characteristics || passBy != PassEntityBy::Box)
+    return false;
+  const auto *dummy =
+      std::get_if<Fortran::evaluate::characteristics::DummyDataObject>(
+          &characteristics->u);
+  return dummy && dummy->type.CanBeSequenceAssociated();
+}
+
+
+template <typename T>
 void Fortran::lower::CallInterface<T>::determineInterface(
     bool isImplicit,
     const Fortran::evaluate::characteristics::Procedure &procedure) {
