@@ -339,13 +339,18 @@ public:
   /// the result specification expressions (extents and lengths) ? If needed,
   /// this mapping must be done after argument lowering, and before the call
   /// itself.
-  bool mustMapInterfaceSymbols() const;
+  bool mustMapInterfaceSymbols(bool needActualToDummyRemapping) const;
 
   /// Walk the result non-deferred extent specification expressions.
-  void walkResultExtents(ExprVisitor) const;
+  void walkResultExtents(const ExprVisitor&) const;
 
   /// Walk the result non-deferred length specification expressions.
-  void walkResultLengths(ExprVisitor) const;
+  void walkResultLengths(const ExprVisitor&) const;
+  /// Walk non-deferred extent specification expressions of a dummy argument.
+  void walkDummyArgumentExtents(const PassedEntity&, const ExprVisitor&) const;
+
+  /// Walk non-deferred length specification expressions of a dummy argument.
+  void walkDummyArgumentLengths(const PassedEntity&, const ExprVisitor&) const;
 
   /// Get the mlir::Value that is passed as argument \p sym of the function
   /// being called. The arguments must have been placed before calling this

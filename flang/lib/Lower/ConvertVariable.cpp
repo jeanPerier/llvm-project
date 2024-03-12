@@ -2262,7 +2262,7 @@ void Fortran::lower::instantiateVariable(AbstractConverter &converter,
 
 void Fortran::lower::mapCallInterfaceSymbols(
     AbstractConverter &converter, const Fortran::lower::CallerInterface &caller,
-    SymMap &symMap) {
+    SymMap &symMap, bool needActualToDummyRemapping) {
   Fortran::lower::AggregateStoreMap storeMap;
   const Fortran::semantics::Symbol &result = caller.getResultSymbol();
   for (Fortran::lower::pft::Variable var :

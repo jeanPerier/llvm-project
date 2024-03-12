@@ -310,21 +310,14 @@ bool Fortran::lower::CallerInterface::verifyActualInputs() const {
   return true;
 }
 
-void Fortran::lower::CallerInterface::walkResultLengths(
-    ExprVisitor visitor) const {
-  assert(characteristic && "characteristic was not computed");
-  const Fortran::evaluate::characteristics::FunctionResult &result =
-      characteristic->functionResult.value();
-  const Fortran::evaluate::characteristics::TypeAndShape *typeAndShape =
-      result.GetTypeAndShape();
-  assert(typeAndShape && "no result type");
-  Fortran::evaluate::DynamicType dynamicType = typeAndShape->type();
-  // Visit result length specification expressions that are explicit.
+static void walkLengths(const Fortran::evaluate::characteristics::TypeAndShape& typeAndShape, const Fortran::lower::CallerInterface::ExprVisitor& visitor, Fortran::lower::AbstractConverter& converter) {
+  Fortran::evaluate::DynamicType dynamicType = typeAndShape.type();
+  // Visit length specification expressions that are explicit.
   if (dynamicType.category() == Fortran::common::TypeCategory::Character) {
     if (std::optional<Fortran::evaluate::ExtentExpr> length =
             dynamicType.GetCharLength())
       visitor(toEvExpr(*length));
-  } else if (dynamicType.category() == common::TypeCategory::Derived &&
+  } else if (dynamicType.category() == Fortran::common::TypeCategory::Derived &&
              !dynamicType.IsUnlimitedPolymorphic()) {
     const Fortran::semantics::DerivedTypeSpec &derivedTypeSpec =
         dynamicType.GetDerivedTypeSpec();
@@ -332,6 +325,28 @@ void Fortran::lower::CallerInterface::walkResultLengths(
       TODO(converter.getCurrentLocation(),
            "function result with derived type length parameters");
   }
+} 
+
+void Fortran::lower::CallerInterface::walkResultLengths(
+    const ExprVisitor& visitor) const {
+  assert(characteristic && "characteristic was not computed");
+  const Fortran::evaluate::characteristics::FunctionResult &result =
+      characteristic->functionResult.value();
+  const Fortran::evaluate::characteristics::TypeAndShape *typeAndShape =
+      result.GetTypeAndShape();
+  assert(typeAndShape && "no result type");
+  return walkLengths(*typeAndShape, visitor, converter);
+}
+
+void Fortran::lower::CallerInterface::walkDummyArgumentLengths(
+    const PassedEntity& passedEntity,
+    const ExprVisitor& visitor) const {
+  if (!passedEntity.characteristics)
+    return;
+  if (const auto *dummy =
+      std::get_if<Fortran::evaluate::characteristics::DummyDataObject>(
+          &passedEntity.characteristics->u))
+    walkLengths(dummy->type, visitor, converter);
 }
 
 // Compute extent expr from shapeSpec of an explicit shape.
@@ -346,20 +361,23 @@ getExtentExpr(const Fortran::semantics::ShapeSpec &shapeSpec) {
          Fortran::evaluate::ExtentExpr{1};
 }
 
+static void walkExtents(const Fortran::semantics::Symbol& symbol, const Fortran::lower::CallerInterface::ExprVisitor& visitor) {
+    if (const auto *objectDetails =
+            symbol.detailsIf<Fortran::semantics::ObjectEntityDetails>())
+      if (objectDetails->shape().IsExplicitShape())
+        for (const Fortran::semantics::ShapeSpec &shapeSpec :
+             objectDetails->shape())
+          visitor(Fortran::evaluate::AsGenericExpr(getExtentExpr(shapeSpec)));
+}
+
 void Fortran::lower::CallerInterface::walkResultExtents(
-    ExprVisitor visitor) const {
+    const ExprVisitor& visitor) const {
   // Walk directly the result symbol shape (the characteristic shape may contain
   // descriptor inquiries to it that would fail to lower on the caller side).
   const Fortran::semantics::SubprogramDetails *interfaceDetails =
       getInterfaceDetails();
   if (interfaceDetails) {
-    const Fortran::semantics::Symbol &result = interfaceDetails->result();
-    if (const auto *objectDetails =
-            result.detailsIf<Fortran::semantics::ObjectEntityDetails>())
-      if (objectDetails->shape().IsExplicitShape())
-        for (const Fortran::semantics::ShapeSpec &shapeSpec :
-             objectDetails->shape())
-          visitor(Fortran::evaluate::AsGenericExpr(getExtentExpr(shapeSpec)));
+    walkExtents(interfaceDetails->result(), visitor);
   } else {
     if (procRef.Rank() != 0)
       fir::emitFatalError(
@@ -368,7 +386,20 @@ void Fortran::lower::CallerInterface::walkResultExtents(
   }
 }
 
-bool Fortran::lower::CallerInterface::mustMapInterfaceSymbols() const {
+void Fortran::lower::CallerInterface::walkDummyArgumentExtents(
+    const PassedEntity& passedEntity,
+    const ExprVisitor& visitor) const {
+  const Fortran::semantics::SubprogramDetails *interfaceDetails =
+      getInterfaceDetails();
+  if (!interfaceDetails)
+    return;
+  const Fortran::semantics::Symbol* dummy = interfaceDetails->dummyArgs().at(/*FIXME!*/passedEntity.firArgument);
+  // TODO: better check positioning is OK with alternate return, passed result, and such.
+  assert(dummy && "dummy symbol was not set");
+  walkExtents(*dummy, visitor); 
+}
+
+bool Fortran::lower::CallerInterface::mustMapInterfaceSymbols(bool needActualToDummyRemapping) const {
   assert(characteristic && "characteristic was not computed");
   const std::optional<Fortran::evaluate::characteristics::FunctionResult>
       &result = characteristic->functionResult;
@@ -381,6 +412,13 @@ bool Fortran::lower::CallerInterface::mustMapInterfaceSymbols() const {
   };
   walkResultLengths(visitor);
   walkResultExtents(visitor);
+
+  if (needActualToDummyRemapping)
+    for (const auto& arg : getPassedArguments())
+      if (arg.isSequenceAssociatedDescriptor()) {
+        walkDummyArgumentLengths(arg, visitor);
+        walkDummyArgumentExtents(arg, visitor);
+      }
   return !allResultSpecExprConstant;
 }
 

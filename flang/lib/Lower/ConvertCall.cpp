@@ -172,11 +172,12 @@ std::pair<fir::ExtendedValue, bool> Fortran::lower::genCallOpAndResult(
   fir::FirOpBuilder &builder = converter.getFirOpBuilder();
   using PassBy = Fortran::lower::CallerInterface::PassEntityBy;
   // Handle cases where caller must allocate the result or a fir.box for it.
+  bool remapActualToDummyDescriptor = true;
   bool mustPopSymMap = false;
-  if (caller.mustMapInterfaceSymbols()) {
+  if (caller.mustMapInterfaceSymbols(remapActualToDummyDescriptor)) {
     symMap.pushScope();
     mustPopSymMap = true;
-    Fortran::lower::mapCallInterfaceSymbols(converter, caller, symMap);
+    Fortran::lower::mapCallInterfaceSymbols(converter, caller, symMap, remapActualToDummyDescriptor);
   }
   // If this is an indirect call, retrieve the function address. Also retrieve
   // the result length if this is a character function (note that this length

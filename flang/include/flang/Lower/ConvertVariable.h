@@ -95,7 +95,7 @@ void mapSymbolAttributes(AbstractConverter &, const semantics::SymbolRef &,
 /// to \p symMap.
 void mapCallInterfaceSymbols(AbstractConverter &,
                              const Fortran::lower::CallerInterface &caller,
-                             SymMap &symMap);
+                             SymMap &symMap, bool needActualToDummyRemapping);
 
 // TODO: consider saving the initial expression symbol dependence analysis in
 // in the PFT variable and dealing with the dependent symbols instantiation in
