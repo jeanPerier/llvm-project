@@ -1614,7 +1614,7 @@ def hlfir_ExactlyOnceOp : hlfir_Op<"exactly_once", [RecursiveMemoryEffects]> {
   let assemblyFormat = [{
     attr-dict `:` type($result)
     $body
-    }];
+  }];
 }
 
 def hlfir_WhereOp : hlfir_AssignmentMaskOp<"where"> {
