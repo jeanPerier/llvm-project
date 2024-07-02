@@ -49,7 +49,7 @@
 static llvm::cl::opt<bool> allowAssumedRank(
     "allow-assumed-rank",
     llvm::cl::desc("Enable assumed rank lowering - experimental"),
-    llvm::cl::init(false));
+    llvm::cl::init(true));
 
 #define DEBUG_TYPE "flang-lower-variable"
 
