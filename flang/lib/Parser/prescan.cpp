@@ -26,11 +26,13 @@ using common::LanguageFeature;
 static constexpr int maxPrescannerNesting{100};
 
 Prescanner::Prescanner(Messages &messages, CookedSource &cooked,
-    Preprocessor &preprocessor, common::LanguageFeatureControl lfc)
+    Preprocessor &preprocessor, common::LanguageFeatureControl lfc,
+    bool expandFortranInclude)
     : messages_{messages}, cooked_{cooked}, preprocessor_{preprocessor},
       allSources_{preprocessor_.allSources()}, features_{lfc},
       backslashFreeFormContinuation_{preprocessor.AnyDefinitions()},
-      encoding_{allSources_.encoding()} {}
+      encoding_{allSources_.encoding()},
+      expandFortranInclude_{expandFortranInclude} {}
 
 Prescanner::Prescanner(const Prescanner &that, Preprocessor &prepro,
     bool isNestedInIncludeDirective)
@@ -42,6 +44,7 @@ Prescanner::Prescanner(const Prescanner &that, Preprocessor &prepro,
       fixedFormColumnLimit_{that.fixedFormColumnLimit_},
       encoding_{that.encoding_},
       prescannerNesting_{that.prescannerNesting_ + 1},
+      expandFortranInclude_{that.expandFortranInclude_},
       skipLeadingAmpersand_{that.skipLeadingAmpersand_},
       compilerDirectiveBloomFilter_{that.compilerDirectiveBloomFilter_},
       compilerDirectiveSentinels_{that.compilerDirectiveSentinels_} {}
@@ -1088,32 +1091,38 @@ void Prescanner::FortranInclude(const char *firstQuote) {
           "excess characters after path name"_warn_en_US);
     }
   }
-  std::string buf;
-  llvm::raw_string_ostream error{buf};
-  Provenance provenance{GetProvenance(nextLine_)};
-  std::optional<std::string> prependPath;
-  if (const SourceFile * currentFile{allSources_.GetSourceFile(provenance)}) {
-    prependPath = DirectoryName(currentFile->path());
-  }
-  const SourceFile *included{
-      allSources_.Open(path, error, std::move(prependPath))};
-  if (!included) {
-    Say(provenance, "INCLUDE: %s"_err_en_US, buf);
-  } else if (included->bytes() > 0) {
-    ProvenanceRange includeLineRange{
-        provenance, static_cast<std::size_t>(p - nextLine_)};
-    ProvenanceRange fileRange{
-        allSources_.AddIncludedFile(*included, includeLineRange)};
-    Preprocessor cleanPrepro{allSources_};
-    if (preprocessor_.IsNameDefined("__FILE__"s)) {
-      cleanPrepro.DefineStandardMacros(); // __FILE__, __LINE__, &c.
+  if (expandFortranInclude_) {
+    std::string buf;
+    llvm::raw_string_ostream error{buf};
+    Provenance provenance{GetProvenance(nextLine_)};
+    std::optional<std::string> prependPath;
+    if (const SourceFile * currentFile{allSources_.GetSourceFile(provenance)}) {
+      prependPath = DirectoryName(currentFile->path());
     }
-    if (preprocessor_.IsNameDefined("_CUDA"s)) {
-      cleanPrepro.Define("_CUDA"s, "1");
+    const SourceFile *included{
+        allSources_.Open(path, error, std::move(prependPath))};
+    if (!included) {
+      Say(provenance, "INCLUDE: %s"_err_en_US, buf);
+    } else if (included->bytes() > 0) {
+      ProvenanceRange includeLineRange{
+          provenance, static_cast<std::size_t>(p - nextLine_)};
+      ProvenanceRange fileRange{
+          allSources_.AddIncludedFile(*included, includeLineRange)};
+      Preprocessor cleanPrepro{allSources_};
+      if (preprocessor_.IsNameDefined("__FILE__"s)) {
+        cleanPrepro.DefineStandardMacros(); // __FILE__, __LINE__, &c.
+      }
+      if (preprocessor_.IsNameDefined("_CUDA"s)) {
+        cleanPrepro.Define("_CUDA"s, "1");
+      }
+      Prescanner{*this, cleanPrepro, /*isNestedInIncludeDirective=*/false}
+          .set_encoding(included->encoding())
+          .Prescan(fileRange);
     }
-    Prescanner{*this, cleanPrepro, /*isNestedInIncludeDirective=*/false}
-        .set_encoding(included->encoding())
-        .Prescan(fileRange);
+  } else {
+    TokenSequence tokens;
+    tokens.Put("include '"s + path + "'", GetCurrentProvenance());
+    CheckAndEmitLine(tokens, GetCurrentProvenance());
   }
 }
 

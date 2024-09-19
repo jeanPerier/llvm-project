@@ -34,7 +34,7 @@ class Preprocessor;
 class Prescanner {
 public:
   Prescanner(Messages &, CookedSource &, Preprocessor &,
-      common::LanguageFeatureControl);
+      common::LanguageFeatureControl, bool expandFortranInclude);
   Prescanner(
       const Prescanner &, Preprocessor &, bool isNestedInIncludeDirective);
   Prescanner(const Prescanner &) = delete;
@@ -220,7 +220,7 @@ private:
   bool isPossibleMacroCall_{false};
   bool afterPreprocessingDirective_{false};
   bool disableSourceContinuation_{false};
-
+  bool expandFortranInclude_{true};
   Provenance startProvenance_;
   const char *start_{nullptr}; // beginning of current source file content
   const char *limit_{nullptr}; // first address after end of current source
