@@ -11,11 +11,8 @@
 
 #include "flang/Common/enum-set.h"
 #include "flang/Common/idioms.h"
-<<<<<<< HEAD:flang/include/flang/Common/Fortran-features.h
-#include <optional>
-=======
 #include "flang/Support/Fortran.h"
->>>>>>> 89aa7c359e19 (squashed 110298):flang/include/flang/Support/Fortran-features.h
+#include <optional>
 #include <vector>
 
 namespace Fortran::common {

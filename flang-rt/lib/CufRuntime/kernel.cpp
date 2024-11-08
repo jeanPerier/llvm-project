@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "flang/Runtime/CUDA/kernel.h"
-#include "../terminator.h"
-#include "flang/Runtime/CUDA/common.h"
+#include "../flang_rt/terminator.h"
+#include "flang-rt/CUDA/common.h"
 
 #include "cuda_runtime.h"
 
