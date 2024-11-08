@@ -48,6 +48,7 @@ add_flang_library(FortranSupport
   Fortran-features.cpp
   default-kinds.cpp
   idioms.cpp
+  LangOptions.cpp
   Version.cpp
   ${version_inc}
 
