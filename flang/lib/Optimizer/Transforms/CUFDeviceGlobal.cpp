@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "flang/Common/Fortran.h"
 #include "flang/Optimizer/Dialect/CUF/CUFOps.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/HLFIR/HLFIROps.h"
 #include "flang/Optimizer/Transforms/CUFCommon.h"
-#include "flang/Runtime/CUDA/common.h"
+#include "flang/Runtime/CUDA/common-consts.h"
 #include "flang/Runtime/allocatable.h"
+#include "flang/Support/Fortran.h"
 #include "mlir/Dialect/LLVMIR/NVVMDialect.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/Pass.h"
