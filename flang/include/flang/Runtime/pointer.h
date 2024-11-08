@@ -12,10 +12,14 @@
 #ifndef FORTRAN_RUNTIME_POINTER_H_
 #define FORTRAN_RUNTIME_POINTER_H_
 
-#include "flang/Runtime/descriptor.h"
+#include "flang/Common/Fortran-consts.h"
+#include "flang/Runtime/descriptor-consts.h"
 #include "flang/Runtime/entry-names.h"
 
 namespace Fortran::runtime {
+using SubscriptValue = ISO::CFI_index_t;
+using common::TypeCategory;
+
 extern "C" {
 
 // Data pointer initialization for NULLIFY(), "p=>NULL()`, & for ALLOCATE().
@@ -122,4 +126,4 @@ RT_API_ATTRS bool ValidatePointerPayload(const ISO::CFI_cdesc_t &);
 
 } // extern "C"
 } // namespace Fortran::runtime
-#endif // FORTRAN_RUNTIME_POINTER_H_
+#endif /* FORTRAN_RUNTIME_POINTER_H_ */

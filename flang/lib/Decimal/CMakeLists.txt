@@ -50,8 +50,8 @@ endif()
 add_definitions(-U_GLIBCXX_ASSERTIONS)
 
 set(sources
-  binary-to-decimal.cpp
-  decimal-to-binary.cpp
+  ../Common/binary-to-decimal.cpp
+  ../Common/decimal-to-binary.cpp
 )
 
 include(AddFlangOffloadRuntime)
@@ -63,23 +63,23 @@ add_flang_library(FortranDecimal INSTALL_WITH_TOOLCHAIN ${sources})
 if (DEFINED MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreaded)
   add_flang_library(FortranDecimal.static INSTALL_WITH_TOOLCHAIN
-          binary-to-decimal.cpp
-          decimal-to-binary.cpp
+          ../Common/binary-to-decimal.cpp
+          ../Common/decimal-to-binary.cpp
   )
   set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)
   add_flang_library(FortranDecimal.dynamic INSTALL_WITH_TOOLCHAIN
-    binary-to-decimal.cpp
-    decimal-to-binary.cpp
+    ../Common/binary-to-decimal.cpp
+    ../Common/decimal-to-binary.cpp
   )
   set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDebug)
   add_flang_library(FortranDecimal.static_dbg INSTALL_WITH_TOOLCHAIN
-          binary-to-decimal.cpp
-          decimal-to-binary.cpp
+          ../Common/binary-to-decimal.cpp
+          ../Common/decimal-to-binary.cpp
   )
   set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDebugDLL)
   add_flang_library(FortranDecimal.dynamic_dbg INSTALL_WITH_TOOLCHAIN
-    binary-to-decimal.cpp
-    decimal-to-binary.cpp
+    ../Common/binary-to-decimal.cpp
+    ../Common/decimal-to-binary.cpp
   )
   add_dependencies(FortranDecimal FortranDecimal.static FortranDecimal.dynamic
     FortranDecimal.static_dbg FortranDecimal.dynamic_dbg)

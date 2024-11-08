@@ -10,6 +10,8 @@ endif()
 add_custom_target(FlangUnitTests)
 set_target_properties(FlangUnitTests PROPERTIES FOLDER "Flang/Tests")
 
+include_directories("../../flang-rt/include")
+
 function(add_flang_unittest_offload_properties target)
   # Set CUDA_RESOLVE_DEVICE_SYMBOLS.
   if (FLANG_EXPERIMENTAL_CUDA_RUNTIME)
@@ -75,5 +77,5 @@ add_subdirectory(Optimizer)
 add_subdirectory(Common)
 add_subdirectory(Decimal)
 add_subdirectory(Evaluate)
-add_subdirectory(Runtime)
+add_subdirectory(../../flang-rt/unittests/Runtime Runtime)
 add_subdirectory(Frontend)

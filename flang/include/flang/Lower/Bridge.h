@@ -22,6 +22,7 @@
 #include "flang/Lower/StatementContext.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
 #include "flang/Optimizer/Dialect/Support/KindMapping.h"
+#include "flang/Support/Fortran.h"
 #include "mlir/IR/BuiltinOps.h"
 #include <set>
 
