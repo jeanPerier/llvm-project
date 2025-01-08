@@ -17,6 +17,7 @@ add_flangrt_library(${CUFRT_LIBNAME}
   descriptor.cpp
   kernel.cpp
   memory.cpp
+  memmove-function.cpp
   registration.cpp
 )
 target_include_directories(${CUFRT_LIBNAME} PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
