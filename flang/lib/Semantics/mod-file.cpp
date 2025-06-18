@@ -21,7 +21,9 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>
+#include <chrono>
 #include <fstream>
+#include <iostream>
 #include <set>
 #include <string_view>
 #include <variant>
@@ -1370,9 +1372,56 @@ static void GetModuleDependences(
     }
   }
 }
+namespace {
+// Re-entrant but not concurrent.
+class OverallTimer {
+public:
+  OverallTimer(std::string where) : where{where} {}
+  ~OverallTimer() {
+    std::cerr << "spent total of: " << time.count() << " ms in " << nCall
+              << " calls to " << where << "\n";
+  }
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+  start() {
+    if (recursionLock)
+      return std::nullopt;
+    recursionLock = true;
+    return std::chrono::high_resolution_clock::now();
+  }
+  void stop(std::chrono::time_point<std::chrono::high_resolution_clock> t1) {
+    recursionLock = false;
+    std::chrono::time_point<std::chrono::high_resolution_clock> t2 =
+        std::chrono::high_resolution_clock::now();
+    time += (t2 - t1);
+    nCall++;
+  }
+
+private:
+  std::string where;
+  std::chrono::duration<double, std::milli> time{decltype(time)::zero()};
+  std::uint64_t nCall{0};
+  bool recursionLock{false};
+};
+
+class ScopeTimer {
+public:
+  ScopeTimer(OverallTimer *timer) : timer{timer} { t1 = timer->start(); }
+  ~ScopeTimer() {
+    if (t1)
+      timer->stop(*t1);
+  }
+
+private:
+  OverallTimer *timer;
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>> t1;
+};
+} // namespace
+
+static OverallTimer modFileReadTimer("ModFileReader::Read");
 
 Scope *ModFileReader::Read(SourceName name, std::optional<bool> isIntrinsic,
     Scope *ancestor, bool silent) {
+  ScopeTimer timer(&modFileReadTimer);
   std::string ancestorName; // empty for module
   const Symbol *notAModule{nullptr};
   bool fatalError{false};

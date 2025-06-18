@@ -645,6 +645,8 @@ fir::GlobalOp Fortran::lower::defineGlobal(
   return global;
 }
 
+extern llvm::cl::opt<bool> skipExternalRttiDefinition;
+
 /// Return linkage attribute for \p var.
 static mlir::StringAttr
 getLinkageAttribute(fir::FirOpBuilder &builder,
@@ -653,7 +655,9 @@ getLinkageAttribute(fir::FirOpBuilder &builder,
   // unit. It desired to avoid having to link against module that only define a
   // type. Therefore the runtime type info is generated everywhere it is needed
   // with `linkonce_odr` LLVM linkage.
-  if (var.isRuntimeTypeInfoData())
+  if (var.isRuntimeTypeInfoData() &&
+      (!skipExternalRttiDefinition ||
+       Fortran::semantics::IsFromBuiltinModule(var.getSymbol())))
     return builder.createLinkOnceODRLinkage();
   if (var.isModuleOrSubmoduleVariable())
     return {}; // external linkage
