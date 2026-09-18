@@ -46,6 +46,7 @@
 #include "flang/Optimizer/Builder/Runtime/Inquiry.h"
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Dialect/FIROps.h"
+#include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "flang/Optimizer/Dialect/Support/FIRContext.h"
 #include "flang/Optimizer/Dialect/Support/KindMapping.h"
@@ -59,6 +60,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -93,7 +95,9 @@ struct ArgInfo {
 struct ArgsUsageInLoop {
   /// Mapping between the memref operand of an array indexing
   /// operation (e.g. fir.coordinate_of) and the argument information.
-  llvm::DenseMap<mlir::Value, ArgInfo> usageInfo;
+  /// The map preserves insertion order so that a loop using several
+  /// arguments is always versioned with the same operation order.
+  llvm::MapVector<mlir::Value, ArgInfo> usageInfo;
   /// Some array indexing operations inside a loop cannot be transformed.
   /// This vector holds the memref operands of such operations.
   /// The vector is used to make sure that we do not try to transform
@@ -134,7 +138,7 @@ struct ArgsUsageInLoop {
 
   // Erase usageInfo and cannotTransform entries for a set
   // of given arguments provided in the form of usageInfo map.
-  void eraseUsage(const llvm::DenseMap<mlir::Value, ArgInfo> &args) {
+  void eraseUsage(const llvm::MapVector<mlir::Value, ArgInfo> &args) {
     for (auto &arg : args) {
       usageInfo.erase(arg.first);
       cannotTransform.remove(arg.first);
@@ -229,6 +233,85 @@ static mlir::Value normaliseVal(mlir::Value val) {
   return unwrapPassThroughOps(unwrapReboxOp(val));
 }
 
+/// Return whether converting an integer through \p type may turn the value one
+/// into something else. Only a one bit type can: `1` truncated to i1 denotes
+/// -1 once XArrayCoor lowering sign extends it again. Any wider integer, and
+/// `index`, round trip one unchanged.
+static bool mayNotPreserveOne(mlir::Type type) {
+  if (mlir::isa<mlir::IndexType, fir::IntegerType>(type))
+    return false;
+  auto intTy = mlir::dyn_cast<mlir::IntegerType>(type);
+  return !intTy || intTy.getWidth() <= 1;
+}
+
+/// Return whether \p value is the constant one, looking through fir.convert.
+static bool isConstantOne(mlir::Value value) {
+  while (auto convert = value.getDefiningOp<fir::ConvertOp>()) {
+    if (mayNotPreserveOne(convert.getType()))
+      return false;
+    value = convert.getValue();
+  }
+  if (mayNotPreserveOne(value.getType()))
+    return false;
+  std::optional<llvm::APInt> constant = fir::getIntIfConstant(value);
+  return constant && constant->isOne();
+}
+
+/// A fir.slice triple whose upper bound is fir.undefined selects a single
+/// element instead of a section. XArrayCoor lowering then ignores the triple's
+/// lower bound and step, and only uses the fir.array_coor index of that
+/// dimension.
+static bool isScalarSliceDim(mlir::ValueRange triples, unsigned dim) {
+  return mlir::isa_and_nonnull<fir::UndefOp>(
+      triples[3 * dim + 1].getDefiningOp());
+}
+
+/// Return the slice of \p coop if its triples can be folded into the flat
+/// index computed for the fast loop version.
+///
+/// XArrayCoor lowering computes the zero based coordinate of dimension i of a
+/// boxed array as `(index - lb) * step + (sliceLb - lb)`, where step and
+/// sliceLb only contribute for a section. With a unit step this is the slice
+/// free coordinate `index - lb` plus the loop invariant `sliceLb - lb`, so
+/// flattening only needs that extra term. Anything that does not fit is left
+/// on the generic path: a non unit step, a component path, a substring.
+static fir::SliceOp getFoldableSlice(fir::ArrayCoorOp coop, unsigned rank) {
+  auto slice = coop.getSlice().getDefiningOp<fir::SliceOp>();
+  if (!slice || !slice.getFields().empty() || !slice.getSubstr().empty())
+    return nullptr;
+  mlir::ValueRange triples = slice.getTriples();
+  if (triples.size() != 3 * rank || coop.getIndices().size() != rank)
+    return nullptr;
+  for (unsigned dim = 0; dim < rank; ++dim)
+    if (!isScalarSliceDim(triples, dim) && !isConstantOne(triples[3 * dim + 2]))
+      return nullptr;
+  return slice;
+}
+
+/// Return whether \p a and \p b are known to hold the same integer value.
+static bool isSameInteger(mlir::Value a, mlir::Value b) {
+  if (a == b)
+    return true;
+  std::optional<llvm::APInt> constantA = fir::getIntIfConstant(a);
+  std::optional<llvm::APInt> constantB = fir::getIntIfConstant(b);
+  if (!constantA || !constantB)
+    return false;
+  std::optional<int64_t> valueA = constantA->trySExtValue();
+  std::optional<int64_t> valueB = constantB->trySExtValue();
+  return valueA && valueB && *valueA == *valueB;
+}
+
+/// Return the section lower bound that dimension \p dim of \p coop's slice
+/// adds to the coordinate, or a null value if it adds nothing.
+static mlir::Value getSliceLowerBound(fir::ArrayCoorOp coop, unsigned dim) {
+  if (!coop.getSlice())
+    return {};
+  auto slice = mlir::cast<fir::SliceOp>(coop.getSlice().getDefiningOp());
+  if (isScalarSliceDim(slice.getTriples(), dim))
+    return {};
+  return slice.getTriples()[3 * dim];
+}
+
 /// some FIR operations accept a fir.shape, a fir.shift or a fir.shapeshift.
 /// fir.shift and fir.shapeshift allow us to extract lower bounds
 /// if lowerbounds cannot be found, return nullptr
@@ -282,7 +365,22 @@ static mlir::Value getIndex(fir::FirOpBuilder &builder, mlir::Operation *op,
   // index_0 = index - lb;
   if (lb.getType() != index.getType())
     lb = builder.createConvert(coop.getLoc(), index.getType(), lb);
-  return mlir::arith::SubIOp::create(builder, coop.getLoc(), index, lb);
+  mlir::Value coor =
+      mlir::arith::SubIOp::create(builder, coop.getLoc(), index, lb);
+
+  // index_0 = index - lb + (sliceLb - lb) for a unit step section, see
+  // getFoldableSlice. A section starting at the array lower bound contributes
+  // nothing, and is by far the common case, so do not emit dead arithmetic
+  // for it.
+  mlir::Value sliceLb = getSliceLowerBound(coop, dim);
+  if (sliceLb && !isSameInteger(sliceLb, lb)) {
+    sliceLb = builder.createConvert(coop.getLoc(), index.getType(), sliceLb);
+    mlir::Value adjust =
+        builder.createOrFold<mlir::arith::SubIOp>(coop.getLoc(), sliceLb, lb);
+    coor =
+        builder.createOrFold<mlir::arith::AddIOp>(coop.getLoc(), coor, adjust);
+  }
+  return coor;
 }
 
 void LoopVersioningPass::runOnOperation() {
@@ -357,20 +455,20 @@ void LoopVersioningPass::runOnOperation() {
           if (!domInfo.dominates(a.arg, loop))
             argsInLoop.cannotTransform.insert(a.arg);
 
-          // No support currently for sliced arrays.
-          // This means that we cannot transform properly
-          // instructions referencing a.arg in the whole loop
-          // nest this loop is located in.
-          if (auto arrayCoor = mlir::dyn_cast<fir::ArrayCoorOp>(op))
-            if (arrayCoor.getSlice())
-              argsInLoop.cannotTransform.insert(a.arg);
-
           // We need to compute the rank and element size
           // based on the operand, not the original argument,
           // because array slicing may affect it.
           std::tie(a.rank, a.size) = getRankAndElementSize(kindMap, *dl, a.arg);
           if (a.rank == 0 || a.size == 0)
             argsInLoop.cannotTransform.insert(a.arg);
+
+          // A slice is supported when it folds into the flat index, otherwise
+          // we cannot transform properly instructions referencing a.arg in the
+          // whole loop nest this loop is located in.
+          if (auto arrayCoor = mlir::dyn_cast<fir::ArrayCoorOp>(op))
+            if (arrayCoor.getSlice() &&
+                (a.rank == 0 || !getFoldableSlice(arrayCoor, a.rank)))
+              argsInLoop.cannotTransform.insert(a.arg);
 
           if (argsInLoop.cannotTransform.contains(a.arg)) {
             // Remove any previously recorded usage, if any.

@@ -152,19 +152,31 @@ func.func @sum1dfixed(%arg0: !fir.ref<!fir.array<?xf64>> {fir.bindc_name = "a"},
 // CHECK-SAME:                    %[[Y:.*]]: !fir.box<!fir.array<?xi32>> {{.*}}) {
 // Look for arith.subi to locate the correct part of code.
 // CHECK:    {{.*}} arith.subi {{.*}}
-// CHECK:    %[[ZERO:.*]] = arith.constant 0 : index
-// CHECK:     %[[DIMS:.*]]:3 = fir.box_dims %[[Y]], %[[ZERO]]
+// 'x' is sliced by the unit step section 1:extent:1, whose lower bound is the
+// array lower bound, so it folds into the flat index and contributes no
+// arithmetic at all. Both arguments are therefore versioned under one check.
+// CHECK:    %[[YDIMS:.*]]:3 = fir.box_dims %[[Y]], %{{.*}}
 // CHECK:    %[[FOUR:.*]] = arith.constant 4 : index
-// CHECK:    %[[COMP:.*]] = arith.cmpi eq, %[[DIMS]]#2, %[[FOUR]] : index
+// CHECK:    %[[YCOMP:.*]] = arith.cmpi eq, %[[YDIMS]]#2, %[[FOUR]] : index
+// CHECK:    %[[XDIMS:.*]]:3 = fir.box_dims %[[X]], %{{.*}}
+// CHECK:    %[[FOUR2:.*]] = arith.constant 4 : index
+// CHECK:    %[[XCOMP:.*]] = arith.cmpi eq, %[[XDIMS]]#2, %[[FOUR2]] : index
+// CHECK:    %[[COMP:.*]] = arith.andi %[[XCOMP]], %[[YCOMP]] : i1
 // CHECK:    fir.if %[[COMP]] {
-// CHECK:    %[[CONV:.*]]  = fir.convert %[[Y]] : {{.*}}
+// CHECK:    %[[CONV:.*]] = fir.convert %[[Y]] : {{.*}}
 // CHECK:    %[[BOX_ADDR:.*]] = fir.box_addr %[[CONV]] : {{.*}}
+// CHECK:    %[[XCONV:.*]] = fir.convert %[[X]] : {{.*}}
+// CHECK:    %[[XBOX_ADDR:.*]] = fir.box_addr %[[XCONV]] : {{.*}}
 // CHECK:    fir.do_loop %[[INDEX:.*]] = {{.*}}
-// CHECK:    %[[YADDR:.*]] = fir.coordinate_of %[[BOX_ADDR]], %[[INDEX]]
-// CHECK:    %[[YINT:.*]] = fir.load %[[YADDR]] : {{.*}}
-// CHECK:    %[[YINDEX:.*]] = fir.convert %[[YINT]]
-// CHECK:    %[[XADDR:.*]] = fir.array_coor %[[X]] [%{{.*}}] %[[YINDEX]]
-// CHECK:    fir.call @Func(%[[XADDR]])
+// CHECK:      %[[YADDR:.*]] = fir.coordinate_of %[[BOX_ADDR]], %[[INDEX]]
+// CHECK-NEXT: %[[YINT:.*]] = fir.load %[[YADDR]] : {{.*}}
+// CHECK-NEXT: %[[YINDEX:.*]] = fir.convert %[[YINT]] : (i32) -> index
+// 'x' is rank one: the flat index is just the zero based coordinate
+// %[[YINDEX]] - 1, with no stride scaling and no section adjustment.
+// CHECK-NEXT: %[[ONE:.*]] = arith.constant 1 : index
+// CHECK-NEXT: %[[XINDEX:.*]] = arith.subi %[[YINDEX]], %[[ONE]] : index
+// CHECK-NEXT: %[[XADDR:.*]] = fir.coordinate_of %[[XBOX_ADDR]], %[[XINDEX]]
+// CHECK-NEXT: fir.call @Func(%[[XADDR]])
 // CHECK-NEXT: }
 // CHECK-NEXT: } else {
 // CHECK:    fir.do_loop %[[INDEX2:.*]] = {{.*}}
@@ -1303,10 +1315,103 @@ func.func @_QPtest_slice(%arg0: !fir.box<!fir.array<?x?xf32>> {fir.bindc_name = 
   fir.store %2#1 to %0 : !fir.ref<i32>
   return
 }
+// Both slice dimensions are supported: dimension zero is a scalar coordinate
+// (its triple has an undefined upper bound) and dimension one is the section
+// 3:5:1. The checks below spell out every operand of the index computation.
 // CHECK-LABEL:   func.func @_QPtest_slice(
-// CHECK-NOT: fir.if
+// CHECK-SAME:        %[[X:[^:]*]]: !fir.box<!fir.array<?x?xf32>>
+// CHECK:    %[[C3:.*]] = arith.constant 3 : index
+// CHECK:    %[[C5:.*]] = arith.constant 5 : index
+// CHECK:    %[[C1:.*]] = arith.constant 1 : index
+// CHECK:    %[[DIM0:.*]]:3 = fir.box_dims %[[X]], %{{.*}}
+// CHECK:    %[[DIM1:.*]]:3 = fir.box_dims %[[X]], %{{.*}}
+// CHECK:    %[[FOUR:.*]] = arith.constant 4 : index
+// CHECK:    %[[COMP:.*]] = arith.cmpi eq, %[[DIM0]]#2, %[[FOUR]] : index
+// CHECK:    fir.if %[[COMP]] -> (index, i32) {
+// CHECK:      %[[BOX_ADDR:.*]] = fir.box_addr %{{.*}} : {{.*}}
+// The slice triples: dimension zero has an undefined upper bound, so it is a
+// scalar coordinate, and dimension one is the section 3:5:1. The scalar
+// subscript reaches fir.array_coor as that dimension's index operand, not
+// through the lower bound of its triple.
+// CHECK:      %[[UNDEF:.*]] = fir.undefined index
+// CHECK-NEXT: %[[SCALARSUB:.*]] = fir.convert %{{.*}} : (i32) -> index
+// CHECK-NEXT: fir.slice %{{.*}}, %[[UNDEF]], %[[UNDEF]], %[[C3]], %[[C5]], %[[C1]] :
+// CHECK:      fir.do_loop %[[IV:.*]] = %{{.*}} to %{{.*}} step
+// The section index operand runs over the section, one based.
+// CHECK-NEXT: %[[SECIDX:.*]] = arith.addi %[[IV]], %{{.*}} : index
+// Dimension one: (index - lb) + (sliceLb - lb) = (%[[SECIDX]] - 1) + (3 - 1),
+// scaled by the dimension one byte stride.
+// CHECK-NEXT: %[[ONE:.*]] = arith.constant 1 : index
+// CHECK-NEXT: %[[ZEROBASED:.*]] = arith.subi %[[SECIDX]], %[[ONE]] : index
+// CHECK-NEXT: %[[SECADJ:.*]] = arith.constant 2 : index
+// CHECK-NEXT: %[[ADJUSTED:.*]] = arith.addi %[[ZEROBASED]], %[[SECADJ]] : index
+// CHECK-NEXT: %[[SCALED:.*]] = arith.muli %[[DIM1]]#2, %[[ADJUSTED]] : index
+// Dimension zero: the scalar subscript contributes (index - lb), and is not
+// scaled because the fast edge proves its byte stride is the element size.
+// CHECK-NEXT: %[[ONE2:.*]] = arith.constant 1 : index
+// CHECK-NEXT: %[[SCALARCOOR:.*]] = arith.subi %[[SCALARSUB]], %[[ONE2]] : index
+// The outer byte offset is converted back to an element count before being
+// added to the dimension zero coordinate.
+// CHECK-NEXT: %[[LOG2ELEM:.*]] = arith.constant 2 : index
+// CHECK-NEXT: %[[ELEMS:.*]] = arith.shrsi %[[SCALED]], %[[LOG2ELEM]] : index
+// CHECK-NEXT: %[[FLAT:.*]] = arith.addi %[[ELEMS]], %[[SCALARCOOR]] : index
+// CHECK-NEXT: %[[ADDR:.*]] = fir.coordinate_of %[[BOX_ADDR]], %[[FLAT]]
+// CHECK-NEXT: fir.store %{{.*}} to %[[ADDR]]
+// The generic path keeps the original sliced fir.array_coor.
+// CHECK:  } else {
+// CHECK:    fir.array_coor %[[X]] [%{{.*}}] %{{.*}}, %{{.*}} : (!fir.box<!fir.array<?x?xf32>>, !fir.slice<2>, index, index) -> !fir.ref<f32>
 
-// ! Verify versioning for argument 'x' but not for 'y':
+// -----
+
+// ! Verify that a slice with a step that is not statically one is not
+// ! versioned, since the pass only folds unit step sections into the index:
+// subroutine test_slice_nonunit_step(x, step)
+//   real :: x(:,:)
+//   integer :: step
+//   do i=10,100
+//     x(3:5:step, i) = 2.0
+//   end do
+// end subroutine test_slice_nonunit_step
+func.func @_QPtest_slice_nonunit_step(%arg0: !fir.box<!fir.array<?x?xf32>> {fir.bindc_name = "x"}, %arg1: !fir.ref<i32> {fir.bindc_name = "step"}) {
+  %c10 = arith.constant 10 : index
+  %c100 = arith.constant 100 : index
+  %c3 = arith.constant 3 : index
+  %c2 = arith.constant 2 : index
+  %c5 = arith.constant 5 : index
+  %cst = arith.constant 2.000000e+00 : f32
+  %c0 = arith.constant 0 : index
+  %c1 = arith.constant 1 : index
+  %0 = fir.alloca i32 {bindc_name = "i", uniq_name = "_QFtest_slice_nonunit_stepEi"}
+  %1 = fir.convert %c10 : (index) -> i32
+  %2:2 = fir.do_loop %arg2 = %c10 to %c100 step %c1 iter_args(%arg3 = %1) -> (index, i32) {
+    fir.store %arg3 to %0 : !fir.ref<i32>
+    %3 = fir.load %0 : !fir.ref<i32>
+    %4 = fir.convert %3 : (i32) -> i64
+    %5 = fir.undefined index
+    %6 = fir.convert %3 : (i32) -> index
+    %7 = fir.load %arg1 : !fir.ref<i32>
+    %8 = fir.convert %7 : (i32) -> index
+    %9 = fir.slice %c3, %c5, %8, %4, %5, %5 : (index, index, index, i64, index, index) -> !fir.slice<2>
+    %10 = fir.undefined !fir.array<?x?xf32>
+    %11 = fir.do_loop %arg4 = %c0 to %c2 step %c1 unordered iter_args(%arg5 = %10) -> (!fir.array<?x?xf32>) {
+      %14 = arith.addi %arg4, %c1 : index
+      %15 = fir.array_coor %arg0 [%9] %14, %6 : (!fir.box<!fir.array<?x?xf32>>, !fir.slice<2>, index, index) -> !fir.ref<f32>
+      fir.store %cst to %15 : !fir.ref<f32>
+      fir.result %10 : !fir.array<?x?xf32>
+    }
+    %12 = arith.addi %arg2, %c1 : index
+    %13 = fir.convert %c1 : (index) -> i32
+    fir.result %12, %13 : index, i32
+  }
+  fir.store %2#1 to %0 : !fir.ref<i32>
+  return
+}
+// No contiguity check is emitted, and the sliced access is left untouched.
+// CHECK-LABEL:   func.func @_QPtest_slice_nonunit_step(
+// CHECK-NOT: fir.if
+// CHECK: fir.array_coor %{{.*}} [%{{.*}}] %{{.*}}, %{{.*}} : (!fir.box<!fir.array<?x?xf32>>, !fir.slice<2>, index, index) -> !fir.ref<f32>
+
+// ! Verify versioning for argument 'x' and for the unit-step slice of 'y':
 // subroutine test_independent_args(x, y)
 //   real :: x(:,:), y(:,:)
 //   do i=10,100
@@ -1363,7 +1468,30 @@ func.func @_QPtest_independent_args(%arg0: !fir.box<!fir.array<?x?xf32>> {fir.bi
 // CHECK:           %[[VAL_19:.*]] = arith.constant 4 : index
 // CHECK:           %[[VAL_20:.*]] = arith.cmpi eq, %[[VAL_16]]#2, %[[VAL_19]] : index
 // CHECK:           %[[VAL_21:.*]]:2 = fir.if %[[VAL_20]] -> (index, i32) {
-// CHECK-NOT: fir.if
+// The slice of 'y' has a unit step, so its own loop is versioned separately,
+// under a check on 'y' only.
+// CHECK:           %[[YSUB:.*]] = fir.convert %{{.*}} : (i32) -> index
+// CHECK:           %[[YDIM0:.*]]:3 = fir.box_dims %[[VAL_1]], %{{.*}}
+// CHECK:           %[[YDIM1:.*]]:3 = fir.box_dims %[[VAL_1]], %{{.*}}
+// CHECK:           %[[YFOUR:.*]] = arith.constant 4 : index
+// CHECK:           %[[YCOMP:.*]] = arith.cmpi eq, %[[YDIM0]]#2, %[[YFOUR]] : index
+// CHECK:           fir.if %[[YCOMP]] -> (!fir.array<?x?xf32>) {
+// CHECK:             %[[YADDR:.*]] = fir.box_addr %{{.*}} : {{.*}}
+// CHECK:             fir.do_loop %[[YIV:.*]] = %{{.*}} to %{{.*}} step
+// Same shape as @_QPtest_slice: (secIdx - 1) + (3 - 1) scaled by the
+// dimension one stride, plus the scalar coordinate (i - 1) of dimension zero.
+// CHECK-NEXT:        %[[YSECIDX:.*]] = arith.addi %[[YIV]], %{{.*}} : index
+// CHECK-NEXT:        %[[YONE:.*]] = arith.constant 1 : index
+// CHECK-NEXT:        %[[YZB:.*]] = arith.subi %[[YSECIDX]], %[[YONE]] : index
+// CHECK-NEXT:        %[[YSECADJ:.*]] = arith.constant 2 : index
+// CHECK-NEXT:        %[[YADJ:.*]] = arith.addi %[[YZB]], %[[YSECADJ]] : index
+// CHECK-NEXT:        %[[YSCALED:.*]] = arith.muli %[[YDIM1]]#2, %[[YADJ]] : index
+// CHECK-NEXT:        %[[YONE2:.*]] = arith.constant 1 : index
+// CHECK-NEXT:        %[[YCOOR:.*]] = arith.subi %[[YSUB]], %[[YONE2]] : index
+// CHECK-NEXT:        %[[YLOG2:.*]] = arith.constant 2 : index
+// CHECK-NEXT:        %[[YELEMS:.*]] = arith.shrsi %[[YSCALED]], %[[YLOG2]] : index
+// CHECK-NEXT:        %[[YFLAT:.*]] = arith.addi %[[YELEMS]], %[[YCOOR]] : index
+// CHECK-NEXT:        fir.coordinate_of %[[YADDR]], %[[YFLAT]]
 
 
 // ! Verify that the whole loop nest is versioned
