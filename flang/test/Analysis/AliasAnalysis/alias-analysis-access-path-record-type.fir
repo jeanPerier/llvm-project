@@ -1,0 +1,420 @@
+// Tests for access paths in fir::AliasAnalysis through views that change the
+// type of the addressed object: CLASS views of objects of extended types,
+// SELECT TYPE, storage association, and sequence association.
+
+// RUN: fir-opt %s -split-input-file -o /dev/null --mlir-disable-threading  \
+// RUN:   -pass-pipeline='builtin.module(func.func(test-fir-alias-analysis))' \
+// RUN:   2>&1 | FileCheck -match-full-lines %s
+
+// -----
+
+// A CLASS(t1) view of an object of extended type t2, as created when a
+// type-bound procedure with a CLASS(t1) passed-object dummy is inlined.
+// view_a is obj%t1%a(1) reached through the view.
+
+// CHECK-LABEL: Testing : "_QPparent_view"
+// CHECK-DAG: direct_a#0 <-> direct_b#0: NoAlias
+// CHECK-DAG: direct_a#0 <-> view_a#0: MayAlias
+// CHECK-DAG: direct_b#0 <-> view_a#0: NoAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!t2 = !fir.type<_QMmTt2{t1:!t1,b:f32}>
+func.func @_QPparent_view() {
+  %c1 = arith.constant 1 : index
+  %c4 = arith.constant 4 : index
+  %sh = fir.shape %c4 : (index) -> !fir.shape<1>
+  %0 = fir.alloca !t2 {bindc_name = "obj", uniq_name = "_QFparent_viewEobj"}
+  %obj = fir.declare %0 uniq_name("_QFparent_viewEobj") : (!fir.ref<!t2>) -> !fir.ref<!t2>
+  %parent = fir.coordinate_of %obj, t1 : (!fir.ref<!t2>) -> !fir.ref<!t1>
+  %pa = fir.coordinate_of %parent, a : (!fir.ref<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  %direct_a = fir.array_coor %pa(%sh) %c1 {test.ptr = "direct_a"} : (!fir.ref<!fir.array<4xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  %direct_b = fir.coordinate_of %obj, b {test.ptr = "direct_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  %box = fir.embox %obj : (!fir.ref<!t2>) -> !fir.box<!t2>
+  %view = fir.convert %box : (!fir.box<!t2>) -> !fir.class<!t1>
+  %ds = fir.dummy_scope : !fir.dscope
+  %this = fir.declare %view dummy_scope %ds arg 1 uniq_name("_QMmFgetEthis") : (!fir.class<!t1>, !fir.dscope) -> !fir.class<!t1>
+  %va = fir.coordinate_of %this, a : (!fir.class<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  %view_a = fir.array_coor %va(%sh) %c1 {test.ptr = "view_a"} : (!fir.ref<!fir.array<4xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// CLASS(t1) array views of an array of objects of extended type t2.
+
+// CHECK-LABEL: Testing : "_QParray_view"
+// CHECK-DAG: direct_a#0 <-> direct_b#0: NoAlias
+// CHECK-DAG: direct_a#0 <-> view_a#0: MayAlias
+// CHECK-DAG: direct_b#0 <-> view_a#0: NoAlias
+// CHECK-DAG: direct_a#0 <-> rebox_a#0: MayAlias
+// CHECK-DAG: direct_b#0 <-> rebox_a#0: NoAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!t2 = !fir.type<_QMmTt2{t1:!t1,b:f32}>
+func.func @_QParray_view(%i: index) {
+  %c10 = arith.constant 10 : index
+  %sh = fir.shape %c10 : (index) -> !fir.shape<1>
+  %0 = fir.alloca !fir.array<10x!t2> {bindc_name = "arr", uniq_name = "_QFarray_viewEarr"}
+  %arr = fir.declare %0(%sh) uniq_name("_QFarray_viewEarr") : (!fir.ref<!fir.array<10x!t2>>, !fir.shape<1>) -> !fir.ref<!fir.array<10x!t2>>
+  %elt = fir.array_coor %arr(%sh) %i : (!fir.ref<!fir.array<10x!t2>>, !fir.shape<1>, index) -> !fir.ref<!t2>
+  %direct_a = fir.coordinate_of %elt, t1, a {test.ptr = "direct_a"} : (!fir.ref<!t2>) -> !fir.ref<!fir.array<4xf32>>
+  %direct_b = fir.coordinate_of %elt, b {test.ptr = "direct_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  %box = fir.embox %arr(%sh) : (!fir.ref<!fir.array<10x!t2>>, !fir.shape<1>) -> !fir.box<!fir.array<10x!t2>>
+  %view = fir.convert %box : (!fir.box<!fir.array<10x!t2>>) -> !fir.class<!fir.array<?x!t1>>
+  %velt = fir.array_coor %view %i : (!fir.class<!fir.array<?x!t1>>, index) -> !fir.ref<!t1>
+  %view_a = fir.coordinate_of %velt, a {test.ptr = "view_a"} : (!fir.ref<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  %rebox = fir.rebox %box : (!fir.box<!fir.array<10x!t2>>) -> !fir.class<!fir.array<?x!t1>>
+  %relt = fir.array_coor %rebox %i : (!fir.class<!fir.array<?x!t1>>, index) -> !fir.ref<!t1>
+  %rebox_a = fir.coordinate_of %relt, a {test.ptr = "rebox_a"} : (!fir.ref<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  return
+}
+
+// -----
+
+// A CLASS(t1) view of an object of type t3, which extends t2, which extends
+// t1. view_a is obj%t2%t1%a.
+
+// CHECK-LABEL: Testing : "_QPtwo_level"
+// CHECK-DAG: direct_a#0 <-> view_a#0: MayAlias
+// CHECK-DAG: direct_b#0 <-> view_a#0: NoAlias
+// CHECK-DAG: direct_c#0 <-> view_a#0: NoAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!t2 = !fir.type<_QMmTt2{t1:!t1,b:f32}>
+!t3 = !fir.type<_QMmTt3{t2:!t2,c:f32}>
+func.func @_QPtwo_level() {
+  %0 = fir.alloca !t3 {bindc_name = "obj", uniq_name = "_QFtwo_levelEobj"}
+  %obj = fir.declare %0 uniq_name("_QFtwo_levelEobj") : (!fir.ref<!t3>) -> !fir.ref<!t3>
+  %direct_a = fir.coordinate_of %obj, t2, t1, a {test.ptr = "direct_a"} : (!fir.ref<!t3>) -> !fir.ref<!fir.array<4xf32>>
+  %direct_b = fir.coordinate_of %obj, t2, b {test.ptr = "direct_b"} : (!fir.ref<!t3>) -> !fir.ref<f32>
+  %direct_c = fir.coordinate_of %obj, c {test.ptr = "direct_c"} : (!fir.ref<!t3>) -> !fir.ref<f32>
+  %box = fir.embox %obj : (!fir.ref<!t3>) -> !fir.box<!t3>
+  %view = fir.convert %box : (!fir.box<!t3>) -> !fir.class<!t1>
+  %view_a = fir.coordinate_of %view, a {test.ptr = "view_a"} : (!fir.class<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  return
+}
+
+// -----
+
+// SELECT TYPE with TYPE IS (t2) on the CLASS(t1) view of an object of type
+// t2, as created when the type-bound procedure is inlined. The selector
+// addresses the whole object again, so view_b is obj%b, and view_a is
+// obj%t1%a.
+
+// CHECK-LABEL: Testing : "_QPup_down"
+// CHECK-DAG: direct_a#0 <-> view_b#0: NoAlias
+// CHECK-DAG: direct_b#0 <-> view_b#0: MayAlias
+// CHECK-DAG: direct_a#0 <-> view_a#0: MayAlias
+// CHECK-DAG: direct_b#0 <-> view_a#0: NoAlias
+// CHECK-DAG: view_b#0 <-> view_a#0: NoAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!t2 = !fir.type<_QMmTt2{t1:!t1,b:f32}>
+func.func @_QPup_down() {
+  %0 = fir.alloca !t2 {bindc_name = "obj", uniq_name = "_QFup_downEobj"}
+  %obj = fir.declare %0 uniq_name("_QFup_downEobj") : (!fir.ref<!t2>) -> !fir.ref<!t2>
+  %direct_a = fir.coordinate_of %obj, t1, a {test.ptr = "direct_a"} : (!fir.ref<!t2>) -> !fir.ref<!fir.array<4xf32>>
+  %direct_b = fir.coordinate_of %obj, b {test.ptr = "direct_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  %box = fir.embox %obj : (!fir.ref<!t2>) -> !fir.box<!t2>
+  %view = fir.convert %box : (!fir.box<!t2>) -> !fir.class<!t1>
+  %ds = fir.dummy_scope : !fir.dscope
+  %this = fir.declare %view dummy_scope %ds arg 1 uniq_name("_QMmFgetEthis") : (!fir.class<!t1>, !fir.dscope) -> !fir.class<!t1>
+  %addr = fir.box_addr %this : (!fir.class<!t1>) -> !fir.ref<!t2>
+  %sel = fir.declare %addr uniq_name("_QMmFgetEsel") : (!fir.ref<!t2>) -> !fir.ref<!t2>
+  %view_b = fir.coordinate_of %sel, b {test.ptr = "view_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  %view_a = fir.coordinate_of %sel, t1, a {test.ptr = "view_a"} : (!fir.ref<!t2>) -> !fir.ref<!fir.array<4xf32>>
+  return
+}
+
+// -----
+
+// SELECT TYPE with TYPE IS (t2) on a CLASS(t1) dummy:
+//   select type (sel => this)
+//   type is (t2)
+//     ... sel%a ... this%a ... sel%b
+// sel%a and this%a are the same component. this%a and sel%b are disjoint.
+
+// CHECK-LABEL: Testing : "_QPsel"
+// CHECK-DAG: this_a#0 <-> sel_a#0: MayAlias
+// CHECK-DAG: this_a#0 <-> sel_b#0: NoAlias
+// CHECK-DAG: sel_a#0 <-> sel_b#0: NoAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!t2 = !fir.type<_QMmTt2{t1:!t1,b:f32}>
+func.func @_QPsel(%arg0: !fir.class<!t1> {fir.bindc_name = "this"}) {
+  %c4 = arith.constant 4 : index
+  %sh = fir.shape %c4 : (index) -> !fir.shape<1>
+  %ds = fir.dummy_scope : !fir.dscope
+  %this:2 = hlfir.declare %arg0 dummy_scope %ds arg 1 uniq_name("_QFselEthis") : (!fir.class<!t1>, !fir.dscope) -> (!fir.class<!t1>, !fir.class<!t1>)
+  %addr = fir.box_addr %this#1 : (!fir.class<!t1>) -> !fir.ref<!t2>
+  %sel:2 = hlfir.declare %addr uniq_name("_QFselEsel") : (!fir.ref<!t2>) -> (!fir.ref<!t2>, !fir.ref<!t2>)
+  %this_a = hlfir.designate %this#0{"a"} shape %sh {test.ptr = "this_a"} : (!fir.class<!t1>, !fir.shape<1>) -> !fir.ref<!fir.array<4xf32>>
+  %parent = hlfir.designate %sel#0{"t1"} : (!fir.ref<!t2>) -> !fir.ref<!t1>
+  %sel_a = hlfir.designate %parent{"a"} shape %sh {test.ptr = "sel_a"} : (!fir.ref<!t1>, !fir.shape<1>) -> !fir.ref<!fir.array<4xf32>>
+  %sel_b = hlfir.designate %sel#0{"b"} {test.ptr = "sel_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// SELECT TYPE with TYPE IS (child) on a CLASS(base) dummy, where the
+// selector is accessed through the parent component:
+//   select type (a => this)
+//   type is (child)
+//     this%v(1:3) = a%base%v(2:4)
+// The two sections overlap.
+
+// CHECK-LABEL: Testing : "_QMmPshift"
+// CHECK-DAG: this_v#0 <-> a_v#0: MayAlias
+
+!base = !fir.type<_QMmTbase{v:!fir.array<4xf32>}>
+!child = !fir.type<_QMmTchild{base:!base,extra:!fir.array<4xf32>}>
+func.func @_QMmPshift(%arg0: !fir.class<!base> {fir.bindc_name = "this"}) {
+  %c1 = arith.constant 1 : index
+  %c2 = arith.constant 2 : index
+  %c3 = arith.constant 3 : index
+  %c4 = arith.constant 4 : index
+  %0 = fir.dummy_scope : !fir.dscope
+  %1:2 = hlfir.declare %arg0 dummy_scope %0 arg 1 uniq_name("_QMmFshiftEthis") : (!fir.class<!base>, !fir.dscope) -> (!fir.class<!base>, !fir.class<!base>)
+  %2 = fir.box_addr %1#1 : (!fir.class<!base>) -> !fir.ref<!child>
+  %3:2 = hlfir.declare %2 uniq_name("_QMmFshiftEa") : (!fir.ref<!child>) -> (!fir.ref<!child>, !fir.ref<!child>)
+  %4 = fir.shape %c4 : (index) -> !fir.shape<1>
+  %5 = fir.shape %c3 : (index) -> !fir.shape<1>
+  %6 = hlfir.designate %1#0{"v"} <%4> (%c1:%c3:%c1)  shape %5 {test.ptr = "this_v"} : (!fir.class<!base>, !fir.shape<1>, index, index, index, !fir.shape<1>) -> !fir.ref<!fir.array<3xf32>>
+  %7 = hlfir.designate %3#0{"base"}   : (!fir.ref<!child>) -> !fir.ref<!base>
+  %8 = hlfir.designate %7{"v"} <%4> (%c2:%c4:%c1)  shape %5 {test.ptr = "a_v"} : (!fir.ref<!base>, !fir.shape<1>, index, index, index, !fir.shape<1>) -> !fir.ref<!fir.array<3xf32>>
+  return
+}
+
+// -----
+
+// The same SELECT TYPE after conversion to FIR and inlining into a caller
+// (two dummy scopes).
+
+// CHECK-LABEL: Testing : "_QMmPshift_inlined"
+// CHECK-DAG: this_v#0 <-> a_v#0: MayAlias
+
+!base = !fir.type<_QMmTbase{v:!fir.array<4xf32>}>
+!child = !fir.type<_QMmTchild{base:!base,extra:!fir.array<4xf32>}>
+func.func @_QMmPshift_inlined(%arg0: !fir.class<!base> {fir.bindc_name = "this"}, %i: index) {
+  %c4 = arith.constant 4 : index
+  %sh = fir.shape %c4 : (index) -> !fir.shape<1>
+  %caller_scope = fir.dummy_scope : !fir.dscope
+  %ds = fir.dummy_scope : !fir.dscope
+  %this = fir.declare %arg0 dummy_scope %ds arg 1 uniq_name("_QMmFshiftEthis") : (!fir.class<!base>, !fir.dscope) -> !fir.class<!base>
+  %2 = fir.box_addr %this : (!fir.class<!base>) -> !fir.ref<!child>
+  %a = fir.declare %2 uniq_name("_QMmFshiftEa") : (!fir.ref<!child>) -> !fir.ref<!child>
+  %tv = fir.coordinate_of %this, v : (!fir.class<!base>) -> !fir.ref<!fir.array<4xf32>>
+  %this_v = fir.array_coor %tv(%sh) %i {test.ptr = "this_v"} : (!fir.ref<!fir.array<4xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  %av = fir.coordinate_of %a, base, v : (!fir.ref<!child>) -> !fir.ref<!fir.array<4xf32>>
+  %a_v = fir.array_coor %av(%sh) %i {test.ptr = "a_v"} : (!fir.ref<!fir.array<4xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// CLASS(*) views of an object of type t2, and SELECT TYPE on them with
+// TYPE IS (t2) (view_b is obj%b) and CLASS IS (t1) (view_a is obj%t1%a).
+
+// CHECK-LABEL: Testing : "_QPunlimited"
+// CHECK-DAG: direct_a#0 <-> view_b#0: NoAlias
+// CHECK-DAG: direct_b#0 <-> view_b#0: MayAlias
+// CHECK-DAG: direct_a#0 <-> view_a#0: MayAlias
+// CHECK-DAG: direct_b#0 <-> view_a#0: NoAlias
+// CHECK-DAG: view_b#0 <-> view_a#0: NoAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!t2 = !fir.type<_QMmTt2{t1:!t1,b:f32}>
+func.func @_QPunlimited() {
+  %0 = fir.alloca !t2 {bindc_name = "obj", uniq_name = "_QFunlimitedEobj"}
+  %obj = fir.declare %0 uniq_name("_QFunlimitedEobj") : (!fir.ref<!t2>) -> !fir.ref<!t2>
+  %direct_a = fir.coordinate_of %obj, t1, a {test.ptr = "direct_a"} : (!fir.ref<!t2>) -> !fir.ref<!fir.array<4xf32>>
+  %direct_b = fir.coordinate_of %obj, b {test.ptr = "direct_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  %box = fir.embox %obj : (!fir.ref<!t2>) -> !fir.box<!t2>
+  %any = fir.convert %box : (!fir.box<!t2>) -> !fir.class<none>
+  %addr = fir.box_addr %any : (!fir.class<none>) -> !fir.ref<!t2>
+  %view_b = fir.coordinate_of %addr, b {test.ptr = "view_b"} : (!fir.ref<!t2>) -> !fir.ref<f32>
+  %cls = fir.convert %any : (!fir.class<none>) -> !fir.class<!t1>
+  %view_a = fir.coordinate_of %cls, a {test.ptr = "view_a"} : (!fir.class<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  return
+}
+
+// -----
+
+// EQUIVALENCE of variables of different sequence types:
+//   type(s1) :: x   ! components a, b
+//   type(s2) :: y   ! components c, d
+//   equivalence (x, y)
+// x%b and y%d are the same memory. The components of x are still disjoint.
+
+// CHECK-LABEL: Testing : "_QPequiv"
+// CHECK-DAG: x_a#0 <-> y_d#0: MayAlias
+// CHECK-DAG: x_a#0 <-> x_b#0: NoAlias
+// CHECK-DAG: y_d#0 <-> x_b#0: MayAlias
+
+!s1 = !fir.type<_QFequivTs1,sequence{a:f32,b:f32}>
+!s2 = !fir.type<_QFequivTs2,sequence{c:f32,d:f32}>
+func.func @_QPequiv() {
+  %c0 = arith.constant 0 : index
+  %0 = fir.alloca !fir.array<8xi8> {uniq_name = "_QFequivEx"}
+  %1 = fir.coordinate_of %0, %c0 : (!fir.ref<!fir.array<8xi8>>, index) -> !fir.ref<i8>
+  %2 = fir.convert %1 : (!fir.ref<i8>) -> !fir.ptr<!s1>
+  %x = fir.declare %2 storage(%0[0]) uniq_name("_QFequivEx") : (!fir.ptr<!s1>, !fir.ref<!fir.array<8xi8>>) -> !fir.ptr<!s1>
+  %3 = fir.coordinate_of %0, %c0 : (!fir.ref<!fir.array<8xi8>>, index) -> !fir.ref<i8>
+  %4 = fir.convert %3 : (!fir.ref<i8>) -> !fir.ptr<!s2>
+  %y = fir.declare %4 storage(%0[0]) uniq_name("_QFequivEy") : (!fir.ptr<!s2>, !fir.ref<!fir.array<8xi8>>) -> !fir.ptr<!s2>
+  %x_a = fir.coordinate_of %x, a {test.ptr = "x_a"} : (!fir.ptr<!s1>) -> !fir.ref<f32>
+  %y_d = fir.coordinate_of %y, d {test.ptr = "y_d"} : (!fir.ptr<!s2>) -> !fir.ref<f32>
+  %x_b = fir.coordinate_of %x, b {test.ptr = "x_b"} : (!fir.ptr<!s1>) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// EQUIVALENCE of arrays of the same sequence type at different offsets:
+//   type(s1) :: x(2), y(2)   ! components a, b
+//   real :: z(4)
+//   equivalence (x(1), z(1)), (y(1), z(2))
+// x(1)%b and y(1)%a are the same memory.
+
+// CHECK-LABEL: Testing : "_QPequiv_shift"
+// CHECK-DAG: x_b#0 <-> y_a#0: MayAlias
+
+!s1 = !fir.type<_QFequiv_shiftTs1,sequence{a:f32,b:f32}>
+func.func @_QPequiv_shift() {
+  %c0 = arith.constant 0 : index
+  %c1 = arith.constant 1 : index
+  %c2 = arith.constant 2 : index
+  %c4 = arith.constant 4 : index
+  %0 = fir.alloca !fir.array<20xi8> {uniq_name = "_QFequiv_shiftEx"}
+  %sh = fir.shape %c2 : (index) -> !fir.shape<1>
+  %1 = fir.coordinate_of %0, %c0 : (!fir.ref<!fir.array<20xi8>>, index) -> !fir.ref<i8>
+  %2 = fir.convert %1 : (!fir.ref<i8>) -> !fir.ptr<!fir.array<2x!s1>>
+  %x = fir.declare %2(%sh) storage(%0[0]) uniq_name("_QFequiv_shiftEx") : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, !fir.ref<!fir.array<20xi8>>) -> !fir.ptr<!fir.array<2x!s1>>
+  %3 = fir.coordinate_of %0, %c4 : (!fir.ref<!fir.array<20xi8>>, index) -> !fir.ref<i8>
+  %4 = fir.convert %3 : (!fir.ref<i8>) -> !fir.ptr<!fir.array<2x!s1>>
+  %y = fir.declare %4(%sh) storage(%0[4]) uniq_name("_QFequiv_shiftEy") : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, !fir.ref<!fir.array<20xi8>>) -> !fir.ptr<!fir.array<2x!s1>>
+  %x1 = fir.array_coor %x(%sh) %c1 : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, index) -> !fir.ref<!s1>
+  %x_b = fir.coordinate_of %x1, b {test.ptr = "x_b"} : (!fir.ref<!s1>) -> !fir.ref<f32>
+  %y1 = fir.array_coor %y(%sh) %c1 : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, index) -> !fir.ref<!s1>
+  %y_a = fir.coordinate_of %y1, a {test.ptr = "y_a"} : (!fir.ref<!s1>) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// The same EQUIVALENCE as in _QPequiv_shift after inlining, so that the
+// declarations of x and y are compared by the scope-aware refinement.
+
+// CHECK-LABEL: Testing : "_QPequiv_shift_scopes"
+// CHECK-DAG: x_b#0 <-> y_a#0: MayAlias
+
+!s1 = !fir.type<_QFequiv_shift_scopesTs1,sequence{a:f32,b:f32}>
+func.func @_QPequiv_shift_scopes() {
+  %c0 = arith.constant 0 : index
+  %c1 = arith.constant 1 : index
+  %c2 = arith.constant 2 : index
+  %c4 = arith.constant 4 : index
+  %ds = fir.dummy_scope : !fir.dscope
+  %0 = fir.alloca !fir.array<20xi8> {uniq_name = "_QFequiv_shift_scopesEx"}
+  %sh = fir.shape %c2 : (index) -> !fir.shape<1>
+  %1 = fir.coordinate_of %0, %c0 : (!fir.ref<!fir.array<20xi8>>, index) -> !fir.ref<i8>
+  %2 = fir.convert %1 : (!fir.ref<i8>) -> !fir.ptr<!fir.array<2x!s1>>
+  %x = fir.declare %2(%sh) storage(%0[0]) uniq_name("_QFequiv_shift_scopesEx") : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, !fir.ref<!fir.array<20xi8>>) -> !fir.ptr<!fir.array<2x!s1>>
+  %3 = fir.coordinate_of %0, %c4 : (!fir.ref<!fir.array<20xi8>>, index) -> !fir.ref<i8>
+  %4 = fir.convert %3 : (!fir.ref<i8>) -> !fir.ptr<!fir.array<2x!s1>>
+  %y = fir.declare %4(%sh) storage(%0[4]) uniq_name("_QFequiv_shift_scopesEy") : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, !fir.ref<!fir.array<20xi8>>) -> !fir.ptr<!fir.array<2x!s1>>
+  %ds_inlined = fir.dummy_scope : !fir.dscope
+  %x1 = fir.array_coor %x(%sh) %c1 : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, index) -> !fir.ref<!s1>
+  %x_b = fir.coordinate_of %x1, b {test.ptr = "x_b"} : (!fir.ref<!s1>) -> !fir.ref<f32>
+  %y1 = fir.array_coor %y(%sh) %c1 : (!fir.ptr<!fir.array<2x!s1>>, !fir.shape<1>, index) -> !fir.ref<!s1>
+  %y_a = fir.coordinate_of %y1, a {test.ptr = "y_a"} : (!fir.ref<!s1>) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// The same SEQUENCE type declared in two scopes is the same Fortran type,
+// but two different FIR record types. After inlining, the actual argument
+// obj%s (of the caller's type) is accessed through the dummy y (of the
+// callee's type): obj%s%a and y%a are the same memory.
+
+// CHECK-LABEL: Testing : "_QPsame_sequence_type"
+// CHECK-DAG: x_a#0 <-> y_a#0: MayAlias
+// CHECK-DAG: x_a#0 <-> y_b#0: MayAlias
+// CHECK-DAG: y_a#0 <-> y_b#0: NoAlias
+
+!sa = !fir.type<_QFcallerTs,sequence{a:f32,b:f32}>
+!sb = !fir.type<_QFcalleeTs,sequence{a:f32,b:f32}>
+!w = !fir.type<_QFcallerTw{s:!sa,z:f32}>
+func.func @_QPsame_sequence_type() {
+  %caller_scope = fir.dummy_scope : !fir.dscope
+  %0 = fir.alloca !w {bindc_name = "obj", uniq_name = "_QFEobj"}
+  %obj = fir.declare %0 uniq_name("_QFEobj") : (!fir.ref<!w>) -> !fir.ref<!w>
+  %x = fir.coordinate_of %obj, s : (!fir.ref<!w>) -> !fir.ref<!sa>
+  %x_a = fir.coordinate_of %obj, s, a {test.ptr = "x_a"} : (!fir.ref<!w>) -> !fir.ref<f32>
+  %actual = fir.convert %x : (!fir.ref<!sa>) -> !fir.ref<!sb>
+  %ds = fir.dummy_scope : !fir.dscope
+  %y = fir.declare %actual dummy_scope %ds arg 1 uniq_name("_QFcalleeEy") : (!fir.ref<!sb>, !fir.dscope) -> !fir.ref<!sb>
+  %y_a = fir.coordinate_of %y, a {test.ptr = "y_a"} : (!fir.ref<!sb>) -> !fir.ref<f32>
+  %y_b = fir.coordinate_of %y, b {test.ptr = "y_b"} : (!fir.ref<!sb>) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// Sequence association of an element of a component after inlining:
+//   type r
+//     real :: c(10), d(10)
+//   end type
+//   call foo(obj%c(1), n)     ! subroutine foo(x, n); real :: x(n)
+//   ... obj%d(j) ...
+// x(i) is obj%c(i), which cannot overlap obj%d(j).
+
+// CHECK-LABEL: Testing : "_QPsequence_association"
+// CHECK-DAG: x_i#0 <-> obj_d_j#0: NoAlias
+
+!r = !fir.type<_QMmTr{c:!fir.array<10xf32>,d:!fir.array<10xf32>}>
+func.func @_QPsequence_association(%n: index, %i: index, %j: index) {
+  %c1 = arith.constant 1 : index
+  %c10 = arith.constant 10 : index
+  %sh10 = fir.shape %c10 : (index) -> !fir.shape<1>
+  %ds_caller = fir.dummy_scope : !fir.dscope
+  %0 = fir.alloca !r {bindc_name = "obj", uniq_name = "_QFsequence_associationEobj"}
+  %obj = fir.declare %0 uniq_name("_QFsequence_associationEobj") : (!fir.ref<!r>) -> !fir.ref<!r>
+  %c = fir.coordinate_of %obj, c : (!fir.ref<!r>) -> !fir.ref<!fir.array<10xf32>>
+  %c_1 = fir.array_coor %c(%sh10) %c1 : (!fir.ref<!fir.array<10xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  %actual = fir.convert %c_1 : (!fir.ref<f32>) -> !fir.ref<!fir.array<?xf32>>
+  %ds = fir.dummy_scope : !fir.dscope
+  %shn = fir.shape %n : (index) -> !fir.shape<1>
+  %x = fir.declare %actual(%shn) dummy_scope %ds arg 1 uniq_name("_QFfooEx") : (!fir.ref<!fir.array<?xf32>>, !fir.shape<1>, !fir.dscope) -> !fir.ref<!fir.array<?xf32>>
+  %x_i = fir.array_coor %x(%shn) %i {test.ptr = "x_i"} : (!fir.ref<!fir.array<?xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  %d = fir.coordinate_of %obj, d : (!fir.ref<!r>) -> !fir.ref<!fir.array<10xf32>>
+  %d_j = fir.array_coor %d(%sh10) %j {test.ptr = "obj_d_j"} : (!fir.ref<!fir.array<10xf32>>, !fir.shape<1>, index) -> !fir.ref<f32>
+  return
+}
+
+// -----
+
+// A pointer component descriptor reinterpreted as a descriptor of data of
+// an unrelated type.
+
+// CHECK-LABEL: Testing : "_QPdescriptor_cast"
+// CHECK-DAG: direct_a#0 <-> cast_y#0: MayAlias
+
+!t1 = !fir.type<_QMmTt1{a:!fir.array<4xf32>}>
+!u = !fir.type<_QMmTu{x:f32,y:f32}>
+!h = !fir.type<_QMmTh{p:!fir.box<!fir.ptr<!t1>>,k:f32}>
+func.func @_QPdescriptor_cast() {
+  %0 = fir.alloca !h {bindc_name = "obj", uniq_name = "_QFdescriptor_castEobj"}
+  %obj = fir.declare %0 uniq_name("_QFdescriptor_castEobj") : (!fir.ref<!h>) -> !fir.ref<!h>
+  %p = fir.coordinate_of %obj, p : (!fir.ref<!h>) -> !fir.ref<!fir.box<!fir.ptr<!t1>>>
+  %pbox = fir.load %p : !fir.ref<!fir.box<!fir.ptr<!t1>>>
+  %paddr = fir.box_addr %pbox : (!fir.box<!fir.ptr<!t1>>) -> !fir.ptr<!t1>
+  %direct_a = fir.coordinate_of %paddr, a {test.ptr = "direct_a"} : (!fir.ptr<!t1>) -> !fir.ref<!fir.array<4xf32>>
+  %cast = fir.convert %p : (!fir.ref<!fir.box<!fir.ptr<!t1>>>) -> !fir.ref<!fir.box<!fir.ptr<!u>>>
+  %cbox = fir.load %cast : !fir.ref<!fir.box<!fir.ptr<!u>>>
+  %caddr = fir.box_addr %cbox : (!fir.box<!fir.ptr<!u>>) -> !fir.ptr<!u>
+  %cast_y = fir.coordinate_of %caddr, y {test.ptr = "cast_y"} : (!fir.ptr<!u>) -> !fir.ref<f32>
+  return
+}
