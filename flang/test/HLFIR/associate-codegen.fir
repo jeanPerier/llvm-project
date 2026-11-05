@@ -68,43 +68,54 @@ func.func @associate_char(%arg0: !fir.boxchar<1> ) {
 }
 
 // CHECK-LABEL:   func.func @associate_char(
-// CHECK-SAME:                              %[[VAL_0:.*]]: !fir.boxchar<1>) {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK:           %[[VAL_2:.*]]:2 = fir.unboxchar %[[VAL_0]] : (!fir.boxchar<1>) -> (!fir.ref<!fir.char<1,?>>, index)
-// CHECK:           %[[VAL_3:.*]]:2 = hlfir.declare %[[VAL_2]]#0 typeparams %[[VAL_2]]#1 uniq_name("x") : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
-// CHECK:           %[[VAL_4:.*]] = arith.addi %[[VAL_2]]#1, %[[VAL_1]] : index
-// CHECK:           %[[VAL_5:.*]] = fir.undefined !fir.ref<!fir.char<1>>
-// CHECK:           %[[VAL_6:.*]]:2 = hlfir.declare %[[VAL_5]] typeparams %[[VAL_1]] uniq_name("char_literal") fortran_attrs<parameter> : (!fir.ref<!fir.char<1>>, index) -> (!fir.ref<!fir.char<1>>, !fir.ref<!fir.char<1>>)
-// CHECK:           %[[VAL_7:.*]] = arith.addi %[[VAL_2]]#1, %[[VAL_1]] : index
-// CHECK:           %[[VAL_8:.*]] = fir.alloca !fir.char<1,?>(%[[VAL_7]] : index) <{bindc_name = ".chrtmp"}>
-// CHECK:           %[[VAL_9:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_10:.*]] = fir.convert %[[VAL_2]]#1 : (index) -> i64
-// CHECK:           %[[VAL_11:.*]] = arith.muli %[[VAL_9]], %[[VAL_10]] : i64
-// CHECK:           %[[VAL_13:.*]] = fir.convert %[[VAL_8]] : (!fir.ref<!fir.char<1,?>>) -> !llvm.ptr
-// CHECK:           %[[VAL_14:.*]] = fir.convert %[[VAL_3]]#1 : (!fir.ref<!fir.char<1,?>>) -> !llvm.ptr
-// CHECK:           "llvm.intr.memmove"(%[[VAL_13]], %[[VAL_14]], %[[VAL_11]]) <{isVolatile = false}> : (!llvm.ptr, !llvm.ptr, i64) -> ()
-// CHECK:           %[[VAL_15:.*]] = arith.constant 1 : index
-// CHECK:           %[[VAL_16:.*]] = arith.subi %[[VAL_7]], %[[VAL_15]] : index
-// CHECK:           fir.do_loop %[[VAL_17:.*]] = %[[VAL_2]]#1 to %[[VAL_16]] step %[[VAL_15]] {
-// CHECK:             %[[VAL_18:.*]] = arith.subi %[[VAL_17]], %[[VAL_2]]#1 : index
-// CHECK:             %[[VAL_19:.*]] = fir.convert %[[VAL_6]]#0 : (!fir.ref<!fir.char<1>>) -> !fir.ref<!fir.array<1x!fir.char<1>>>
-// CHECK:             %[[VAL_20:.*]] = fir.coordinate_of %[[VAL_19]], %[[VAL_18]] : (!fir.ref<!fir.array<1x!fir.char<1>>>, index) -> !fir.ref<!fir.char<1>>
-// CHECK:             %[[VAL_21:.*]] = fir.load %[[VAL_20]] : !fir.ref<!fir.char<1>>
-// CHECK:             %[[VAL_22:.*]] = fir.convert %[[VAL_8]] : (!fir.ref<!fir.char<1,?>>) -> !fir.ref<!fir.array<?x!fir.char<1>>>
-// CHECK:             %[[VAL_23:.*]] = fir.coordinate_of %[[VAL_22]], %[[VAL_17]] : (!fir.ref<!fir.array<?x!fir.char<1>>>, index) -> !fir.ref<!fir.char<1>>
-// CHECK:             fir.store %[[VAL_21]] to %[[VAL_23]] : !fir.ref<!fir.char<1>>
-// CHECK:           }
-// CHECK:           %[[VAL_24:.*]]:2 = hlfir.declare %[[VAL_8]] typeparams %[[VAL_7]] uniq_name("tmp") : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
-// CHECK:           %[[VAL_25:.*]] = arith.constant false
-// CHECK:           %[[VAL_26:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_27:.*]] = fir.insert_value %[[VAL_26]], %[[VAL_25]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_28:.*]] = fir.insert_value %[[VAL_27]], %[[VAL_24]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_29:.*]] = hlfir.no_reassoc %[[VAL_24]]#0 : !fir.boxchar<1>
-// CHECK:           %[[VAL_30:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_31:.*]] = fir.insert_value %[[VAL_30]], %[[VAL_25]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_32:.*]] = fir.insert_value %[[VAL_31]], %[[VAL_29]], [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_33:.*]] = fir.box_addr %[[VAL_29]] : (!fir.boxchar<1>) -> !fir.ref<!fir.char<1,?>>
-// CHECK:           fir.call @take_c(%[[VAL_29]]) : (!fir.boxchar<1>) -> ()
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !fir.boxchar<1>) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : index
+// CHECK:           %[[UNBOXCHAR_0:.*]]:2 = fir.unboxchar %[[ARG0]] : (!fir.boxchar<1>) -> (!fir.ref<!fir.char<1,?>>, index)
+// CHECK:           %[[DECLARE_0:.*]]:2 = hlfir.declare %[[UNBOXCHAR_0]]#0 typeparams %[[UNBOXCHAR_0]]#1 uniq_name("x") : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[UNBOXCHAR_0]]#1, %[[CONSTANT_0]] : index
+// CHECK:           %[[UNDEFINED_0:.*]] = fir.undefined !fir.ref<!fir.char<1>>
+// CHECK:           %[[DECLARE_1:.*]]:2 = hlfir.declare %[[UNDEFINED_0]] typeparams %[[CONSTANT_0]] uniq_name("char_literal") fortran_attrs<parameter> : (!fir.ref<!fir.char<1>>, index) -> (!fir.ref<!fir.char<1>>, !fir.ref<!fir.char<1>>)
+// CHECK:           %[[ALLOCMEM_0:.*]] = fir.allocmem !fir.char<1,?>(%[[ADDI_0]] : index) <{bindc_name = ".chrtmp", uniq_name = ""}>
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : index
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 1 : index
+// CHECK:           %[[ADDI_1:.*]] = arith.addi %[[CONSTANT_1]], %[[CONSTANT_2]] : index
+// CHECK:           %[[SUBI_0:.*]] = arith.subi %[[ADDI_1]], %[[CONSTANT_2]] : index
+// CHECK:           %[[CONVERT_0:.*]] = fir.convert %[[ALLOCMEM_0]] : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.array<?x!fir.char<1>>>
+// CHECK:           %[[COORDINATE_OF_0:.*]] = fir.coordinate_of %[[CONVERT_0]], %[[SUBI_0]] : (!fir.ref<!fir.array<?x!fir.char<1>>>, index) -> !fir.ref<!fir.char<1>>
+// CHECK:           %[[CONVERT_1:.*]] = fir.convert %[[COORDINATE_OF_0]] : (!fir.ref<!fir.char<1>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONVERT_2:.*]] = fir.convert %[[UNBOXCHAR_0]]#1 : (index) -> i64
+// CHECK:           %[[MULI_0:.*]] = arith.muli %[[CONSTANT_3]], %[[CONVERT_2]] : i64
+// CHECK:           %[[CONVERT_3:.*]] = fir.convert %[[CONVERT_1]] : (!fir.ref<!fir.char<1,?>>) -> !llvm.ptr
+// CHECK:           %[[CONVERT_4:.*]] = fir.convert %[[DECLARE_0]]#1 : (!fir.ref<!fir.char<1,?>>) -> !llvm.ptr
+// CHECK:           "llvm.intr.memmove"(%[[CONVERT_3]], %[[CONVERT_4]], %[[MULI_0]]) <{isVolatile = false}> : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// CHECK:           %[[ADDI_2:.*]] = arith.addi %[[CONSTANT_1]], %[[UNBOXCHAR_0]]#1 : index
+// CHECK:           %[[ADDI_3:.*]] = arith.addi %[[ADDI_2]], %[[CONSTANT_2]] : index
+// CHECK:           %[[SUBI_1:.*]] = arith.subi %[[ADDI_3]], %[[CONSTANT_2]] : index
+// CHECK:           %[[CONVERT_5:.*]] = fir.convert %[[ALLOCMEM_0]] : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.array<?x!fir.char<1>>>
+// CHECK:           %[[COORDINATE_OF_1:.*]] = fir.coordinate_of %[[CONVERT_5]], %[[SUBI_1]] : (!fir.ref<!fir.array<?x!fir.char<1>>>, index) -> !fir.ref<!fir.char<1>>
+// CHECK:           %[[CONVERT_6:.*]] = fir.convert %[[COORDINATE_OF_1]] : (!fir.ref<!fir.char<1>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONVERT_7:.*]] = fir.convert %[[CONSTANT_0]] : (index) -> i64
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[CONSTANT_4]], %[[CONVERT_7]] : i64
+// CHECK:           %[[CONVERT_8:.*]] = fir.convert %[[CONVERT_6]] : (!fir.ref<!fir.char<1,?>>) -> !llvm.ptr
+// CHECK:           %[[CONVERT_9:.*]] = fir.convert %[[DECLARE_1]]#0 : (!fir.ref<!fir.char<1>>) -> !llvm.ptr
+// CHECK:           "llvm.intr.memmove"(%[[CONVERT_8]], %[[CONVERT_9]], %[[MULI_1]]) <{isVolatile = false}> : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// CHECK:           %[[ADDI_4:.*]] = arith.addi %[[ADDI_2]], %[[CONSTANT_0]] : index
+// CHECK:           %[[CONVERT_10:.*]] = fir.convert %[[ALLOCMEM_0]] : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:           %[[DECLARE_2:.*]]:2 = hlfir.declare %[[CONVERT_10]] typeparams %[[ADDI_0]] uniq_name("tmp") : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant true
+// CHECK:           %[[UNDEFINED_1:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_0:.*]] = fir.insert_value %[[UNDEFINED_1]], %[[CONSTANT_5]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_1:.*]] = fir.insert_value %[[INSERT_VALUE_0]], %[[DECLARE_2]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[NO_REASSOC_0:.*]] = hlfir.no_reassoc %[[DECLARE_2]]#0 : !fir.boxchar<1>
+// CHECK:           %[[UNDEFINED_2:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_2:.*]] = fir.insert_value %[[UNDEFINED_2]], %[[CONSTANT_5]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_3:.*]] = fir.insert_value %[[INSERT_VALUE_2]], %[[NO_REASSOC_0]], [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[BOX_ADDR_0:.*]] = fir.box_addr %[[NO_REASSOC_0]] : (!fir.boxchar<1>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:           fir.call @take_c(%[[NO_REASSOC_0]]) : (!fir.boxchar<1>) -> ()
+// CHECK:           %[[CONVERT_11:.*]] = fir.convert %[[BOX_ADDR_0]] : (!fir.ref<!fir.char<1,?>>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:           fir.freemem %[[CONVERT_11]] : !fir.heap<!fir.char<1,?>>
 // CHECK:           return
 // CHECK:         }
 
@@ -337,38 +348,45 @@ func.func @_QPtest_multiple_expr_uses_inside_elemental() {
     %42 = fir.convert %ci1 : (i1) -> !fir.logical<4>
     hlfir.yield_element %42 : !fir.logical<4>
   }
+  hlfir.destroy %23 : !hlfir.expr<?x!fir.logical<4>>
+  hlfir.destroy %20 : !hlfir.expr<!fir.char<1,?>>
   return
 }
 // CHECK-LABEL:   func.func @_QPtest_multiple_expr_uses_inside_elemental() {
-// CHECK:           %[[VAL_2:.*]] = arith.constant true
-// CHECK:           %[[VAL_3:.*]] = fir.undefined !fir.heap<!fir.char<1,?>>
-// CHECK:           %[[VAL_4:.*]] = fir.undefined index
-// CHECK:           %[[VAL_5:.*]]:2 = hlfir.declare %[[VAL_3]] typeparams %[[VAL_4]] uniq_name(".tmp.intrinsic_result") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
-// CHECK:           %[[VAL_6:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_7:.*]] = fir.insert_value %[[VAL_6]], %[[VAL_2]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_8:.*]] = fir.insert_value %[[VAL_7]], %[[VAL_5]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:           %[[VAL_9:.*]] = fir.undefined index
-// CHECK:           %[[VAL_10:.*]] = fir.shape %[[VAL_9]] : (index) -> !fir.shape<1>
-// CHECK:           %[[VAL_11:.*]] = fir.allocmem !fir.array<?x!fir.logical<4>>, %[[VAL_9]] <{bindc_name = ".tmp.array", uniq_name = ""}>
-// CHECK:           %[[VAL_12:.*]]:2 = hlfir.declare %[[VAL_11]](%[[VAL_10]]) uniq_name(".tmp.array") : (!fir.heap<!fir.array<?x!fir.logical<4>>>, !fir.shape<1>) -> (!fir.box<!fir.array<?x!fir.logical<4>>>, !fir.heap<!fir.array<?x!fir.logical<4>>>)
-// CHECK:           %[[VAL_13:.*]] = arith.constant true
-// CHECK:           %[[VAL_14:.*]] = arith.constant 1 : index
-// CHECK:           fir.do_loop %[[VAL_15:.*]] = %[[VAL_14]] to %[[VAL_9]] step %[[VAL_14]] unordered {
-// CHECK:             %[[VAL_16:.*]] = fir.alloca !fir.char<1,?>(%[[VAL_4]] : index) <{bindc_name = ".tmp"}>
-// CHECK:             %[[VAL_18:.*]]:2 = hlfir.declare %[[VAL_16]] typeparams %[[VAL_4]] uniq_name(".tmp") : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
-// CHECK:             hlfir.assign %[[VAL_5]]#0 to %[[VAL_18]]#0 temporary_lhs : !fir.boxchar<1>, !fir.boxchar<1>
-// CHECK:             %[[VAL_17:.*]] = arith.constant false
-// CHECK:             %[[VAL_19:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
-// CHECK:             %[[VAL_20:.*]] = fir.insert_value %[[VAL_19]], %[[VAL_17]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:             %[[VAL_21:.*]] = fir.insert_value %[[VAL_20]], %[[VAL_18]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:             %[[VAL_22:.*]] = arith.constant true
-// CHECK:             %[[VAL_23:.*]] = fir.convert %[[VAL_22]] : (i1) -> !fir.logical<4>
-// CHECK:             %[[VAL_24:.*]] = hlfir.designate %[[VAL_12]]#0 (%[[VAL_15]])  : (!fir.box<!fir.array<?x!fir.logical<4>>>, index) -> !fir.ref<!fir.logical<4>>
-// CHECK:             hlfir.assign %[[VAL_23]] to %[[VAL_24]] temporary_lhs : !fir.logical<4>, !fir.ref<!fir.logical<4>>
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant true
+// CHECK:           %[[UNDEFINED_0:.*]] = fir.undefined !fir.heap<!fir.char<1,?>>
+// CHECK:           %[[UNDEFINED_1:.*]] = fir.undefined index
+// CHECK:           %[[DECLARE_0:.*]]:2 = hlfir.declare %[[UNDEFINED_0]] typeparams %[[UNDEFINED_1]] uniq_name(".tmp.intrinsic_result") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
+// CHECK:           %[[UNDEFINED_2:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_0:.*]] = fir.insert_value %[[UNDEFINED_2]], %[[CONSTANT_0]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_1:.*]] = fir.insert_value %[[INSERT_VALUE_0]], %[[DECLARE_0]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[UNDEFINED_3:.*]] = fir.undefined index
+// CHECK:           %[[SHAPE_0:.*]] = fir.shape %[[UNDEFINED_3]] : (index) -> !fir.shape<1>
+// CHECK:           %[[ALLOCMEM_0:.*]] = fir.allocmem !fir.array<?x!fir.logical<4>>, %[[UNDEFINED_3]] <{bindc_name = ".tmp.array", uniq_name = ""}>
+// CHECK:           %[[DECLARE_1:.*]]:2 = hlfir.declare %[[ALLOCMEM_0]](%[[SHAPE_0]]) uniq_name(".tmp.array") : (!fir.heap<!fir.array<?x!fir.logical<4>>>, !fir.shape<1>) -> (!fir.box<!fir.array<?x!fir.logical<4>>>, !fir.heap<!fir.array<?x!fir.logical<4>>>)
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant true
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 1 : index
+// CHECK:           fir.do_loop %[[VAL_0:.*]] = %[[CONSTANT_2]] to %[[UNDEFINED_3]] step %[[CONSTANT_2]] unordered {
+// CHECK:             %[[ALLOCMEM_1:.*]] = fir.allocmem !fir.char<1,?>(%[[UNDEFINED_1]] : index) <{bindc_name = ".tmp", uniq_name = ""}>
+// CHECK:             %[[DECLARE_2:.*]]:2 = hlfir.declare %[[ALLOCMEM_1]] typeparams %[[UNDEFINED_1]] uniq_name(".tmp") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
+// CHECK:             hlfir.assign %[[DECLARE_0]]#0 to %[[DECLARE_2]]#0 temporary_lhs : !fir.boxchar<1>, !fir.boxchar<1>
+// CHECK:             %[[CONSTANT_3:.*]] = arith.constant true
+// CHECK:             %[[UNDEFINED_4:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_2:.*]] = fir.insert_value %[[UNDEFINED_4]], %[[CONSTANT_3]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_3:.*]] = fir.insert_value %[[INSERT_VALUE_2]], %[[DECLARE_2]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[CONVERT_0:.*]] = fir.convert %[[DECLARE_2]]#1 : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:             %[[CONVERT_1:.*]] = fir.convert %[[CONVERT_0]] : (!fir.ref<!fir.char<1,?>>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:             fir.freemem %[[CONVERT_1]] : !fir.heap<!fir.char<1,?>>
+// CHECK:             %[[CONSTANT_4:.*]] = arith.constant true
+// CHECK:             %[[CONVERT_2:.*]] = fir.convert %[[CONSTANT_4]] : (i1) -> !fir.logical<4>
+// CHECK:             %[[DESIGNATE_0:.*]] = hlfir.designate %[[DECLARE_1]]#0 (%[[VAL_0]])  : (!fir.box<!fir.array<?x!fir.logical<4>>>, index) -> !fir.ref<!fir.logical<4>>
+// CHECK:             hlfir.assign %[[CONVERT_2]] to %[[DESIGNATE_0]] temporary_lhs : !fir.logical<4>, !fir.ref<!fir.logical<4>>
 // CHECK:           }
-// CHECK:           %[[VAL_25:.*]] = fir.undefined tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>
-// CHECK:           %[[VAL_26:.*]] = fir.insert_value %[[VAL_25]], %[[VAL_13]], [1 : index] : (tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>, i1) -> tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>
-// CHECK:           %[[VAL_27:.*]] = fir.insert_value %[[VAL_26]], %[[VAL_12]]#0, [0 : index] : (tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>, !fir.box<!fir.array<?x!fir.logical<4>>>) -> tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>
+// CHECK:           %[[UNDEFINED_5:.*]] = fir.undefined tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>
+// CHECK:           %[[INSERT_VALUE_4:.*]] = fir.insert_value %[[UNDEFINED_5]], %[[CONSTANT_1]], [1 : index] : (tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>, i1) -> tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>
+// CHECK:           %[[INSERT_VALUE_5:.*]] = fir.insert_value %[[INSERT_VALUE_4]], %[[DECLARE_1]]#0, [0 : index] : (tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>, !fir.box<!fir.array<?x!fir.logical<4>>>) -> tuple<!fir.box<!fir.array<?x!fir.logical<4>>>, i1>
+// CHECK:           %[[BOX_ADDR_0:.*]] = fir.box_addr %[[DECLARE_0]]#0 : (!fir.boxchar<1>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:           fir.freemem %[[BOX_ADDR_0]] : !fir.heap<!fir.char<1,?>>
 // CHECK:           return
 // CHECK:         }
 

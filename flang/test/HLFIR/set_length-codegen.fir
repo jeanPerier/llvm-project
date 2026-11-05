@@ -19,15 +19,20 @@ func.func @test_cst_len(%str : !fir.boxchar<1>) {
 
 func.func @test_dyn_len(%str : !fir.ref<!fir.char<1,10>>, %len : index) {
   %0 = hlfir.set_length %str len %len : (!fir.ref<!fir.char<1,10>>, index) -> !hlfir.expr<!fir.char<1,?>>
+  hlfir.destroy %0 : !hlfir.expr<!fir.char<1,?>>
   return
 }
 // CHECK-LABEL:   func.func @test_dyn_len(
-// CHECK-SAME:    %[[VAL_0:.*]]: !fir.ref<!fir.char<1,10>>,
-// CHECK-SAME:    %[[VAL_1:.*]]: index) {
-// CHECK:  %[[VAL_2:.*]] = fir.alloca !fir.char<1,?>(%[[VAL_1]] : index) <{bindc_name = ".tmp"}>
-// CHECK:  %[[VAL_3:.*]]:2 = hlfir.declare %[[VAL_2]] typeparams %[[VAL_1]] uniq_name(".tmp") : (!fir.ref<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.ref<!fir.char<1,?>>)
-// CHECK:  hlfir.assign %[[VAL_0]] to %[[VAL_3]]#0 temporary_lhs : !fir.ref<!fir.char<1,10>>, !fir.boxchar<1>
-// CHECK:  %[[VAL_4:.*]] = arith.constant false
-// CHECK:  %[[VAL_5:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
-// CHECK:  %[[VAL_6:.*]] = fir.insert_value %[[VAL_5]], %[[VAL_4]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
-// CHECK:  %[[VAL_7:.*]] = fir.insert_value %[[VAL_6]], %[[VAL_3]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !fir.ref<!fir.char<1,10>>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: index) {
+// CHECK:           %[[ALLOCMEM_0:.*]] = fir.allocmem !fir.char<1,?>(%[[ARG1]] : index) <{bindc_name = ".tmp", uniq_name = ""}>
+// CHECK:           %[[DECLARE_0:.*]]:2 = hlfir.declare %[[ALLOCMEM_0]] typeparams %[[ARG1]] uniq_name(".tmp") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
+// CHECK:           hlfir.assign %[[ARG0]] to %[[DECLARE_0]]#0 temporary_lhs : !fir.ref<!fir.char<1,10>>, !fir.boxchar<1>
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant true
+// CHECK:           %[[UNDEFINED_0:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_0:.*]] = fir.insert_value %[[UNDEFINED_0]], %[[CONSTANT_0]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_1:.*]] = fir.insert_value %[[INSERT_VALUE_0]], %[[DECLARE_0]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[BOX_ADDR_0:.*]] = fir.box_addr %[[DECLARE_0]]#0 : (!fir.boxchar<1>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:           fir.freemem %[[BOX_ADDR_0]] : !fir.heap<!fir.char<1,?>>
+// CHECK:           return
+// CHECK:         }

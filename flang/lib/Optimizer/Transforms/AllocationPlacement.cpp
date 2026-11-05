@@ -193,9 +193,15 @@ void AllocationPlacementPass::runOnOperation() {
         return;
     }
 
-    // Only array allocations are considered.
+    // Character expression buffers carry explicit lifetimes, just like array
+    // temporaries, but retain their historical preference for stack storage
+    // independently of the array size policy. Only move them when the shared
+    // analysis can prove that their stack storage is safely reclaimed.
     mlir::Type inTy = alloca ? alloca.getInType() : allocmem.getAllocatedType();
-    if (!mlir::isa<fir::SequenceType>(inTy))
+    bool isCharacter = mlir::isa<fir::CharacterType>(inTy);
+    if (isCharacter && (alloca || !isTemporaryAllocation(op)))
+      return;
+    if (!isCharacter && !mlir::isa<fir::SequenceType>(inTy))
       return;
 
     fir::AllocationInfo info;

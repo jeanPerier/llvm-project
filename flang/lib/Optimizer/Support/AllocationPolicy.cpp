@@ -12,6 +12,7 @@
 
 #include "flang/Optimizer/Support/AllocationPolicy.h"
 #include "flang/Optimizer/Dialect/FIRAttr.h"
+#include "flang/Optimizer/Dialect/FIROps.h"
 #include "flang/Optimizer/Dialect/FIROpsSupport.h"
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -133,6 +134,14 @@ fir::decideAllocationPlacement(const AllocationInfo &info,
                                const AllocationPolicy &basePolicy,
                                std::size_t stackBytesUsed) {
   using P = fir::AllocationPlacement;
+  // Scalar character expression buffers retain their historical stack
+  // preference independently of the array size policy. Device regions keep
+  // heap storage, and the caller still has to prove the lifetime is safe.
+  if (auto allocmem = mlir::dyn_cast_if_present<fir::AllocMemOp>(info.op))
+    if (info.isTemporary &&
+        mlir::isa<fir::CharacterType>(allocmem.getAllocatedType()))
+      return fir::isInOffloadRegion(info.context) ? P::Leave : P::Stack;
+
   AllocationPolicy policy = policyFor(info, basePolicy);
 
   // An allocation that is not known to be dynamic but whose size cannot be

@@ -256,7 +256,7 @@ func.func @test_char_array_static_len(%cond: i1, %a: !fir.ref<!fir.array<3x!fir.
 
 // --- Test 8: Scalar character (dynamic length) ---
 // tempBaseType is !fir.boxchar<1>. A non-move as_expr copies the yielded
-// variable into a stack temp (mustFree=false).
+// variable into a heap temp (mustFree=true).
 func.func @test_scalar_char_dynamic(%cond: i1, %a: !fir.boxchar<1>, %b: !fir.boxchar<1>) {
   %0 = hlfir.conditional %cond : (i1) -> !hlfir.expr<!fir.char<1,?>> {
     hlfir.yield %a : !fir.boxchar<1>
@@ -266,19 +266,42 @@ func.func @test_scalar_char_dynamic(%cond: i1, %a: !fir.boxchar<1>, %b: !fir.box
   hlfir.destroy %0 : !hlfir.expr<!fir.char<1,?>>
   return
 }
-// CHECK-LABEL: func.func @test_scalar_char_dynamic(
-// CHECK-SAME:    %[[COND:.*]]: i1, %[[A:.*]]: !fir.boxchar<1>, %[[B:.*]]: !fir.boxchar<1>)
-// CHECK:       %[[IF:.*]]:2 = fir.if %[[COND]] -> (!fir.boxchar<1>, i1) {
-// CHECK:         %[[T1:.*]]:2 = hlfir.declare %{{.*}} typeparams %{{.*}} uniq_name(".tmp")
-// CHECK:         hlfir.assign %[[A]] to %[[T1]]#0 temporary_lhs
-// CHECK:         %[[FALSE1:.*]] = arith.constant false
-// CHECK:         fir.result %[[T1]]#0, %[[FALSE1]] : !fir.boxchar<1>, i1
-// CHECK:       } else {
-// CHECK:         %[[T2:.*]]:2 = hlfir.declare %{{.*}} typeparams %{{.*}} uniq_name(".tmp")
-// CHECK:         hlfir.assign %[[B]] to %[[T2]]#0 temporary_lhs
-// CHECK:         %[[FALSE2:.*]] = arith.constant false
-// CHECK:         fir.result %[[T2]]#0, %[[FALSE2]] : !fir.boxchar<1>, i1
-// CHECK:       }
+// CHECK-LABEL:   func.func @test_scalar_char_dynamic(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i1,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !fir.boxchar<1>,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !fir.boxchar<1>) {
+// CHECK:           %[[IF_0:.*]]:2 = fir.if %[[ARG0]] -> (!fir.boxchar<1>, i1) {
+// CHECK:             %[[UNBOXCHAR_0:.*]]:2 = fir.unboxchar %[[ARG1]] : (!fir.boxchar<1>) -> (!fir.ref<!fir.char<1,?>>, index)
+// CHECK:             %[[ALLOCMEM_0:.*]] = fir.allocmem !fir.char<1,?>(%[[UNBOXCHAR_0]]#1 : index) <{bindc_name = ".tmp", uniq_name = ""}>
+// CHECK:             %[[DECLARE_0:.*]]:2 = hlfir.declare %[[ALLOCMEM_0]] typeparams %[[UNBOXCHAR_0]]#1 uniq_name(".tmp") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
+// CHECK:             hlfir.assign %[[ARG1]] to %[[DECLARE_0]]#0 temporary_lhs : !fir.boxchar<1>, !fir.boxchar<1>
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant true
+// CHECK:             %[[UNDEFINED_0:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_0:.*]] = fir.insert_value %[[UNDEFINED_0]], %[[CONSTANT_0]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_1:.*]] = fir.insert_value %[[INSERT_VALUE_0]], %[[DECLARE_0]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[CONVERT_0:.*]] = fir.convert %[[DECLARE_0]]#1 : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:             fir.result %[[DECLARE_0]]#0, %[[CONSTANT_0]] : !fir.boxchar<1>, i1
+// CHECK:           } else {
+// CHECK:             %[[UNBOXCHAR_1:.*]]:2 = fir.unboxchar %[[ARG2]] : (!fir.boxchar<1>) -> (!fir.ref<!fir.char<1,?>>, index)
+// CHECK:             %[[ALLOCMEM_1:.*]] = fir.allocmem !fir.char<1,?>(%[[UNBOXCHAR_1]]#1 : index) <{bindc_name = ".tmp", uniq_name = ""}>
+// CHECK:             %[[DECLARE_1:.*]]:2 = hlfir.declare %[[ALLOCMEM_1]] typeparams %[[UNBOXCHAR_1]]#1 uniq_name(".tmp") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
+// CHECK:             hlfir.assign %[[ARG2]] to %[[DECLARE_1]]#0 temporary_lhs : !fir.boxchar<1>, !fir.boxchar<1>
+// CHECK:             %[[CONSTANT_1:.*]] = arith.constant true
+// CHECK:             %[[UNDEFINED_1:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_2:.*]] = fir.insert_value %[[UNDEFINED_1]], %[[CONSTANT_1]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_3:.*]] = fir.insert_value %[[INSERT_VALUE_2]], %[[DECLARE_1]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[CONVERT_1:.*]] = fir.convert %[[DECLARE_1]]#1 : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:             fir.result %[[DECLARE_1]]#0, %[[CONSTANT_1]] : !fir.boxchar<1>, i1
+// CHECK:           }
+// CHECK:           %[[UNDEFINED_2:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_4:.*]] = fir.insert_value %[[UNDEFINED_2]], %[[VAL_0:.*]]#1, [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_5:.*]] = fir.insert_value %[[INSERT_VALUE_4]], %[[VAL_0]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           fir.if %[[VAL_0]]#1 {
+// CHECK:             %[[BOX_ADDR_0:.*]] = fir.box_addr %[[VAL_0]]#0 : (!fir.boxchar<1>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:             fir.freemem %[[BOX_ADDR_0]] : !fir.heap<!fir.char<1,?>>
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
 
 // --- Test 9: Asymmetric branches (non-polymorphic + polymorphic) ---
 // One branch yields !fir.ref (non-polymorphic), the other !fir.class
@@ -351,24 +374,51 @@ func.func @test_forwarding_with_cleanup(%cond: i1, %arg: !fir.boxchar<1>) {
   return
 }
 func.func private @_QPfunc_alloc_char(!fir.boxchar<1>) -> !fir.box<!fir.heap<!fir.char<1,?>>>
-// CHECK-LABEL: func.func @test_forwarding_with_cleanup(
-// CHECK-SAME:    %[[COND:.*]]: i1, %[[ARG:.*]]: !fir.boxchar<1>)
-// CHECK:       %[[IF:.*]]:2 = fir.if %[[COND]] -> (!fir.boxchar<1>, i1) {
-// Forwarding: var and mustFree forwarded directly, no temp copy:
-// CHECK:         %[[HEAP:.*]] = fir.allocmem !fir.char<1,?>
-// CHECK:         fir.call @_QPfunc_alloc_char
-// CHECK:         %[[BOXCHAR:.*]] = fir.emboxchar
-// CHECK:         %[[TRUE:.*]] = arith.constant true
-// Cleanup replayed — arg temp freed:
-// CHECK:         fir.freemem %[[HEAP]]
-// CHECK:         fir.result %[[BOXCHAR]], %[[TRUE]] : !fir.boxchar<1>, i1
-// CHECK:       } else {
-// Non-forwarding: variable copied into a stack temp (mustFree=false):
-// CHECK:         %[[T:.*]]:2 = hlfir.declare %{{.*}} typeparams %{{.*}} uniq_name(".tmp")
-// CHECK:         hlfir.assign %[[ARG]] to %[[T]]#0 temporary_lhs
-// CHECK:         %[[FALSE:.*]] = arith.constant false
-// CHECK:         fir.result %[[T]]#0, %[[FALSE]] : !fir.boxchar<1>, i1
-// CHECK:       }
+// CHECK-LABEL:   func.func @test_forwarding_with_cleanup(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i1,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !fir.boxchar<1>) {
+// CHECK:           %[[ALLOCA_0:.*]] = fir.alloca !fir.box<!fir.heap<!fir.char<1,?>>> <{bindc_name = ".result"}>
+// CHECK:           %[[IF_0:.*]]:2 = fir.if %[[ARG0]] -> (!fir.boxchar<1>, i1) {
+// CHECK:             %[[CONSTANT_0:.*]] = arith.constant 10 : index
+// CHECK:             %[[ALLOCMEM_0:.*]] = fir.allocmem !fir.char<1,?>(%[[CONSTANT_0]] : index) <{uniq_name = ".tmp.arg"}>
+// CHECK:             %[[CALL_0:.*]] = fir.call @_QPfunc_alloc_char(%[[ARG1]]) : (!fir.boxchar<1>) -> !fir.box<!fir.heap<!fir.char<1,?>>>
+// CHECK:             fir.save_result %[[CALL_0]] to %[[ALLOCA_0]] : !fir.box<!fir.heap<!fir.char<1,?>>>, !fir.ref<!fir.box<!fir.heap<!fir.char<1,?>>>>
+// CHECK:             %[[LOAD_0:.*]] = fir.load %[[ALLOCA_0]] : !fir.ref<!fir.box<!fir.heap<!fir.char<1,?>>>>
+// CHECK:             %[[BOX_ADDR_0:.*]] = fir.box_addr %[[LOAD_0]] : (!fir.box<!fir.heap<!fir.char<1,?>>>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:             %[[BOX_ELESIZE_0:.*]] = fir.box_elesize %[[LOAD_0]] : (!fir.box<!fir.heap<!fir.char<1,?>>>) -> index
+// CHECK:             %[[EMBOXCHAR_0:.*]] = fir.emboxchar %[[BOX_ADDR_0]], %[[BOX_ELESIZE_0]] : (!fir.heap<!fir.char<1,?>>, index) -> !fir.boxchar<1>
+// CHECK:             %[[CONSTANT_1:.*]] = arith.constant true
+// CHECK:             %[[UNDEFINED_0:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_0:.*]] = fir.insert_value %[[UNDEFINED_0]], %[[CONSTANT_1]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_1:.*]] = fir.insert_value %[[INSERT_VALUE_0]], %[[EMBOXCHAR_0]], [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[BOX_ADDR_1:.*]] = fir.box_addr %[[EMBOXCHAR_0]] : (!fir.boxchar<1>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:             fir.freemem %[[ALLOCMEM_0]] : !fir.heap<!fir.char<1,?>>
+// CHECK:             fir.result %[[EMBOXCHAR_0]], %[[CONSTANT_1]] : !fir.boxchar<1>, i1
+// CHECK:           } else {
+// CHECK:             %[[UNBOXCHAR_0:.*]]:2 = fir.unboxchar %[[ARG1]] : (!fir.boxchar<1>) -> (!fir.ref<!fir.char<1,?>>, index)
+// CHECK:             %[[ALLOCMEM_1:.*]] = fir.allocmem !fir.char<1,?>(%[[UNBOXCHAR_0]]#1 : index) <{bindc_name = ".tmp", uniq_name = ""}>
+// CHECK:             %[[DECLARE_0:.*]]:2 = hlfir.declare %[[ALLOCMEM_1]] typeparams %[[UNBOXCHAR_0]]#1 uniq_name(".tmp") : (!fir.heap<!fir.char<1,?>>, index) -> (!fir.boxchar<1>, !fir.heap<!fir.char<1,?>>)
+// CHECK:             hlfir.assign %[[ARG1]] to %[[DECLARE_0]]#0 temporary_lhs : !fir.boxchar<1>, !fir.boxchar<1>
+// CHECK:             %[[CONSTANT_2:.*]] = arith.constant true
+// CHECK:             %[[UNDEFINED_1:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_2:.*]] = fir.insert_value %[[UNDEFINED_1]], %[[CONSTANT_2]], [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[INSERT_VALUE_3:.*]] = fir.insert_value %[[INSERT_VALUE_2]], %[[DECLARE_0]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:             %[[CONVERT_0:.*]] = fir.convert %[[DECLARE_0]]#1 : (!fir.heap<!fir.char<1,?>>) -> !fir.ref<!fir.char<1,?>>
+// CHECK:             fir.result %[[DECLARE_0]]#0, %[[CONSTANT_2]] : !fir.boxchar<1>, i1
+// CHECK:           }
+// CHECK:           %[[UNDEFINED_2:.*]] = fir.undefined tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_4:.*]] = fir.insert_value %[[UNDEFINED_2]], %[[VAL_0:.*]]#1, [1 : index] : (tuple<!fir.boxchar<1>, i1>, i1) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           %[[INSERT_VALUE_5:.*]] = fir.insert_value %[[INSERT_VALUE_4]], %[[VAL_0]]#0, [0 : index] : (tuple<!fir.boxchar<1>, i1>, !fir.boxchar<1>) -> tuple<!fir.boxchar<1>, i1>
+// CHECK:           hlfir.assign %[[VAL_0]]#0 to %[[ARG1]] : !fir.boxchar<1>, !fir.boxchar<1>
+// CHECK:           fir.if %[[VAL_0]]#1 {
+// CHECK:             %[[BOX_ADDR_2:.*]] = fir.box_addr %[[VAL_0]]#0 : (!fir.boxchar<1>) -> !fir.heap<!fir.char<1,?>>
+// CHECK:             fir.freemem %[[BOX_ADDR_2]] : !fir.heap<!fir.char<1,?>>
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @_QPfunc_alloc_char(!fir.boxchar<1>) -> !fir.box<!fir.heap<!fir.char<1,?>>>
+// The expression branch forwards its buffer and mustFree flag, and replays
+// the argument cleanup. The variable branch copies into a heap temporary.
 
 // --- Test 11: Array expr from hlfir.elemental (buffer forwarding) ---
 // When a branch yields an hlfir.expr produced by hlfir.elemental, the

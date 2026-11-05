@@ -116,7 +116,7 @@ bool shouldUseStackForCopyin(
     const AllocationSizeContext &sizeContext,
     std::optional<std::int64_t> alignment = std::nullopt);
 
-/// Facts about a single existing array allocation used to decide its placement.
+/// Facts about an existing allocation used to decide its placement.
 struct AllocationInfo : PendingAllocationInfo {
   /// The allocation operation (fir.alloca or fir.allocmem).
   mlir::Operation *op = nullptr;
