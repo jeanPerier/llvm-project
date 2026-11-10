@@ -2899,8 +2899,10 @@ private:
 
     // Loops with induction variables inside OpenACC compute constructs or
     // explicit `!$acc routine` procedures need special handling to ensure that
-    // the IVs are privatized.
-    if (Fortran::lower::shouldLowerDoConstructAsAccLoop(*builder)) {
+    // the IVs are privatized. An unstructured DO owned by an unstructured
+    // acc.loop already has them privatized by that acc.loop.
+    if (Fortran::lower::shouldLowerDoConstructAsAccLoop(*builder) &&
+        !(unstructuredContext && accPlainCfgDos.contains(&doConstruct))) {
       // Open up a new scope for the loop variables.
       localSymbols.pushScope();
       llvm::scope_exit scopeGuard([&]() { localSymbols.popScope(); });
@@ -3928,13 +3930,19 @@ private:
     fir::StoreOp::create(*builder, toLocation(), zero, exitInfo.selector);
     accRegionExitStack.push_back(std::move(exitInfo));
 
-    mlir::Value exitCond = genOpenACCConstruct(
-        *this, bridge.getSemanticsContext(), getEval(), acc, localSymbols);
+    llvm::SmallVector<const Fortran::parser::DoConstruct *> plainCfgDos;
+    mlir::Value exitCond =
+        genOpenACCConstruct(*this, bridge.getSemanticsContext(), getEval(), acc,
+                            localSymbols, &plainCfgDos);
+    accPlainCfgDos.insert(plainCfgDos.begin(), plainCfgDos.end());
 
     if (getEval().hasNestedEvaluations())
       for (Fortran::lower::pft::Evaluation &e :
            getEval().getNestedEvaluations())
         genFIR(e);
+
+    for (const Fortran::parser::DoConstruct *doConstruct : plainCfgDos)
+      accPlainCfgDos.erase(doConstruct);
 
     if (!isCacheConstruct)
       localSymbols.popScope();
@@ -7335,6 +7343,11 @@ private:
     int nextId = 1;
   };
   llvm::SmallVector<AccRegionExitInfo> accRegionExitStack;
+
+  /// DOs owned by the unstructured acc.loops being lowered: they are lowered as
+  /// plain control flow in the acc.loop's region, not as acc.loops of their
+  /// own.
+  llvm::SmallPtrSet<const Fortran::parser::DoConstruct *, 4> accPlainCfgDos;
 
   /// BLOCK name mangling component map
   int blockId = 0;

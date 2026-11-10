@@ -2297,12 +2297,6 @@ void AccDataMap::remapDataOperandSymbols(
   }
 }
 
-/// DOs owned by an unstructured acc.loop. Such an acc.loop has no bounds: the
-/// DOs it owns are lowered as plain control flow in its region, using the
-/// induction variables it privatizes, instead of as acc.loops of their own.
-static llvm::SmallPtrSet<const Fortran::parser::DoConstruct *, 4>
-    doConstructsInUnstructuredLoop;
-
 using DoConstructList =
     llvm::SmallVectorImpl<const Fortran::parser::DoConstruct *>;
 
@@ -2510,6 +2504,7 @@ static mlir::acc::LoopOp createLoopOp(
     const Fortran::parser::DoConstruct &outerDoConstruct,
     Fortran::lower::pft::Evaluation &eval,
     const Fortran::parser::AccClauseList &accClauseList,
+    DoConstructList &plainCfgDos,
     std::optional<mlir::acc::CombinedConstructsType> combinedConstructs =
         std::nullopt) {
   fir::FirOpBuilder &builder = converter.getFirOpBuilder();
@@ -2793,12 +2788,14 @@ static mlir::acc::LoopOp createLoopOp(
     loopOp.setCombinedAttr(mlir::acc::CombinedConstructsTypeAttr::get(
         builder.getContext(), *combinedConstructs));
 
-  // In kernels, lowering the owned DOs of an unstructured acc.loop as plain
-  // control flow is only supported for a seq loop whose enclosing construct is
-  // lowered structurally, which keeps the seq loop's control flow contained.
+  // An unstructured acc.loop has no bounds: the DOs it owns are lowered as
+  // plain control flow in its region, using the induction variables it
+  // privatizes. In kernels, this is only supported so far for a seq loop whose
+  // enclosing construct is lowered structurally, which keeps the seq loop's
+  // control flow contained.
   if (loopOp.getUnstructured() && loopOp.hasSeq() && eval.parentConstruct &&
       !eval.parentConstruct->lowerAsUnstructured())
-    doConstructsInUnstructuredLoop.insert(ownedDos.begin(), ownedDos.end());
+    plainCfgDos.append(ownedDos.begin(), ownedDos.end());
 
   // Apply `!dir$` loop directives associated with the DO statement as a
   // discardable LLVM loop annotation attribute on the acc.loop.
@@ -2818,7 +2815,8 @@ static mlir::Value
 genACC(Fortran::lower::AbstractConverter &converter,
        Fortran::semantics::SemanticsContext &semanticsContext,
        Fortran::lower::pft::Evaluation &eval,
-       const Fortran::parser::OpenACCLoopConstruct &loopConstruct) {
+       const Fortran::parser::OpenACCLoopConstruct &loopConstruct,
+       DoConstructList &plainCfgDos) {
 
   const auto &beginLoopDirective =
       std::get<Fortran::parser::AccBeginLoopDirective>(loopConstruct.t);
@@ -2845,7 +2843,7 @@ genACC(Fortran::lower::AbstractConverter &converter,
 
   auto loopOp = createLoopOp(converter, currentLocation, semanticsContext,
                              stmtCtx, *outerDoConstruct, eval, accClauseList,
-                             /*combinedConstructs=*/{});
+                             plainCfgDos, /*combinedConstructs=*/{});
   if (loopOp.getNumResults() == 1)
     return loopOp.getResult(0);
 
@@ -3641,7 +3639,8 @@ static void
 genACC(Fortran::lower::AbstractConverter &converter,
        Fortran::semantics::SemanticsContext &semanticsContext,
        Fortran::lower::pft::Evaluation &eval,
-       const Fortran::parser::OpenACCCombinedConstruct &combinedConstruct) {
+       const Fortran::parser::OpenACCCombinedConstruct &combinedConstruct,
+       DoConstructList &plainCfgDos) {
   const auto &beginCombinedDirective =
       std::get<Fortran::parser::AccBeginCombinedDirective>(combinedConstruct.t);
   const auto &combinedDirective =
@@ -3666,21 +3665,21 @@ genACC(Fortran::lower::AbstractConverter &converter,
         converter, currentLocation, eval, semanticsContext, stmtCtx,
         accClauseList, mlir::acc::CombinedConstructsType::KernelsLoop);
     createLoopOp(converter, currentLocation, semanticsContext, stmtCtx,
-                 *outerDoConstruct, eval, accClauseList,
+                 *outerDoConstruct, eval, accClauseList, plainCfgDos,
                  mlir::acc::CombinedConstructsType::KernelsLoop);
   } else if (combinedDirective.v == llvm::acc::ACCD_parallel_loop) {
     createComputeOp<mlir::acc::ParallelOp>(
         converter, currentLocation, eval, semanticsContext, stmtCtx,
         accClauseList, mlir::acc::CombinedConstructsType::ParallelLoop);
     createLoopOp(converter, currentLocation, semanticsContext, stmtCtx,
-                 *outerDoConstruct, eval, accClauseList,
+                 *outerDoConstruct, eval, accClauseList, plainCfgDos,
                  mlir::acc::CombinedConstructsType::ParallelLoop);
   } else if (combinedDirective.v == llvm::acc::ACCD_serial_loop) {
     createComputeOp<mlir::acc::SerialOp>(
         converter, currentLocation, eval, semanticsContext, stmtCtx,
         accClauseList, mlir::acc::CombinedConstructsType::SerialLoop);
     createLoopOp(converter, currentLocation, semanticsContext, stmtCtx,
-                 *outerDoConstruct, eval, accClauseList,
+                 *outerDoConstruct, eval, accClauseList, plainCfgDos,
                  mlir::acc::CombinedConstructsType::SerialLoop);
   } else {
     llvm::report_fatal_error("Unknown combined construct encountered");
@@ -5363,9 +5362,12 @@ mlir::Value Fortran::lower::genOpenACCConstruct(
     Fortran::semantics::SemanticsContext &semanticsContext,
     Fortran::lower::pft::Evaluation &eval,
     const Fortran::parser::OpenACCConstruct &accConstruct,
-    Fortran::lower::SymMap &localSymbols) {
+    Fortran::lower::SymMap &localSymbols,
+    llvm::SmallVectorImpl<const Fortran::parser::DoConstruct *> *plainCfgDos) {
 
   mlir::Value exitCond;
+  llvm::SmallVector<const Fortran::parser::DoConstruct *> unusedPlainCfgDos;
+  DoConstructList &dos = plainCfgDos ? *plainCfgDos : unusedPlainCfgDos;
   Fortran::common::visit(
       common::visitors{
           [&](const Fortran::parser::OpenACCBlockConstruct &blockConstruct) {
@@ -5374,10 +5376,11 @@ mlir::Value Fortran::lower::genOpenACCConstruct(
           },
           [&](const Fortran::parser::OpenACCCombinedConstruct
                   &combinedConstruct) {
-            genACC(converter, semanticsContext, eval, combinedConstruct);
+            genACC(converter, semanticsContext, eval, combinedConstruct, dos);
           },
           [&](const Fortran::parser::OpenACCLoopConstruct &loopConstruct) {
-            exitCond = genACC(converter, semanticsContext, eval, loopConstruct);
+            exitCond =
+                genACC(converter, semanticsContext, eval, loopConstruct, dos);
           },
           [&](const Fortran::parser::OpenACCStandaloneConstruct
                   &standaloneConstruct) {
@@ -5397,6 +5400,8 @@ mlir::Value Fortran::lower::genOpenACCConstruct(
           },
       },
       accConstruct.u);
+  assert((plainCfgDos || unusedPlainCfgDos.empty()) &&
+         "caller must lower the reported DOs as plain control flow");
   return exitCond;
 }
 
@@ -5752,10 +5757,6 @@ mlir::Operation *Fortran::lower::genOpenACCLoopFromDoConstruct(
   // to any OpenACC directives (e.g. `kernels` ops), it is just nested inside
   // the kernels region.
   if (eval.lowerAsUnstructured()) {
-    // A DO owned by an unstructured acc.loop is lowered as plain control flow
-    // inside it; the acc.loop already privatizes the induction variable.
-    if (doConstructsInUnstructuredLoop.erase(&doConstruct))
-      return nullptr;
     if (mlir::isa_and_present<mlir::acc::KernelsOp>(
             mlir::acc::getEnclosingComputeOp(
                 converter.getFirOpBuilder().getRegion())) &&

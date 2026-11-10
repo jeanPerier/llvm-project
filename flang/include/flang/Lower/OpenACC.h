@@ -76,11 +76,14 @@ static constexpr llvm::StringRef declarePostDeallocSuffix =
 
 static constexpr llvm::StringRef privatizationRecipePrefix = "privatization";
 
-mlir::Value genOpenACCConstruct(AbstractConverter &,
-                                Fortran::semantics::SemanticsContext &,
-                                pft::Evaluation &,
-                                const parser::OpenACCConstruct &,
-                                Fortran::lower::SymMap &localSymbols);
+/// Lower \p accConstruct. When it creates an unstructured acc.loop whose DOs
+/// must be lowered as plain control flow inside it, those DOs are appended to
+/// \p plainCfgDos: the caller must not lower them as acc.loops of their own.
+mlir::Value genOpenACCConstruct(
+    AbstractConverter &, Fortran::semantics::SemanticsContext &,
+    pft::Evaluation &, const parser::OpenACCConstruct &accConstruct,
+    Fortran::lower::SymMap &localSymbols,
+    llvm::SmallVectorImpl<const parser::DoConstruct *> *plainCfgDos = nullptr);
 void genOpenACCDeclarativeConstruct(
     AbstractConverter &, Fortran::semantics::SemanticsContext &,
     StatementContext &, const parser::OpenACCDeclarativeConstruct &);
