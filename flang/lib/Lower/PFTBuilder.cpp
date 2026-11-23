@@ -141,8 +141,8 @@ public:
             },
             stmt.unwrapped.u);
       } else if constexpr (std::is_same_v<T, parser::UseStmt>) {
-        // Process USE statement for debug info generation
-        processUseStmt(stmt.unwrapped);
+        static_assert(std::is_same_v<A, lower::pft::UseStmt>);
+        addUseStmt(a);
         return false;
       }
     }
@@ -223,110 +223,17 @@ public:
     exitConstructOrDirective();
   }
 
-  /// Process USE statements for debug info generation.
-  /// Captures USE statement information and stores it in the current
-  /// FunctionLikeUnit or ModuleLikeUnit for later use.
-  void processUseStmt(const parser::UseStmt &useStmt) {
-    if (!loweringOptions.getPreserveUseDebugInfo())
+  /// Record USE statements from specification parts for the debug information
+  /// of the enclosing program unit, including specifications of BLOCK
+  /// constructs.
+  void addUseStmt(const lower::pft::UseStmt &useStmt) {
+    if (!loweringOptions.getPreserveUseDebugInfo() || interfaceBodyLevel > 0 ||
+        (currentFunctionUnit && specificationPartLevel == 0))
       return;
-
-    if (!currentFunctionUnit && !currentModuleUnit)
-      return;
-
-    // For function-like units, only process USE statements in specification
-    // part.
-    if (currentFunctionUnit && specificationPartLevel == 0)
-      return;
-
-    std::string moduleName{useStmt.moduleName.source.ToString()};
-
-    auto addUseStmt = [&](Fortran::semantics::PreservedUseStmt &&stmt) {
-      if (currentFunctionUnit)
-        currentFunctionUnit->preservedUseStmts.push_back(std::move(stmt));
-      else if (currentModuleUnit)
-        currentModuleUnit->preservedUseStmts.push_back(std::move(stmt));
-    };
-
-    if (const auto *onlyList{
-            std::get_if<std::list<parser::Only>>(&useStmt.u)}) {
-      // USE mod, ONLY: list
-      Fortran::semantics::PreservedUseStmt stmt{moduleName};
-
-      for (const auto &only : *onlyList) {
-        Fortran::common::visit(
-            Fortran::common::visitors{
-                [&](const parser::Rename &rename) {
-                  // ONLY with rename: ONLY: local => use
-                  Fortran::common::visit(
-                      Fortran::common::visitors{
-                          [&](const parser::Rename::Names &names) {
-                            std::string localName{
-                                std::get<0>(names.t).source.ToString()};
-                            stmt.renames.push_back(localName);
-                            stmt.hasOnlyWithRenames = true;
-                          },
-                          [&](const parser::Rename::Operators &) {
-                            // Operator renames - not commonly needed for debug
-                            // info
-                          },
-                      },
-                      rename.u);
-                },
-                [&](const parser::Name &name) {
-                  // ONLY without rename: ONLY: name
-                  stmt.onlyNames.push_back(name.source.ToString());
-                },
-                [&](const Fortran::common::Indirection<parser::GenericSpec>
-                        &genericSpec) {
-                  // Generic spec can contain a Name (for regular symbols) or
-                  // operators
-                  Fortran::common::visit(Fortran::common::visitors{
-                                             [&](const parser::Name &name) {
-                                               stmt.onlyNames.push_back(
-                                                   name.source.ToString());
-                                             },
-                                             [&](const auto &) {
-                                               // Operators and special forms -
-                                               // not commonly needed for
-                                               // variable debug info
-                                             },
-                                         },
-                                         genericSpec.value().u);
-                },
-            },
-            only.u);
-      }
-
-      addUseStmt(std::move(stmt));
-    } else if (const auto *renameList{
-                   std::get_if<std::list<parser::Rename>>(&useStmt.u)}) {
-      // USE mod with optional renames (not ONLY)
-      if (renameList->empty()) {
-        // USE mod (import all, no renames)
-        Fortran::semantics::PreservedUseStmt stmt{moduleName};
-        addUseStmt(std::move(stmt));
-      } else {
-        // USE mod, renames (import all with some renames)
-        Fortran::semantics::PreservedUseStmt stmt{moduleName};
-
-        for (const auto &rename : *renameList) {
-          Fortran::common::visit(
-              Fortran::common::visitors{
-                  [&](const parser::Rename::Names &names) {
-                    std::string localName{
-                        std::get<0>(names.t).source.ToString()};
-                    stmt.renames.push_back(localName);
-                  },
-                  [&](const parser::Rename::Operators &) {
-                    // Operator renames - not commonly needed for debug info
-                  },
-              },
-              rename.u);
-        }
-
-        addUseStmt(std::move(stmt));
-      }
-    }
+    if (currentFunctionUnit)
+      currentFunctionUnit->useStmts.push_back(&useStmt);
+    else if (currentModuleUnit)
+      currentModuleUnit->useStmts.push_back(&useStmt);
   }
 
   template <typename A>

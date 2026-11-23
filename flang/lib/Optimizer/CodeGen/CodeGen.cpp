@@ -4260,33 +4260,6 @@ struct NoReassocOpConversion : public fir::FIROpConversion<fir::NoReassocOp> {
   }
 };
 
-/// Erase `fir.use_stmt` operations during LLVM lowering.
-/// These operations are only used for debug info generation by the
-/// AddDebugInfo pass and have no runtime representation.
-struct UseStmtOpConversion : public fir::FIROpConversion<fir::UseStmtOp> {
-  using FIROpConversion::FIROpConversion;
-
-  llvm::LogicalResult
-  matchAndRewrite(fir::UseStmtOp useStmt, OpAdaptor adaptor,
-                  mlir::ConversionPatternRewriter &rewriter) const override {
-    rewriter.eraseOp(useStmt);
-    return mlir::success();
-  }
-};
-
-/// Erase `fir.module_debug_imports` during LLVM lowering (debug metadata only).
-struct ModuleDebugImportsOpConversion
-    : public fir::FIROpConversion<fir::ModuleDebugImportsOp> {
-  using FIROpConversion::FIROpConversion;
-
-  llvm::LogicalResult
-  matchAndRewrite(fir::ModuleDebugImportsOp op, OpAdaptor adaptor,
-                  mlir::ConversionPatternRewriter &rewriter) const override {
-    rewriter.eraseOp(op);
-    return mlir::success();
-  }
-};
-
 /// Defensive stub. `fir.select`, `fir.select_case`, and `fir.select_rank` are
 /// lowered to `cf.switch` / `cf.cond_br` by `--fir-select-ops-conversion`
 /// earlier in the pipeline; `fir.select_type` is lowered to a cf-based
@@ -5470,9 +5443,8 @@ void fir::populateFIRToLLVMConversionPatterns(
       StoreOpConversion, StringLitOpConversion, SubcOpConversion,
       TypeDescOpConversion, TypeInfoOpConversion, UnboxCharOpConversion,
       UnboxProcOpConversion, UndefOpConversion, UnreachableOpConversion,
-      AssertOpConversion, UseStmtOpConversion, ModuleDebugImportsOpConversion,
-      XArrayCoorOpConversion, XEmboxOpConversion, XReboxOpConversion,
-      ZeroOpConversion>(converter, options, symbolTables);
+      AssertOpConversion, XArrayCoorOpConversion, XEmboxOpConversion,
+      XReboxOpConversion, ZeroOpConversion>(converter, options, symbolTables);
 
   // Patterns that are populated without a type converter do not trigger
   // target materializations for the operands of the root op.

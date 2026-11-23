@@ -741,11 +741,6 @@ static bool isCUFKernelRegion(mlir::Region &region) {
 bool fir::acc::isValidSymbolUse(mlir::Operation *user,
                                 mlir::SymbolRefAttr symbol,
                                 mlir::Operation **definingOpPtr) {
-  // FIR uses `fir.use_stmt` for debugging; referenced symbols are not
-  // guaranteed to be defined in the module.
-  if (mlir::isa_and_nonnull<fir::UseStmtOp>(user))
-    return true;
-
   mlir::Operation *definingOp = nullptr;
   if (mlir::acc::isValidSymbolUse(user, symbol, &definingOp)) {
     if (definingOpPtr)

@@ -102,8 +102,8 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 #tr_decl_y = loc("t.f90":42:27)
 #tr_sel = loc("t.f90":43:3)
 #tr_ret = loc("t.f90":51:1)
-#tr_scope1 = #fir.lexical_scope<loc = loc("t.f90":44:3)>
-#tr_scope2 = #fir.lexical_scope<loc = loc("t.f90":48:3)>
+#tr_scope1 = #fir.scope<construct, loc("t.f90":44:3)>
+#tr_scope2 = #fir.scope<construct, loc("t.f90":48:3)>
 #tr_branch1 = loc(fused<#tr_scope1>["t.f90":44:3])
 #tr_decl_x1 = loc(fused<#tr_scope1>[#tr_decl_x])
 #tr_decl_y1 = loc(fused<#tr_scope1>[#tr_decl_y])
@@ -117,7 +117,7 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 #brl_sel = loc("t.f90":62:3)
 #brl_ret = loc("t.f90":70:1)
 // The loop is in a branch, which declares no name of its own.
-#brl_scope = #fir.lexical_scope<loc = loc("t.f90":63:5)>
+#brl_scope = #fir.scope<construct, loc("t.f90":63:5)>
 #brl_branch = loc(fused<#brl_scope>["t.f90":63:5])
 #brl_loop = loc(fused<#brl_scope>["t.f90":65:7])
 #brl_decl1 = loc(fused<#brl_scope>[#brl_decl])
@@ -157,7 +157,8 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 // CHECK-DAG: #[[TARGET:.+]] = #llvm.di_subprogram<{{.*}}name = "__omp_offloading_{{.*}}_QPtr_l45"
 // CHECK-DAG: #llvm.di_local_variable<scope = #[[TARGET]], name = "y"
 // CHECK-DAG: #[[TR_TARGET]] = loc(fused<#[[TARGET]]>[#{{loc[0-9]+}}])
-// CHECK-DAG: #[[TR_BODY]] = loc(fused<#fir.lexical_scope<{{.*}}>>[#{{loc[0-9]+}}])
+// CHECK-DAG: #[[TR_BODY]] = loc(fused<#[[TR_SCOPE:scope[0-9]*]]>[#{{loc[0-9]+}}])
+// CHECK-DAG: #[[TR_SCOPE]] = #fir.scope<construct, {{.*}}>
 
 // The private copy of a loop in a branch is scoped in the loop body, not in
 // the branch.
@@ -166,4 +167,5 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 // CHECK-DAG: #[[BRL_DO:.+]] = #llvm.di_lexical_block<scope = #[[BRL]], {{.*}}line = 66, column = 9>
 // CHECK-DAG: #llvm.di_local_variable<scope = #[[BRL_DO]], name = "i"
 // CHECK-DAG: #[[BRL_BODY]] = loc(fused<#[[BRL_DO]]>[#{{loc[0-9]+}}])
-// CHECK-DAG: #[[BRL_AFTER_LOOP]] = loc(fused<#fir.lexical_scope<{{.*}}>>[#{{loc[0-9]+}}])
+// CHECK-DAG: #[[BRL_AFTER_LOOP]] = loc(fused<#[[BRL_SCOPE:scope[0-9]*]]>[#{{loc[0-9]+}}])
+// CHECK-DAG: #[[BRL_SCOPE]] = #fir.scope<construct, {{.*}}>

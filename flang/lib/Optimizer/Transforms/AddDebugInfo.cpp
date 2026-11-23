@@ -34,8 +34,8 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -78,11 +78,13 @@ private:
   llvm::DenseMap<fir::GlobalOp, llvm::SmallVector<mlir::Attribute>>
       globalToGlobalExprsMap;
 
-  /// Maps Fortran module name -> `fir.module_debug_imports`.
-  llvm::StringMap<fir::ModuleDebugImportsOp> moduleDebugImportsByName;
-
-  /// Names of the modules whose DIModule this compilation unit defines.
-  llvm::StringSet<> definedModuleNames;
+  /// The modules that lowering describes, by debug name. Those that this
+  /// compilation unit does not define have no location.
+  llvm::StringMap<fir::ScopeAttr> moduleScopes;
+  /// The described module variables, by defining module and source name.
+  llvm::DenseMap<std::pair<mlir::StringAttr, mlir::StringAttr>,
+                 mlir::LLVM::DIGlobalVariableAttr>
+      moduleVariables;
 
   mlir::LLVM::DIModuleAttr createModuleAttr(const std::string &name,
                                             mlir::LLVM::DIFileAttr fileAttr,
@@ -92,7 +94,8 @@ private:
                         mlir::LLVM::DIFileAttr fileAttr,
                         mlir::LLVM::DIScopeAttr scope);
   llvm::SmallVector<mlir::LLVM::DINodeAttr>
-  buildSubmoduleImports(mlir::ModuleOp module, mlir::LLVM::DIFileAttr fileAttr,
+  buildSubmoduleImports(llvm::ArrayRef<fir::ScopeAttr> moduleScopes,
+                        mlir::LLVM::DIFileAttr fileAttr,
                         mlir::LLVM::DIScopeAttr cuAttr);
   mlir::LLVM::DICommonBlockAttr
   getOrCreateCommonBlockAttr(llvm::StringRef name,
@@ -108,32 +111,11 @@ private:
                     mlir::LLVM::DICompileUnitAttr cuAttr,
                     fir::DebugTypeGenerator &typeGen,
                     mlir::SymbolTable *symbolTable);
-  void handleOnlyClause(
-      fir::UseStmtOp useOp, mlir::LLVM::DISubprogramAttr spAttr,
-      mlir::LLVM::DIFileAttr fileAttr, mlir::SymbolTable *symbolTable,
-      llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedModules);
-  void handleRenamesWithoutOnly(
-      fir::UseStmtOp useOp, mlir::LLVM::DISubprogramAttr spAttr,
-      mlir::LLVM::DIModuleAttr modAttr, mlir::LLVM::DIFileAttr fileAttr,
-      mlir::SymbolTable *symbolTable,
-      llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedModules);
-  void handleUseStatements(
-      mlir::func::FuncOp funcOp, mlir::LLVM::DISubprogramAttr spAttr,
-      mlir::LLVM::DIFileAttr fileAttr, mlir::LLVM::DICompileUnitAttr cuAttr,
-      mlir::SymbolTable *symbolTable,
-      llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedEntities);
-  void buildModuleDebugImportsMap(mlir::ModuleOp module);
-  void buildDefinedModuleNames(mlir::ModuleOp module);
   void expandUseStmtForDebug(
-      fir::UseStmtOp useOp, mlir::LLVM::DISubprogramAttr spAttr,
+      fir::UseAttr use, mlir::LLVM::DISubprogramAttr spAttr,
       mlir::LLVM::DIFileAttr fileAttr, mlir::LLVM::DICompileUnitAttr cuAttr,
-      mlir::SymbolTable *symbolTable,
       llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedEntities,
-      llvm::StringSet<> &seenModuleNames);
-  std::optional<mlir::LLVM::DIImportedEntityAttr> createImportedDeclForGlobal(
-      llvm::StringRef symbolName, mlir::LLVM::DISubprogramAttr spAttr,
-      mlir::LLVM::DIFileAttr fileAttr, mlir::StringAttr localNameAttr,
-      mlir::SymbolTable *symbolTable);
+      llvm::DenseSet<mlir::StringAttr> &seenModuleNames);
   bool createCommonBlockGlobal(fir::cg::XDeclareOp declOp,
                                const std::string &name,
                                mlir::LLVM::DIFileAttr fileAttr,
@@ -174,6 +156,17 @@ std::string getDebugModuleName(llvm::ArrayRef<std::string> modules) {
   if (modules.size() == 1)
     return modules.front();
   return getDebugModuleName(modules.front(), modules.back());
+}
+
+// The debug name of a module or submodule described by lowering.
+std::string getDebugModuleName(fir::ScopeAttr moduleScope) {
+  fir::ScopeAttr root = moduleScope;
+  while (root.getParent())
+    root = root.getParent();
+  if (root == moduleScope)
+    return moduleScope.getName().str();
+  return getDebugModuleName(root.getName().getValue(),
+                            moduleScope.getName().getValue());
 }
 
 /// Whether \p loc already carries debug information of type \c AttrT, fused
@@ -280,24 +273,17 @@ static bool isModuleDataObject(fir::GlobalOp globalOp) {
   return isDataObjectName(result.first) && isModuleLevelName(result.second);
 }
 
-// Look up DIGlobalVariable from a global symbol
+// Return the DIGlobalVariable that describes a global, if any.
 static std::optional<mlir::LLVM::DIGlobalVariableAttr>
-lookupDIGlobalVariable(llvm::StringRef symbolName,
-                       mlir::SymbolTable *symbolTable) {
-  if (auto globalOp = symbolTable->lookup<fir::GlobalOp>(symbolName)) {
-    if (auto fusedLoc = mlir::dyn_cast<mlir::FusedLoc>(globalOp.getLoc())) {
-      if (auto metadata = fusedLoc.getMetadata()) {
-        if (auto arrayAttr = mlir::dyn_cast<mlir::ArrayAttr>(metadata)) {
-          for (auto elem : arrayAttr) {
-            if (auto gvExpr =
-                    mlir::dyn_cast<mlir::LLVM::DIGlobalVariableExpressionAttr>(
-                        elem))
-              return gvExpr.getVar();
-          }
-        }
-      }
-    }
-  }
+lookupDIGlobalVariable(fir::GlobalOp globalOp) {
+  auto fusedLoc =
+      globalOp.getLoc()->findInstanceOf<mlir::FusedLocWith<mlir::ArrayAttr>>();
+  if (!fusedLoc)
+    return std::nullopt;
+  for (mlir::Attribute elem : fusedLoc.getMetadata())
+    if (auto gvExpr =
+            mlir::dyn_cast<mlir::LLVM::DIGlobalVariableExpressionAttr>(elem))
+      return gvExpr.getVar();
   return std::nullopt;
 }
 
@@ -545,14 +531,14 @@ AddDebugInfoPass::createModuleAttr(const std::string &name,
                                    mlir::LLVM::DIScopeAttr scope) {
   mlir::MLIRContext *context = &getContext();
   unsigned line = 0;
-  bool decl = !definedModuleNames.contains(name);
-
-  // The location of the fir.module_debug_imports is that of the MODULE
-  // statement. A module that has none is not defined here, and gets no line.
-  if (auto iter{moduleDebugImportsByName.find(name)};
-      iter != moduleDebugImportsByName.end()) {
-    line = fir::getLineFromLoc(iter->second.getLoc());
-    fileAttr = fir::getFileAttrFromLoc(iter->second.getLoc(), fileAttr);
+  auto iter = moduleScopes.find(name);
+  bool decl = iter == moduleScopes.end() ||
+              mlir::isa<mlir::UnknownLoc>(iter->second.getLoc());
+  // The location of a module defined here is that of its MODULE statement.
+  if (!decl) {
+    mlir::Location loc = iter->second.getLoc();
+    line = fir::getLineFromLoc(loc);
+    fileAttr = fir::getFileAttrFromLoc(loc, fileAttr);
   }
 
   // When decl is true, it means that module is only being used in this
@@ -696,20 +682,34 @@ static bool hasDebugScope(mlir::Location loc) {
 
 /// Return the lexical scope that lowering fused into \p loc, if any. Inlined
 /// code is in the scope of its call.
-static fir::LexicalScopeAttr getLexicalScope(mlir::Location loc) {
-  fir::LexicalScopeAttr lexicalScope;
+static fir::ScopeAttr getLexicalScope(mlir::Location loc) {
+  fir::ScopeAttr lexicalScope;
   loc->walk([&](mlir::Location subLoc) {
     if (auto callSiteLoc = mlir::dyn_cast<mlir::CallSiteLoc>(subLoc)) {
       lexicalScope = getLexicalScope(callSiteLoc.getCaller());
       return mlir::WalkResult::interrupt();
     }
     if (auto fusedLoc = mlir::dyn_cast<mlir::FusedLoc>(subLoc))
-      lexicalScope = mlir::dyn_cast_if_present<fir::LexicalScopeAttr>(
-          fusedLoc.getMetadata());
+      if (auto scope =
+              mlir::dyn_cast_if_present<fir::ScopeAttr>(fusedLoc.getMetadata());
+          scope && scope.isConstruct())
+        lexicalScope = scope;
     return lexicalScope ? mlir::WalkResult::interrupt()
                         : mlir::WalkResult::advance();
   });
   return lexicalScope;
+}
+
+/// Return the scope of the procedure that lowering fused into the location of
+/// \p funcOp, if any. A declaration may have the location of a call instead.
+static fir::ScopeAttr getProcedureScope(mlir::func::FuncOp funcOp) {
+  if (funcOp.isExternal())
+    return {};
+  if (auto fusedLoc =
+          funcOp.getLoc()->findInstanceOf<mlir::FusedLocWith<fir::ScopeAttr>>())
+    if (fusedLoc.getMetadata().isProcedure())
+      return fusedLoc.getMetadata();
+  return {};
 }
 
 namespace {
@@ -727,14 +727,14 @@ public:
     visitRegion(funcOp.getBody(), spAttr, {});
   }
 
-  llvm::DenseSet<fir::LexicalScopeAttr> lexicalScopes;
+  llvm::DenseSet<fir::ScopeAttr> lexicalScopes;
   llvm::SmallPtrSet<mlir::Region *, 4> scopedRegions;
 
 private:
   /// The operations of \p region in \p lexicalScope, that of the operation that
   /// holds the region, are in \p scope.
   void visitRegion(mlir::Region &region, mlir::LLVM::DIScopeAttr scope,
-                   fir::LexicalScopeAttr lexicalScope) {
+                   fir::ScopeAttr lexicalScope) {
     if (region.empty())
       return;
     if (scopedRegions.contains(&region)) {
@@ -743,7 +743,7 @@ private:
                                                   fileAttr, line, column);
     }
     for (mlir::Operation &op : region.getOps()) {
-      fir::LexicalScopeAttr opLexicalScope = getLexicalScope(op.getLoc());
+      fir::ScopeAttr opLexicalScope = getLexicalScope(op.getLoc());
       if (!opLexicalScope)
         opLexicalScope = lexicalScope;
       mlir::LLVM::DIScopeAttr opScope =
@@ -762,10 +762,10 @@ private:
 
   /// Return the scope of the operations in \p lexicalScope, given that those
   /// in \p outer, an enclosing lexical scope, are in \p scope.
-  mlir::LLVM::DIScopeAttr getLexicalBlock(fir::LexicalScopeAttr lexicalScope,
-                                          fir::LexicalScopeAttr outer,
+  mlir::LLVM::DIScopeAttr getLexicalBlock(fir::ScopeAttr lexicalScope,
+                                          fir::ScopeAttr outer,
                                           mlir::LLVM::DIScopeAttr scope) {
-    if (!lexicalScope || lexicalScope == outer)
+    if (!lexicalScope || !lexicalScope.isConstruct() || lexicalScope == outer)
       return scope;
     mlir::LLVM::DIScopeAttr parent =
         getLexicalBlock(lexicalScope.getParent(), outer, scope);
@@ -898,6 +898,7 @@ void AddDebugInfoPass::handleFuncOp(mlir::func::FuncOp funcOp,
         subprogramFlags | mlir::LLVM::DISubprogramFlags::Recursive;
 
   unsigned line = fir::getLineFromLoc(l);
+  fir::ScopeAttr procedureScope = getProcedureScope(funcOp);
   // A target device module holds the internal procedures and the outlined
   // target regions, but not the host procedure they are contained in, which
   // only the host runs. Scoping them at it would leave a DW_TAG_subprogram
@@ -922,17 +923,15 @@ void AddDebugInfoPass::handleFuncOp(mlir::func::FuncOp funcOp,
         }
       }
     }
-  } else if (!result.second.modules.empty()) {
+  } else if (procedureScope && procedureScope.getParent() &&
+             procedureScope.getParent().isModule()) {
     // A separate module procedure is mangled with the module that declares its
-    // interface, so its own name does not name the submodule that defines it.
-    // The root of the ancestry is the same either way.
-    auto submodule = funcOp->getAttrOfType<mlir::StringAttr>(
-        fir::getDefiningSubmoduleAttrName());
-    std::string name = submodule
-                           ? getDebugModuleName(result.second.modules.front(),
-                                                submodule.getValue())
-                           : getDebugModuleName(result.second.modules);
-    Scope = getOrCreateModuleAttr(name, fileAttr, cuAttr);
+    // interface, so only its scope names the submodule that defines it.
+    Scope = getOrCreateModuleAttr(
+        getDebugModuleName(procedureScope.getParent()), fileAttr, cuAttr);
+  } else if (!result.second.modules.empty()) {
+    Scope = getOrCreateModuleAttr(getDebugModuleName(result.second.modules),
+                                  fileAttr, cuAttr);
   }
 
   auto addTargetOpDISP = [&](llvm::ArrayRef<mlir::Attribute> entities) {
@@ -1022,17 +1021,10 @@ void AddDebugInfoPass::handleFuncOp(mlir::func::FuncOp funcOp,
     return;
   }
 
-  // Check if there are any USE statements
-  bool hasUseStmts = false;
-  funcOp.walk([&](fir::UseStmtOp useOp) {
-    hasUseStmts = true;
-    return mlir::WalkResult::interrupt();
-  });
-
   mlir::LLVM::DISubprogramAttr spAttr;
   llvm::SmallVector<mlir::Attribute> retainedNodes;
 
-  if (hasUseStmts) {
+  if (procedureScope && !procedureScope.getUses().empty()) {
     mlir::DistinctAttr recId =
         mlir::DistinctAttr::create(mlir::UnitAttr::get(context));
     // The debug attribute in MLIR are readonly once created. But in case of
@@ -1054,8 +1046,10 @@ void AddDebugInfoPass::handleFuncOp(mlir::func::FuncOp funcOp,
 
     // Process USE statements (module globals are already processed)
     llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> importedEntities;
-    handleUseStatements(funcOp, spAttr, fileAttr, cuAttr, symbolTable,
-                        importedEntities);
+    llvm::DenseSet<mlir::StringAttr> seenModuleNames;
+    for (fir::UseAttr use : procedureScope.getUses())
+      expandUseStmtForDebug(use, spAttr, fileAttr, cuAttr, importedEntities,
+                            seenModuleNames);
 
     retainedNodes.append(importedEntities.begin(), importedEntities.end());
 
@@ -1110,7 +1104,7 @@ void AddDebugInfoPass::handleFuncOp(mlir::func::FuncOp funcOp,
     // A name declared in a region of an operation in the same lexical scope,
     // such as the private copy in an OpenMP loop, is visible in the region.
     for (fir::cg::XDeclareOp declOp : declOps) {
-      fir::LexicalScopeAttr lexicalScope = getLexicalScope(declOp.getLoc());
+      fir::ScopeAttr lexicalScope = getLexicalScope(declOp.getLoc());
       mlir::Operation *parentOp = declOp->getParentOp();
       if (parentOp != funcOp &&
           getLexicalScope(parentOp->getLoc()) == lexicalScope)
@@ -1143,112 +1137,47 @@ void AddDebugInfoPass::handleFuncOp(mlir::func::FuncOp funcOp,
   commonBlockMap.clear();
 }
 
-// Helper function to create a DIImportedEntityAttr for an imported declaration.
-// Looks up the DIGlobalVariable for the given symbol and creates an imported
-// declaration with the optional local name (for renames).
-// Returns std::nullopt if the symbol's DIGlobalVariable is not found.
-std::optional<mlir::LLVM::DIImportedEntityAttr>
-AddDebugInfoPass::createImportedDeclForGlobal(
-    llvm::StringRef symbolName, mlir::LLVM::DISubprogramAttr spAttr,
-    mlir::LLVM::DIFileAttr fileAttr, mlir::StringAttr localNameAttr,
-    mlir::SymbolTable *symbolTable) {
-  mlir::MLIRContext *context = &getContext();
-  if (auto gvAttr = lookupDIGlobalVariable(symbolName, symbolTable)) {
-    return mlir::LLVM::DIImportedEntityAttr::get(
-        context, llvm::dwarf::DW_TAG_imported_declaration, spAttr, *gvAttr,
-        fileAttr, /*line=*/1, /*name=*/localNameAttr, /*elements*/ {});
-  }
-  return std::nullopt;
-}
-
-// Process USE with ONLY clause
-void AddDebugInfoPass::handleOnlyClause(
-    fir::UseStmtOp useOp, mlir::LLVM::DISubprogramAttr spAttr,
-    mlir::LLVM::DIFileAttr fileAttr, mlir::SymbolTable *symbolTable,
-    llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedModules) {
-  // Process ONLY symbols (without renames)
-  if (auto onlySymbols = useOp.getOnlySymbols()) {
-    for (mlir::Attribute attr : *onlySymbols) {
-      auto symbolRef = mlir::cast<mlir::FlatSymbolRefAttr>(attr);
-      if (auto importedDecl = createImportedDeclForGlobal(
-              symbolRef.getValue(), spAttr, fileAttr, mlir::StringAttr(),
-              symbolTable))
-        importedModules.insert(*importedDecl);
-    }
-  }
-
-  // Process renames within ONLY clause
-  if (auto renames = useOp.getRenames()) {
-    for (auto attr : *renames) {
-      auto renameAttr = mlir::cast<fir::UseRenameAttr>(attr);
-      if (auto importedDecl = createImportedDeclForGlobal(
-              renameAttr.getSymbol().getValue(), spAttr, fileAttr,
-              renameAttr.getLocalName(), symbolTable))
-        importedModules.insert(*importedDecl);
-    }
-  }
-}
-
-// Process USE with renames but no ONLY clause
-void AddDebugInfoPass::handleRenamesWithoutOnly(
-    fir::UseStmtOp useOp, mlir::LLVM::DISubprogramAttr spAttr,
-    mlir::LLVM::DIModuleAttr modAttr, mlir::LLVM::DIFileAttr fileAttr,
-    mlir::SymbolTable *symbolTable,
-    llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedModules) {
-  mlir::MLIRContext *context = &getContext();
-  llvm::SmallVector<mlir::LLVM::DINodeAttr> childDeclarations;
-
-  if (auto renames = useOp.getRenames()) {
-    for (auto attr : *renames) {
-      auto renameAttr = mlir::cast<fir::UseRenameAttr>(attr);
-      if (auto importedDecl = createImportedDeclForGlobal(
-              renameAttr.getSymbol().getValue(), spAttr, fileAttr,
-              renameAttr.getLocalName(), symbolTable))
-        childDeclarations.push_back(*importedDecl);
-    }
-  }
-
-  // Create module import with renamed declarations as children
-  auto moduleImport = mlir::LLVM::DIImportedEntityAttr::get(
-      context, llvm::dwarf::DW_TAG_imported_module, spAttr, modAttr, fileAttr,
-      /*line=*/1, /*name=*/nullptr, childDeclarations);
-  importedModules.insert(moduleImport);
-}
-
-// Process all USE statements in a function and collect imported entities.
-void AddDebugInfoPass::handleUseStatements(
-    mlir::func::FuncOp funcOp, mlir::LLVM::DISubprogramAttr spAttr,
+// Expand the USE statements of modules described in this compilation unit.
+void AddDebugInfoPass::expandUseStmtForDebug(
+    fir::UseAttr use, mlir::LLVM::DISubprogramAttr spAttr,
     mlir::LLVM::DIFileAttr fileAttr, mlir::LLVM::DICompileUnitAttr cuAttr,
-    mlir::SymbolTable *symbolTable,
-    llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedEntities) {
-  llvm::StringSet<> seenModuleNames;
-  funcOp.walk([&](fir::UseStmtOp useOp) {
-    expandUseStmtForDebug(useOp, spAttr, fileAttr, cuAttr, symbolTable,
-                          importedEntities, seenModuleNames);
-  });
-}
+    llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedEntities,
+    llvm::DenseSet<mlir::StringAttr> &seenModuleNames) {
+  mlir::StringAttr module = use.getModule();
+  if (!seenModuleNames.insert(module).second)
+    return;
 
-void AddDebugInfoPass::buildModuleDebugImportsMap(mlir::ModuleOp module) {
-  moduleDebugImportsByName.clear();
-  module.walk([&](fir::ModuleDebugImportsOp op) {
-    moduleDebugImportsByName[getDebugModuleName(
-        op.getAncestorModule().value_or(""), op.getModuleName())] = op;
-  });
-}
-
-// Work out which modules this compilation unit defines. It has to be settled
-// before any DIModuleAttr is built, because the attribute is immutable and the
-// first member to mention a module fixes it for all the others.
-//
-// Lowering emits one fir.module_debug_imports for every module and submodule it
-// compiles, which is what says the module is defined here. No individual member
-// can say it: an array named constant from an intrinsic module, for one, is
-// materialized locally as a linkonce_odr definition in every unit that uses it,
-// although the module is defined in no object file at all.
-void AddDebugInfoPass::buildDefinedModuleNames(mlir::ModuleOp module) {
-  definedModuleNames.clear();
-  for (auto &entry : moduleDebugImportsByName)
-    definedModuleNames.insert(entry.getKey());
+  auto file = fir::getFileAttrFromLoc(use.getLoc(), fileAttr);
+  unsigned line = fir::getLineFromLoc(use.getLoc());
+  llvm::SmallVector<mlir::LLVM::DINodeAttr> renames;
+  for (fir::UseEntityAttr entity : use.getEntities()) {
+    auto gv = moduleVariables.lookup(
+        {use.getEntityModule(entity), use.getEntityName(entity)});
+    if (!gv)
+      continue;
+    mlir::StringAttr local = entity.getLocalName();
+    if (local == gv.getName())
+      local = {};
+    auto decl = mlir::LLVM::DIImportedEntityAttr::get(
+        &getContext(), llvm::dwarf::DW_TAG_imported_declaration, spAttr, gv,
+        file, line, local, /*elements=*/{});
+    if (use.getOnly())
+      importedEntities.insert(decl);
+    else
+      renames.push_back(decl);
+  }
+  // Preserve whole-module debug lookup when lowering could not resolve any
+  // ONLY items in the program unit, as for USE statements inside a BLOCK.
+  if (use.getOnly() && !use.getEntities().empty())
+    return;
+  importedEntities.insert(mlir::LLVM::DIImportedEntityAttr::get(
+      &getContext(), llvm::dwarf::DW_TAG_imported_module, spAttr,
+      getOrCreateModuleAttr(module.str(), fileAttr, cuAttr), file, line,
+      /*name=*/nullptr, renames));
+  if (auto scope = moduleScopes.lookup(module.getValue()))
+    for (fir::UseAttr child : scope.getUses())
+      expandUseStmtForDebug(child, spAttr, fileAttr, cuAttr, importedEntities,
+                            seenModuleNames);
 }
 
 // A submodule has access to everything in the submodule directly above it, and
@@ -1269,76 +1198,25 @@ void AddDebugInfoPass::buildDefinedModuleNames(mlir::ModuleOp module) {
 // them is settled before either is built, so the two describe the same module
 // and become one once the unit they name is resolved.
 llvm::SmallVector<mlir::LLVM::DINodeAttr>
-AddDebugInfoPass::buildSubmoduleImports(mlir::ModuleOp module,
-                                        mlir::LLVM::DIFileAttr fileAttr,
-                                        mlir::LLVM::DIScopeAttr cuAttr) {
+AddDebugInfoPass::buildSubmoduleImports(
+    llvm::ArrayRef<fir::ScopeAttr> moduleScopes,
+    mlir::LLVM::DIFileAttr fileAttr, mlir::LLVM::DIScopeAttr cuAttr) {
   mlir::MLIRContext *context = &getContext();
   llvm::SmallVector<mlir::LLVM::DINodeAttr> imports;
-  // Walked rather than taken from the map so that the order is that of the
-  // program and does not depend on how the names happen to hash.
-  module.walk([&](fir::ModuleDebugImportsOp op) {
-    std::optional<llvm::StringRef> ancestor = op.getAncestorModule();
-    std::optional<llvm::StringRef> parent = op.getParentModule();
-    if (!ancestor || !parent)
-      return;
-    // The parent of a first level submodule is the root module, whose name
-    // stands alone. Any other parent is a submodule, and is named like one.
-    std::string parentName = *parent == *ancestor
-                                 ? parent->str()
-                                 : getDebugModuleName(*ancestor, *parent);
-    std::string name = getDebugModuleName(*ancestor, op.getModuleName());
+  for (fir::ScopeAttr moduleScope : moduleScopes) {
+    if (!moduleScope.getParent() ||
+        mlir::isa<mlir::UnknownLoc>(moduleScope.getLoc()))
+      continue;
+    mlir::Location loc = moduleScope.getLoc();
     imports.push_back(mlir::LLVM::DIImportedEntityAttr::get(
         context, llvm::dwarf::DW_TAG_imported_module,
-        createModuleAttr(name, fileAttr, cuAttr),
-        createModuleAttr(parentName, fileAttr, cuAttr),
-        fir::getFileAttrFromLoc(op.getLoc(), fileAttr),
-        fir::getLineFromLoc(op.getLoc()), /*name=*/mlir::StringAttr(),
-        /*elements=*/{}));
-  });
-  return imports;
-}
-
-void AddDebugInfoPass::expandUseStmtForDebug(
-    fir::UseStmtOp useOp, mlir::LLVM::DISubprogramAttr spAttr,
-    mlir::LLVM::DIFileAttr fileAttr, mlir::LLVM::DICompileUnitAttr cuAttr,
-    mlir::SymbolTable *symbolTable,
-    llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> &importedEntities,
-    llvm::StringSet<> &seenModuleNames) {
-  std::string modName = useOp.getModuleName().str();
-  if (seenModuleNames.contains(modName))
-    return;
-
-  mlir::MLIRContext *context = &getContext();
-  mlir::LLVM::DIModuleAttr modAttr =
-      getOrCreateModuleAttr(modName, fileAttr, cuAttr);
-
-  llvm::SetVector<mlir::LLVM::DIImportedEntityAttr> importedModules;
-  if (useOp.hasOnlyClause() || useOp.getHasOnlyWithRenames())
-    handleOnlyClause(useOp, spAttr, fileAttr, symbolTable, importedModules);
-  else if (useOp.hasRenames())
-    handleRenamesWithoutOnly(useOp, spAttr, modAttr, fileAttr, symbolTable,
-                             importedModules);
-  else {
-    auto importedEntity = mlir::LLVM::DIImportedEntityAttr::get(
-        context, llvm::dwarf::DW_TAG_imported_module, spAttr, modAttr, fileAttr,
-        /*line=*/1, /*name=*/nullptr, /*elements*/ {});
-    importedModules.insert(importedEntity);
+        createModuleAttr(getDebugModuleName(moduleScope), fileAttr, cuAttr),
+        createModuleAttr(getDebugModuleName(moduleScope.getParent()), fileAttr,
+                         cuAttr),
+        fir::getFileAttrFromLoc(loc, fileAttr), fir::getLineFromLoc(loc),
+        /*name=*/mlir::StringAttr(), /*elements=*/{}));
   }
-  importedEntities.insert(importedModules.begin(), importedModules.end());
-  seenModuleNames.insert(modName);
-
-  if (useOp.hasOnlyClause())
-    return;
-
-  auto it = moduleDebugImportsByName.find(modName);
-  if (it == moduleDebugImportsByName.end())
-    return;
-  fir::ModuleDebugImportsOp mdi = it->second;
-  if (mdi.getUses().empty())
-    return;
-  for (auto childUse : mdi.getUses().front().getOps<fir::UseStmtOp>())
-    expandUseStmtForDebug(childUse, spAttr, fileAttr, cuAttr, symbolTable,
-                          importedEntities, seenModuleNames);
+  return imports;
 }
 
 void AddDebugInfoPass::runOnOperation() {
@@ -1348,8 +1226,25 @@ void AddDebugInfoPass::runOnOperation() {
   if (auto offloadMod =
           mlir::dyn_cast<mlir::omp::OffloadModuleInterface>(*module))
     isTargetDevice = offloadMod.getIsTargetDevice();
-  buildModuleDebugImportsMap(module);
-  buildDefinedModuleNames(module);
+  // Work out which modules this compilation unit defines. It has to be settled
+  // before any DIModuleAttr is built, because the attribute is immutable and
+  // the first member to mention a module fixes it for all the others. Lowering
+  // lists them in the location of the module: no individual member can say it.
+  // An array named constant from an intrinsic module, for one, is materialized
+  // locally in every unit that uses it, although the module is defined in no
+  // object file at all.
+  llvm::SmallVector<fir::ScopeAttr> listedModuleScopes;
+  moduleScopes.clear();
+  moduleVariables.clear();
+  if (auto fusedLoc =
+          module.getLoc()
+              ->findInstanceOf<mlir::FusedLocWith<mlir::ArrayAttr>>())
+    for (mlir::Attribute attr : fusedLoc.getMetadata())
+      if (auto moduleScope = mlir::dyn_cast<fir::ScopeAttr>(attr);
+          moduleScope && moduleScope.isModule()) {
+        listedModuleScopes.push_back(moduleScope);
+        moduleScopes[getDebugModuleName(moduleScope)] = moduleScope;
+      }
   llvm::StringRef fileName;
   std::string filePath;
   std::optional<mlir::DataLayout> dl =
@@ -1384,7 +1279,8 @@ void AddDebugInfoPass::runOnOperation() {
   // In that case, 'inputFilename' may be empty. Location embedded in the
   // module will be used to get file name and its directory.
   if (inputFilename.empty()) {
-    if (auto fileLoc = mlir::dyn_cast<mlir::FileLineColLoc>(module.getLoc())) {
+    if (auto fileLoc =
+            module.getLoc()->findInstanceOf<mlir::FileLineColLoc>()) {
       fileName = llvm::sys::path::filename(fileLoc.getFilename().getValue());
       filePath = llvm::sys::path::parent_path(fileLoc.getFilename().getValue());
     } else
@@ -1420,7 +1316,7 @@ void AddDebugInfoPass::runOnOperation() {
   mlir::DistinctAttr cuRecId =
       mlir::DistinctAttr::create(mlir::UnitAttr::get(context));
   llvm::SmallVector<mlir::LLVM::DINodeAttr> cuImports = buildSubmoduleImports(
-      module, fileAttr,
+      listedModuleScopes, fileAttr,
       mlir::cast<mlir::LLVM::DICompileUnitAttr>(
           mlir::LLVM::DICompileUnitAttr::getRecSelf(cuRecId)));
 
@@ -1461,6 +1357,17 @@ void AddDebugInfoPass::runOnOperation() {
         }
       }
     });
+    // A USE identifies a variable by its source module and name. Prefer the
+    // type supplied by a declaration above when one is available.
+    for (fir::GlobalOp global : module.getOps<fir::GlobalOp>()) {
+      if (!isModuleDataObject(global))
+        continue;
+      handleGlobalOp(global, fileAttr, cuAttr, typeGen, &symbolTable, {});
+      if (auto gv = lookupDIGlobalVariable(global))
+        if (auto scope = mlir::dyn_cast_if_present<mlir::LLVM::DIModuleAttr>(
+                gv->getScope()))
+          moduleVariables[{scope.getName(), gv->getName()}] = *gv;
+    }
   }
 
   module.walk([&](mlir::func::FuncOp funcOp) {

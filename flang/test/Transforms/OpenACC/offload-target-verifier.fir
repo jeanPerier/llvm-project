@@ -331,64 +331,6 @@ func.func @test_fir_embox() {
 
 // -----
 
-// Test fir.use_stmt inside offload region referencing undeclared global
-fir.global @_QMmod1Evar1 : f32 {
-  %0 = arith.constant 0.0 : f32
-  fir.has_value %0 : f32
-}
-
-func.func @test_use_stmt_no_declare() {
-  // expected-remark @below {{passed validity check}}
-  acc.serial {
-    fir.use_stmt "mod1" only_symbols[[@_QMmod1Evar1]]
-    acc.yield
-  }
-  return
-}
-
-// -----
-
-// Test fir.use_stmt inside offload region referencing declared global
-fir.global @_QMmod2Evar2 {acc.declare = #acc.declare<dataClause = acc_create>} : f32 {
-  %0 = arith.constant 0.0 : f32
-  fir.has_value %0 : f32
-}
-
-func.func @test_use_stmt_with_declare() {
-  // expected-remark @below {{passed validity check}}
-  acc.serial {
-    fir.use_stmt "mod2" only_symbols[[@_QMmod2Evar2]]
-    acc.yield
-  }
-  return
-}
-
-// -----
-
-// A fir.use_stmt does not require the referenced symbol to have a definition.
-func.func @test_use_stmt_undefined_symbol() {
-  // expected-remark @below {{passed validity check}}
-  acc.serial {
-    fir.use_stmt "mod3" only_symbols[[@_QMmod3Evar3]]
-    acc.yield
-  }
-  return
-}
-
-// -----
-
-// A fir.use_stmt with only a module name has no symbol use to validate.
-func.func @test_use_stmt_module_name() {
-  // expected-remark @below {{passed validity check}}
-  acc.serial {
-    fir.use_stmt "mod4"
-    acc.yield
-  }
-  return
-}
-
-// -----
-
 func.func private @_FortranARuntime() attributes {fir.runtime}
 
 func.func @test_fir_runtime_symbol() {

@@ -42,7 +42,7 @@ namespace {
 static std::string getUnitTag(mlir::ModuleOp mod) {
   std::string key;
   llvm::raw_string_ostream os(key);
-  if (auto fileLoc = mlir::dyn_cast<mlir::FileLineColLoc>(mod.getLoc()))
+  if (auto fileLoc = mod.getLoc()->findInstanceOf<mlir::FileLineColLoc>())
     os << fileLoc.getFilename().getValue();
   for (mlir::Operation &op : mod.getBody()->getOperations())
     if (auto sym = mlir::dyn_cast<mlir::SymbolOpInterface>(op))
