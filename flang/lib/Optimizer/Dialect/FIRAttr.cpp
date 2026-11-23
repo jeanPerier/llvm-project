@@ -290,6 +290,27 @@ void fir::printFirAttribute(FIROpsDialect *dialect, mlir::Attribute attr,
 }
 
 //===----------------------------------------------------------------------===//
+// Scopes and USE statements
+//===----------------------------------------------------------------------===//
+
+llvm::LogicalResult fir::UseAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError, ScopeAttr module,
+    bool only, llvm::ArrayRef<UseEntityAttr> entities, mlir::LocationAttr) {
+  if (!module.isModule())
+    return emitError() << "a USE statement must use a module scope";
+  if (only && entities.empty())
+    return emitError() << "the ONLY list of a USE statement cannot be empty";
+  return mlir::success();
+}
+
+mlir::OpAsmAliasResult fir::ScopeAttr::getAlias(llvm::raw_ostream &os) const {
+  os << "scope";
+  if (isModule() && getName())
+    os << "_mod_" << getName().getValue();
+  return mlir::OpAsmAliasResult::OverridableAlias;
+}
+
+//===----------------------------------------------------------------------===//
 // FIROpsDialect
 //===----------------------------------------------------------------------===//
 

@@ -40,8 +40,8 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 #after = loc("t.f90":10:3)
 #ret = loc("t.f90":12:1)
 // The code of each branch, here on one line, is tagged with its scope.
-#scope1 = #fir.lexical_scope<loc = loc("t.f90":8:5)>
-#scope2 = #fir.lexical_scope<loc = loc("t.f90":8:20)>
+#scope1 = #fir.scope<construct, loc("t.f90":8:5)>
+#scope2 = #fir.scope<construct, loc("t.f90":8:20)>
 #branch1 = loc(fused<#scope1>["t.f90":8:5])
 #branch2 = loc(fused<#scope2>["t.f90":8:20])
 #decl_sel1 = loc(fused<#scope1>[#decl_sel])
@@ -114,10 +114,10 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 #sel_p = loc("t.f90":22:3)
 #nest_ret = loc("t.f90":35:1)
 // The construct for "q" is in the first branch of the one for "p".
-#p_scope1 = #fir.lexical_scope<loc = loc("t.f90":23:5)>
-#p_scope2 = #fir.lexical_scope<loc = loc("t.f90":33:5)>
-#q_scope1 = #fir.lexical_scope<loc = loc("t.f90":25:7), parent = #p_scope1>
-#q_scope2 = #fir.lexical_scope<loc = loc("t.f90":27:7), parent = #p_scope1>
+#p_scope1 = #fir.scope<construct, loc("t.f90":23:5)>
+#p_scope2 = #fir.scope<construct, loc("t.f90":33:5)>
+#q_scope1 = #fir.scope<construct, parent = #p_scope1, loc("t.f90":25:7)>
+#q_scope2 = #fir.scope<construct, parent = #p_scope1, loc("t.f90":27:7)>
 #p_branch1 = loc(fused<#p_scope1>["t.f90":23:5])
 #sel_q = loc(fused<#p_scope1>["t.f90":24:5])
 #q_branch1 = loc(fused<#q_scope1>["t.f90":25:7])
@@ -187,8 +187,8 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 #decl_x = loc("t.f90":41:14)
 #decl_y = loc("t.f90":41:17)
 #x_sel = loc("t.f90":42:3)
-#x_scope1 = #fir.lexical_scope<loc = loc("t.f90":43:5)>
-#x_scope2 = #fir.lexical_scope<loc = loc("t.f90":45:5)>
+#x_scope1 = #fir.scope<construct, loc("t.f90":43:5)>
+#x_scope2 = #fir.scope<construct, loc("t.f90":45:5)>
 #x_branch1 = loc(fused<#x_scope1>["t.f90":43:5])
 #x_include = loc("t.f90":44:5)
 #x_included = loc(fused<#x_scope1>[fused<#fir<loc_kind_array[<base>, <inclusion>]>>["a.inc":1:3, #x_include]])
@@ -199,8 +199,8 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 // start at 2:3 and 4:3 there.
 #y_include = loc("t.f90":47:1)
 #y_sel = loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":1:3, #y_include])
-#y_scope1 = #fir.lexical_scope<loc = loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":2:3, #y_include])>
-#y_scope2 = #fir.lexical_scope<loc = loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":4:3, #y_include])>
+#y_scope1 = #fir.scope<construct, loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":2:3, #y_include])>
+#y_scope2 = #fir.scope<construct, loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":4:3, #y_include])>
 #y_branch1 = loc(fused<#y_scope1>[fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":3:5, #y_include]])
 #y_branch2 = loc(fused<#y_scope2>[fused<#fir<loc_kind_array[<base>, <inclusion>]>>["b.inc":5:5, #y_include]])
 #decl_y1 = loc(fused<#y_scope1>[#decl_y])
@@ -262,15 +262,15 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 #decl_p_inl = loc("t.f90":51:14)
 #inl_sel = loc("t.f90":52:3)
 #inl_ret = loc("t.f90":59:1)
-#p_scope1 = #fir.lexical_scope<loc = loc("t.f90":53:5)>
-#p_scope2 = #fir.lexical_scope<loc = loc("t.f90":56:5)>
+#p_scope1 = #fir.scope<construct, loc("t.f90":53:5)>
+#p_scope2 = #fir.scope<construct, loc("t.f90":56:5)>
 #inl_branch1 = loc(fused<#p_scope1>["t.f90":53:5])
 #inl_branch2 = loc(fused<#p_scope2>["t.f90":56:5])
 #decl_p_inl1 = loc(fused<#p_scope1>[#decl_p_inl])
 #decl_p_inl2 = loc(fused<#p_scope2>[#decl_p_inl])
 // The callee associates "r" in a branch at 62:5. It is inlined at 54:7 and
 // 55:7 in the first branch of the construct for "p", and at 58:3 after it.
-#r_scope = #fir.lexical_scope<loc = loc("t.f90":62:5)>
+#r_scope = #fir.scope<construct, loc("t.f90":62:5)>
 #callee_decl_r = loc(fused<#r_scope>["t.f90":62:16])
 #callee_body = loc(fused<#r_scope>["t.f90":63:7])
 #call1 = loc(fused<#p_scope1>["t.f90":54:7])

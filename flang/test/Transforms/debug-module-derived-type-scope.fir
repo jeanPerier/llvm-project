@@ -2,15 +2,17 @@
 
 // Test that a derived type defined in a module gets the scope of that module.
 
+#defined_m = #fir.scope<module "defined_m", loc("defined.f90":1:1)>
+#impl = #fir.scope<module "impl", parent = #defined_m, loc("defined.f90":20:1)>
+#user = #fir.scope<procedure "user", loc("user.f90":1:1)>
+#msub = #fir.scope<procedure "msub", parent = #defined_m, loc("defined.f90":10:3)>
+#smod_sub = #fir.scope<procedure "smod_sub", parent = #impl, loc("defined.f90":25:3)>
+
 module {
-  fir.module_debug_imports "defined_m" {
-  } loc(#loc_defined_m)
   fir.global @_QMdefined_mEcounter : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
   } loc(#loc_counter)
-  fir.module_debug_imports "impl" in "defined_m" parent "defined_m" {
-  } loc(#loc_impl)
 
   func.func @_QPuser() {
     %0 = fir.alloca !fir.type<_QMdefined_mTt{i:i32}> {bindc_name = "x", uniq_name = "_QFuserEx"}
@@ -20,28 +22,23 @@ module {
     %4 = fir.alloca !fir.type<_QFuserTuser_t{w:i32}> {bindc_name = "u", uniq_name = "_QFuserEu"}
     %5 = fircg.ext_declare %4 uniq_name("_QFuserEu") : (!fir.ref<!fir.type<_QFuserTuser_t{w:i32}>>) -> !fir.ref<!fir.type<_QFuserTuser_t{w:i32}>> loc(#loc_u)
     return
-  } loc(#loc_user)
+  } loc(fused<#user>["user.f90":1:1])
 
   func.func @_QMdefined_mPmsub() {
     %0 = fir.alloca !fir.type<_QMdefined_mFmsubTmsub_t{w:i32}> {bindc_name = "m", uniq_name = "_QMdefined_mFmsubEm"}
     %1 = fircg.ext_declare %0 uniq_name("_QMdefined_mFmsubEm") : (!fir.ref<!fir.type<_QMdefined_mFmsubTmsub_t{w:i32}>>) -> !fir.ref<!fir.type<_QMdefined_mFmsubTmsub_t{w:i32}>> loc(#loc_m)
     return
-  } loc(#loc_msub)
+  } loc(fused<#msub>["defined.f90":10:3])
 
-  func.func @_QMdefined_mPsmod_sub() attributes {fir.defining_submodule = "impl"} {
+  func.func @_QMdefined_mPsmod_sub() {
     %0 = fir.alloca !fir.type<_QMdefined_mSimplTsub_t{s:i32}> {bindc_name = "s", uniq_name = "_QMdefined_mSimplFsmod_subEs"}
     %1 = fircg.ext_declare %0 uniq_name("_QMdefined_mSimplFsmod_subEs") : (!fir.ref<!fir.type<_QMdefined_mSimplTsub_t{s:i32}>>) -> !fir.ref<!fir.type<_QMdefined_mSimplTsub_t{s:i32}>> loc(#loc_s)
     return
-  } loc(#loc_smod_sub)
-}
-#loc_defined_m = loc("defined.f90":1:1)
+  } loc(fused<#smod_sub>["defined.f90":25:3])
+} loc(fused<[#defined_m, #impl]>["defined.f90":0:0])
 #loc_counter = loc("defined.f90":5:14)
-#loc_msub = loc("defined.f90":10:3)
 #loc_m = loc("defined.f90":14:5)
-#loc_impl = loc("defined.f90":20:1)
-#loc_smod_sub = loc("defined.f90":25:3)
 #loc_s = loc("defined.f90":26:5)
-#loc_user = loc("user.f90":1:1)
 #loc_x = loc("user.f90":3:3)
 #loc_n = loc("user.f90":4:3)
 #loc_u = loc("user.f90":8:3)

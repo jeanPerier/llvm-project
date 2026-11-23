@@ -4,17 +4,21 @@
 // here; the ancestor it imports and a module that is merely used are both
 // declarations.
 
+// `subkid` is listed with a location in the module location because it is
+// compiled here, as lowering does for every submodule. Its parent `subpar` has
+// no location: it is compiled elsewhere.
+#subpar = #fir.scope<module "subpar", loc(unknown)>
+#subkid = #fir.scope<module "subkid", parent = #subpar, loc("kid.f90":1:1)>
+// A separate module procedure is mangled with the module that declares its
+// interface; its scope names the submodule that defines it.
+#hello = #fir.scope<procedure "hello", parent = #subkid, loc("kid.f90":3:3)>
+
 module {
-  // Marks `subkid` as compiled here, as lowering does for every submodule.
-  fir.module_debug_imports "subkid" in "subpar" parent "subpar" {
-  } loc(#loc0)
-  func.func @_QMsubparPhello() attributes {fir.defining_submodule = "subkid"} {
+  func.func @_QMsubparPhello() {
     return
-  } loc(#loc1)
+  } loc(fused<#hello>["kid.f90":3:3])
   func.func private @_QMelsewherePthere() loc(#loc2)
-}
-#loc0 = loc("kid.f90":1:1)
-#loc1 = loc("kid.f90":3:3)
+} loc(fused<[#subkid]>["kid.f90":0:0])
 #loc2 = loc("kid.f90":6:3)
 
 // CHECK-DAG: #[[CU_SELF:.*]] = #llvm.di_compile_unit<recId = [[RECID:.+]], isRecSelf = true>

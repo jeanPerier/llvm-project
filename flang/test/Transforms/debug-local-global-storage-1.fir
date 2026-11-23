@@ -1,19 +1,20 @@
 // RUN: fir-opt --add-debug-info --mlir-print-debuginfo %s | FileCheck %s
 
+// `example` is listed with a location in the module location because it is
+// defined in this compilation unit, as lowering does for every module it
+// compiles.
+#example = #fir.scope<module "example", loc("test.f90":1:1)>
+#mod_sub = #fir.scope<procedure "mod_sub", parent = #example, uses = [#fir.use<#example, loc("test.f90":11:7)>], loc("test.f90":10:1)>
+
 module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<i64, dense<64> : vector<2xi64>>, #dlti.dl_entry<!llvm.ptr<272>, dense<64> : vector<4xi64>>, #dlti.dl_entry<!llvm.ptr<271>, dense<32> : vector<4xi64>>, #dlti.dl_entry<!llvm.ptr<270>, dense<32> : vector<4xi64>>, #dlti.dl_entry<f128, dense<128> : vector<2xi64>>, #dlti.dl_entry<f80, dense<128> : vector<2xi64>>, #dlti.dl_entry<i128, dense<128> : vector<2xi64>>, #dlti.dl_entry<i8, dense<8> : vector<2xi64>>, #dlti.dl_entry<!llvm.ptr, dense<64> : vector<4xi64>>, #dlti.dl_entry<i1, dense<8> : vector<2xi64>>, #dlti.dl_entry<f16, dense<16> : vector<2xi64>>, #dlti.dl_entry<f64, dense<64> : vector<2xi64>>, #dlti.dl_entry<i32, dense<32> : vector<2xi64>>, #dlti.dl_entry<i16, dense<16> : vector<2xi64>>, #dlti.dl_entry<"dlti.stack_alignment", 128 : i64>, #dlti.dl_entry<"dlti.endianness", "little">>, fir.defaultkind = "a1c4d8i4l4r4", fir.kindmap = "", llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"} {
-  // Marks `example` as defined in this compilation unit, as lowering does for
-  // every module it compiles.
-  fir.module_debug_imports "example" {
-  } loc(#loc0)
   func.func @_QMexamplePmod_sub() {
-    fir.use_stmt "example"
     %c2 = arith.constant 2 : index
     %1 = fir.address_of(@_QMexampleEmod_arr) : !fir.ref<!fir.array<2x2xi32>>
     %2 = fircg.ext_declare %1(%c2, %c2) uniq_name("_QMexampleEmod_arr") : (!fir.ref<!fir.array<2x2xi32>>, index, index) -> !fir.ref<!fir.array<2x2xi32>> loc(#loc4)
     %3 = fir.address_of(@_QMexampleFmod_subEss) : !fir.ref<i32>
     %4 = fircg.ext_declare %3 uniq_name("_QMexampleFmod_subEss") : (!fir.ref<i32>) -> !fir.ref<i32> loc(#loc5)
     return
-  } loc(#loc6)
+  } loc(fused<#mod_sub>["test.f90":10:1])
   func.func @_QQmain() attributes {fir.bindc_name = "test"} {
     %c3 = arith.constant 3 : index
     %c4 = arith.constant 4 : index
@@ -39,14 +40,12 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<i64, dense<64> : 
     %c2_i32 = arith.constant 2 : i32
     fir.has_value %c2_i32 : i32
   } loc(#loc3)
-}
-#loc0 = loc("test.f90":1:1)
+} loc(fused<[#example]>["test.f90":0:0])
 #loc1 = loc("test.f90":21:1)
 #loc2 = loc("test.f90":22:1)
 #loc3 = loc("test.f90":23:1)
 #loc4 = loc("test.f90":5:1)
 #loc5 = loc("test.f90":12:1)
-#loc6 = loc("test.f90":10:1)
 
 // CHECK-DAG: #[[CU:.*]] = #llvm.di_compile_unit<{{.*}}>
 // CHECK-DAG: #[[MOD:.*]] = #llvm.di_module<{{.*}}scope = #[[CU]]{{.*}}name = "example"{{.*}}>

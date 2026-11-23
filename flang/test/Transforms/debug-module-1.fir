@@ -1,11 +1,12 @@
 // RUN: fir-opt --add-debug-info --mlir-print-debuginfo %s | FileCheck %s
 
 
+// `helper` is listed with a location in the module location because it is
+// defined in this compilation unit, as lowering does for every module it
+// compiles.
+#helper = #fir.scope<module "helper", loc("test.f90":10:1)>
+
 module {
-  // Marks `helper` as defined in this compilation unit, as lowering does for
-  // every module it compiles.
-  fir.module_debug_imports "helper" {
-  } loc(#loc0)
   fir.global @_QMhelperEgli : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
@@ -23,8 +24,7 @@ module {
     fir.store %c67_i32 to %0 : !fir.ref<i32>
     return
   } loc(#loc3)
-}
-#loc0 = loc("test.f90":10:1)
+} loc(fused<[#helper]>["test.f90":0:0])
 #loc1 = loc("test.f90":12:11)
 #loc2 = loc("test.f90":15:8)
 #loc3 = loc("test.f90":20:5)

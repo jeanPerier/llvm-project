@@ -160,7 +160,7 @@ struct ConstructContext {
   Fortran::lower::StatementContext &stmtCtx; // construct exit code
   std::optional<hlfir::Entity> selector;     // construct selector, if any.
   bool pushedScope = false; // was a scoped pushed for this construct?
-  fir::LexicalScopeAttr lexicalScope; // scope of the current branch, if any
+  fir::ScopeAttr lexicalScope; // debug scope of the current branch, if any
 };
 
 /// Helper to gather the lower bounds of array components with non deferred
@@ -228,157 +228,87 @@ static mlir::FlatSymbolRefAttr gatherComponentInit(
   return mlir::FlatSymbolRefAttr::get(mlirContext, name);
 }
 
-/// Emit a single fir.use_stmt from preserved frontend USE metadata.
-static void emitUseStmtOp(Fortran::lower::AbstractConverter &converter,
-                          mlir::OpBuilder &builder, mlir::Location loc,
-                          const Fortran::semantics::PreservedUseStmt &stmt,
-                          const Fortran::semantics::Scope &lookupScope) {
-  mlir::MLIRContext *context = builder.getContext();
-  mlir::StringAttr moduleNameAttr =
-      mlir::StringAttr::get(context, stmt.moduleName);
+/// Return the module that declares \p ultimate if it is a data object of a
+/// module, which is what a debugger can import.
+static const Fortran::semantics::Symbol *
+getModuleOfDataObject(const Fortran::semantics::Symbol &ultimate) {
+  if (!ultimate.has<Fortran::semantics::ObjectEntityDetails>() &&
+      !(ultimate.has<Fortran::semantics::ProcEntityDetails>() &&
+        Fortran::semantics::IsPointer(ultimate)))
+    return nullptr;
+  const Fortran::semantics::Scope &owner = ultimate.owner();
+  return owner.IsModule() ? owner.symbol() : nullptr;
+}
 
-  // Helper function to get mangled name for a symbol
-  auto getMangledName = [&](const std::string &localName) -> std::string {
-    Fortran::parser::CharBlock charBlock{localName.data(), localName.size()};
-    const auto *sym = lookupScope.FindSymbol(charBlock);
-    if (!sym)
-      return "";
+/// Describe the import of \p ultimate, declared in \p module, under the name
+/// \p local by a USE of \p usedModule. What is the same is left out.
+static fir::UseEntityAttr
+genUseEntityAttr(mlir::MLIRContext *context, llvm::StringRef local,
+                 const Fortran::semantics::Symbol &ultimate,
+                 fir::ScopeAttr module, fir::ScopeAttr usedModule) {
+  llvm::StringRef name = toStringRef(ultimate.name());
+  return fir::UseEntityAttr::get(
+      context, mlir::StringAttr::get(context, local),
+      name == local ? mlir::StringAttr{} : mlir::StringAttr::get(context, name),
+      module == usedModule ? fir::ScopeAttr{} : module);
+}
 
-    const auto &ultimateSym = sym->GetUltimate();
-
-    // Skip cases which can cause mangleName to fail.
-    if (ultimateSym.has<Fortran::semantics::DerivedTypeDetails>())
-      return "";
-
-    if (ultimateSym.has<Fortran::semantics::UseErrorDetails>())
-      return "";
-
-    if (const auto *generic =
-            ultimateSym.detailsIf<Fortran::semantics::GenericDetails>()) {
-      if (!generic->specific())
-        return "";
-    }
-
-    return converter.mangleName(ultimateSym);
+/// Describe a USE statement of \p usedModule for the debug information. Only
+/// the data objects that it names are listed, and a USE whose ONLY list names
+/// none is not described.
+static fir::UseAttr genUseAttr(
+    mlir::MLIRContext *context, const Fortran::parser::UseStmt &useStmt,
+    fir::ScopeAttr usedModule, mlir::Location loc,
+    llvm::function_ref<fir::ScopeAttr(const Fortran::semantics::Symbol &)>
+        getModuleScope) {
+  llvm::SmallVector<fir::UseEntityAttr> entities;
+  auto addEntity = [&](const Fortran::parser::Name &localName) {
+    if (!localName.symbol)
+      return;
+    const Fortran::semantics::Symbol &ultimate =
+        localName.symbol->GetUltimate();
+    if (const Fortran::semantics::Symbol *module =
+            getModuleOfDataObject(ultimate))
+      entities.push_back(
+          genUseEntityAttr(context, toStringRef(localName.source), ultimate,
+                           getModuleScope(*module), usedModule));
   };
-
-  llvm::SmallVector<mlir::Attribute> onlySymbolAttrs;
-  llvm::SmallVector<mlir::Attribute> renameAttrs;
-
-  for (const auto &name : stmt.onlyNames) {
-    std::string mangledName = getMangledName(name);
-    if (!mangledName.empty())
-      onlySymbolAttrs.push_back(
-          mlir::FlatSymbolRefAttr::get(context, mangledName));
-  }
-
-  for (const auto &local : stmt.renames) {
-    std::string mangledName = getMangledName(local);
-    if (!mangledName.empty()) {
-      auto localAttr = mlir::StringAttr::get(context, local);
-      auto symbolRef = mlir::FlatSymbolRefAttr::get(context, mangledName);
-      renameAttrs.push_back(
-          fir::UseRenameAttr::get(context, localAttr, symbolRef));
-    }
-  }
-
-  mlir::ArrayAttr onlySymbolsAttr =
-      onlySymbolAttrs.empty() ? mlir::ArrayAttr()
-                              : mlir::ArrayAttr::get(context, onlySymbolAttrs);
-  mlir::ArrayAttr renamesAttr =
-      renameAttrs.empty() ? mlir::ArrayAttr()
-                          : mlir::ArrayAttr::get(context, renameAttrs);
-  mlir::BoolAttr hasOnlyWithRenamesAttr =
-      mlir::BoolAttr::get(context, stmt.hasOnlyWithRenames);
-
-  fir::UseStmtOp::create(builder, loc, moduleNameAttr, onlySymbolsAttr,
-                         renamesAttr, hasOnlyWithRenamesAttr);
-}
-
-/// Emit fir.module_debug_imports for USE statements in a module. The operation
-/// is emitted for every module, even one with no USE statement, because its
-/// location is also what tells AddDebugInfo the line of the MODULE statement.
-static void
-emitModuleDebugImports(Fortran::lower::AbstractConverter &converter,
-                       mlir::OpBuilder &builder, mlir::Location loc,
-                       const Fortran::lower::pft::ModuleLikeUnit &mod) {
-  if (!converter.getLoweringOptions().getPreserveUseDebugInfo())
-    return;
-
-  const Fortran::semantics::Scope &modScope = mod.getScope();
-  const Fortran::semantics::Symbol *modSym = modScope.symbol();
-  if (!modSym)
-    return;
-
-  mlir::ModuleOp mlirModule = converter.getModuleOp();
-  mlir::OpBuilder::InsertionGuard guard(builder);
-  builder.setInsertionPoint(mlirModule.getBody(), mlirModule.getBody()->end());
-
-  // A submodule is named after its ancestor module in the debug info, and has
-  // access to everything in the submodule directly above it, so record both.
-  mlir::StringAttr ancestorNameAttr;
-  mlir::StringAttr parentNameAttr;
-  if (const auto *details{
-          modSym->detailsIf<Fortran::semantics::ModuleDetails>()};
-      details && details->isSubmodule()) {
-    if (const Fortran::semantics::Scope *ancestor{details->ancestor()};
-        ancestor && ancestor->symbol())
-      ancestorNameAttr = mlir::StringAttr::get(
-          builder.getContext(), ancestor->symbol()->name().ToString());
-    if (const Fortran::semantics::Scope *parent{details->parent()};
-        parent && parent->symbol())
-      parentNameAttr = mlir::StringAttr::get(
-          builder.getContext(), parent->symbol()->name().ToString());
-  }
-
-  auto op = fir::ModuleDebugImportsOp::create(
-      builder, loc,
-      mlir::StringAttr::get(builder.getContext(), modSym->name().ToString()),
-      ancestorNameAttr, parentNameAttr);
-  mlir::Region &region = op.getUses();
-  mlir::Block *block = new mlir::Block();
-  region.push_back(block);
-  builder.setInsertionPointToStart(block);
-  for (const auto &stmt : mod.preservedUseStmts)
-    emitUseStmtOp(converter, builder, loc, stmt, modScope);
-  fir::FirEndOp::create(builder, loc);
-}
-
-/// Emit `fir.use_stmt` operations for USE statements that appear in the given
-/// function unit.
-static void
-emitUseStatementsFromFunit(Fortran::lower::AbstractConverter &converter,
-                           mlir::OpBuilder &builder, mlir::Location loc,
-                           const Fortran::lower::pft::FunctionLikeUnit &funit) {
-  const Fortran::semantics::Scope &scope = funit.getScope();
-  for (const auto &preservedStmt : funit.preservedUseStmts)
-    emitUseStmtOp(converter, builder, loc, preservedStmt, scope);
-}
-
-/// Record the submodule that defines a separate module procedure. Its name is
-/// mangled with the module that declares its interface, so the submodule would
-/// otherwise be lost and its debug info would point at the module instead.
-static void setDefiningSubmoduleForDebug(
-    Fortran::lower::AbstractConverter &converter, mlir::func::FuncOp func,
-    const Fortran::lower::pft::FunctionLikeUnit &funit) {
-  // This option is set whenever more than line tables are asked for, which is
-  // also when a module is described, so it stands in for full debug info here.
-  if (!converter.getLoweringOptions().getPreserveUseDebugInfo())
-    return;
-
-  const Fortran::semantics::Scope &scope = funit.getScope();
-  if (!scope.parent().IsSubmodule())
-    return;
-  const Fortran::semantics::Symbol *sym = scope.symbol();
-  if (!sym || !sym->attrs().test(Fortran::semantics::Attr::MODULE))
-    return;
-  const Fortran::semantics::Symbol *submodule = scope.parent().symbol();
-  if (!submodule)
-    return;
-
-  func->setAttr(
-      fir::getDefiningSubmoduleAttrName(),
-      mlir::StringAttr::get(func.getContext(), submodule->name().ToString()));
+  auto addRename = [&](const Fortran::parser::Rename &rename) {
+    if (const auto *names =
+            std::get_if<Fortran::parser::Rename::Names>(&rename.u))
+      addEntity(std::get<0>(names->t));
+  };
+  bool only = Fortran::common::visit(
+      Fortran::common::visitors{
+          [&](const std::list<Fortran::parser::Rename> &renames) {
+            for (const Fortran::parser::Rename &rename : renames)
+              addRename(rename);
+            return false;
+          },
+          [&](const std::list<Fortran::parser::Only> &onlys) {
+            for (const Fortran::parser::Only &only : onlys)
+              Fortran::common::visit(
+                  Fortran::common::visitors{
+                      [&](const Fortran::common::Indirection<
+                          Fortran::parser::GenericSpec> &spec) {
+                        if (const auto *name =
+                                std::get_if<Fortran::parser::Name>(
+                                    &spec.value().u))
+                          addEntity(*name);
+                      },
+                      [&](const Fortran::parser::Name &name) {
+                        addEntity(name);
+                      },
+                      [&](const Fortran::parser::Rename &rename) {
+                        addRename(rename);
+                      }},
+                  only.u);
+            return true;
+          }},
+      useStmt.u);
+  if (only && entities.empty())
+    return {};
+  return fir::UseAttr::get(context, usedModule, only, entities, loc);
 }
 
 /// Helper class to generate the runtime type info global data and the
@@ -711,6 +641,15 @@ public:
     });
 
     finalizeOpenMPLowering(globalOmpRequiresSymbols);
+
+    // The modules defined in this unit are listed in the location of the
+    // module operation for the debug information.
+    if (!definedModuleScopes.empty()) {
+      mlir::ModuleOp module = getModuleOp();
+      module->setLoc(mlir::FusedLoc::get(
+          &getMLIRContext(), {module.getLoc()},
+          mlir::ArrayAttr::get(&getMLIRContext(), definedModuleScopes)));
+    }
   }
 
   /// Declare a function.
@@ -1264,7 +1203,7 @@ public:
   mlir::Location
   genLocation(const Fortran::parser::CharBlock &block) override final {
     mlir::Location loc = genSourceLocation(block);
-    if (fir::LexicalScopeAttr lexicalScope = getLexicalScope())
+    if (fir::ScopeAttr lexicalScope = getLexicalScope())
       return mlir::FusedLoc::get(&getMLIRContext(), {loc}, lexicalScope);
     return loc;
   }
@@ -2098,23 +2037,156 @@ private:
   /// begins at the current statement. It lasts until the next branch or the
   /// end of the construct, and lets debug information make the names that
   /// the branch associates visible only in the branch.
-  void startLexicalScope() {
+  void startLexicalScope(llvm::ArrayRef<fir::UseAttr> uses = {}) {
     assert(!activeConstructStack.empty() && "must be inside a construct");
     ConstructContext &construct = activeConstructStack.back();
     construct.lexicalScope = {};
-    if (getLoweringOptions().getPreserveUseDebugInfo())
-      construct.lexicalScope = fir::LexicalScopeAttr::get(
-          &getMLIRContext(), genSourceLocation(currentPosition),
-          getLexicalScope());
+    if (getLoweringOptions().getPreserveUseDebugInfo()) {
+      fir::ScopeAttr parent = getLexicalScope();
+      construct.lexicalScope = fir::ScopeAttr::get(
+          &getMLIRContext(), fir::ScopeKind::Construct, mlir::StringAttr{},
+          genSourceLocation(currentPosition), parent ? parent : procedureScope,
+          uses);
+    }
   }
 
   /// Return the lexical scope of the innermost branch being lowered, if any.
-  fir::LexicalScopeAttr getLexicalScope() {
+  fir::ScopeAttr getLexicalScope() {
     for (const ConstructContext &construct :
          llvm::reverse(activeConstructStack))
       if (construct.lexicalScope)
         return construct.lexicalScope;
     return {};
+  }
+
+  /// Describe a USE statement, or return null if it makes no data object
+  /// visible.
+  fir::UseAttr genUseAttr(const Fortran::lower::pft::UseStmt &useStmt) {
+    const Fortran::parser::UseStmt &stmt = useStmt.statement.value();
+    mlir::MLIRContext *context = &getMLIRContext();
+    fir::ScopeAttr usedModule =
+        stmt.moduleName.symbol
+            ? getModuleScope(*stmt.moduleName.symbol)
+            : fir::ScopeAttr::get(
+                  context, fir::ScopeKind::Module,
+                  mlir::StringAttr::get(context,
+                                        toStringRef(stmt.moduleName.source)),
+                  mlir::UnknownLoc::get(context), {}, {});
+    return ::genUseAttr(context, stmt, usedModule,
+                        genSourceLocation(useStmt.source),
+                        [&](const Fortran::semantics::Symbol &module) {
+                          return getModuleScope(module);
+                        });
+  }
+
+  llvm::SmallVector<fir::UseAttr>
+  genUseAttrs(const Fortran::lower::pft::UseStmtList &useStmts) {
+    llvm::SmallVector<fir::UseAttr> uses;
+    for (const Fortran::lower::pft::UseStmt *useStmt : useStmts)
+      if (fir::UseAttr use = genUseAttr(*useStmt))
+        uses.push_back(use);
+    return uses;
+  }
+
+  /// Return the debug scope of the module \p module. Nothing is said about
+  /// what an intrinsic module re-exports.
+  fir::ScopeAttr getModuleScope(const Fortran::semantics::Symbol &module) {
+    if (const Fortran::semantics::Scope *scope = module.scope();
+        scope && !module.attrs().test(Fortran::semantics::Attr::INTRINSIC))
+      return getModuleScope(*scope);
+    mlir::MLIRContext *context = &getMLIRContext();
+    return fir::ScopeAttr::get(
+        context, fir::ScopeKind::Module,
+        mlir::StringAttr::get(context, toStringRef(module.name())),
+        mlir::UnknownLoc::get(context), {}, {});
+  }
+
+  /// Return the debug scope of a module or submodule. A module that is not
+  /// defined in this unit has no location, and the data objects that it makes
+  /// visible from other modules stand for its USE statements.
+  fir::ScopeAttr getModuleScope(const Fortran::semantics::Scope &scope) {
+    if (fir::ScopeAttr moduleScope = debugScopes.lookup(&scope))
+      return moduleScope;
+    mlir::MLIRContext *context = &getMLIRContext();
+    llvm::MapVector<const Fortran::semantics::Symbol *,
+                    llvm::SmallVector<fir::UseEntityAttr>>
+        entitiesByModule;
+    for (const auto &[name, symbol] : scope) {
+      if (!symbol->has<Fortran::semantics::UseDetails>() ||
+          symbol->attrs().test(Fortran::semantics::Attr::PRIVATE))
+        continue;
+      const Fortran::semantics::Symbol &ultimate = symbol->GetUltimate();
+      if (const Fortran::semantics::Symbol *module =
+              getModuleOfDataObject(ultimate))
+        entitiesByModule[module].push_back(
+            genUseEntityAttr(context, toStringRef(name), ultimate, {}, {}));
+    }
+    llvm::SmallVector<fir::UseAttr> uses;
+    for (auto &[module, entities] : entitiesByModule)
+      uses.push_back(fir::UseAttr::get(context, getModuleScope(*module),
+                                       /*only=*/true, entities,
+                                       mlir::UnknownLoc::get(context)));
+    fir::ScopeAttr moduleScope =
+        genModuleScope(scope, mlir::UnknownLoc::get(context), uses);
+    debugScopes[&scope] = moduleScope;
+    return moduleScope;
+  }
+
+  fir::ScopeAttr genModuleScope(const Fortran::semantics::Scope &scope,
+                                mlir::Location loc,
+                                llvm::ArrayRef<fir::UseAttr> uses) {
+    const Fortran::semantics::Symbol &symbol = DEREF(scope.symbol());
+    fir::ScopeAttr parent;
+    if (const auto *details =
+            symbol.detailsIf<Fortran::semantics::ModuleDetails>())
+      if (const Fortran::semantics::Scope *parentScope = details->parent())
+        parent = getModuleScope(*parentScope);
+    mlir::MLIRContext *context = &getMLIRContext();
+    return fir::ScopeAttr::get(
+        context, fir::ScopeKind::Module,
+        mlir::StringAttr::get(context, toStringRef(symbol.name())), loc, parent,
+        uses);
+  }
+
+  /// Describe a module defined in this unit for the debug information.
+  void genDefinedModuleScope(Fortran::lower::pft::ModuleLikeUnit &mod) {
+    const Fortran::semantics::Scope &scope = mod.getScope();
+    if (!getLoweringOptions().getPreserveUseDebugInfo() || !scope.symbol())
+      return;
+    fir::ScopeAttr moduleScope =
+        genModuleScope(scope, genSourceLocation(mod.getStartingSourceLoc()),
+                       genUseAttrs(mod.useStmts));
+    debugScopes[&scope] = moduleScope;
+    definedModuleScopes.push_back(moduleScope);
+  }
+
+  /// Describe the scope of the procedure being lowered in the location of its
+  /// function. All the entry points of a procedure share it.
+  void genProcedureScope(Fortran::lower::pft::FunctionLikeUnit &funit,
+                         mlir::func::FuncOp func) {
+    if (!getLoweringOptions().getPreserveUseDebugInfo())
+      return;
+    const Fortran::semantics::Scope &scope = funit.getScope();
+    procedureScope = debugScopes.lookup(&scope);
+    if (!procedureScope) {
+      fir::ScopeAttr parent;
+      if (auto *host =
+              funit.parent.getIf<Fortran::lower::pft::FunctionLikeUnit>())
+        parent = debugScopes.lookup(&host->getScope());
+      else if (scope.parent().kind() == Fortran::semantics::Scope::Kind::Module)
+        parent = getModuleScope(scope.parent());
+      mlir::MLIRContext *context = &getMLIRContext();
+      mlir::StringAttr name;
+      if (const Fortran::semantics::Symbol *symbol = scope.symbol())
+        name = mlir::StringAttr::get(context, toStringRef(symbol->name()));
+      procedureScope =
+          fir::ScopeAttr::get(context, fir::ScopeKind::Procedure, name,
+                              genSourceLocation(funit.getStartingSourceLoc()),
+                              parent, genUseAttrs(funit.useStmts));
+      debugScopes[&scope] = procedureScope;
+    }
+    func->setLoc(mlir::FusedLoc::get(&getMLIRContext(), {func.getLoc()},
+                                     procedureScope));
   }
 
   //===--------------------------------------------------------------------===//
@@ -4739,6 +4811,24 @@ private:
     popActiveConstruct();
   }
 
+  /// Start the lexical scope of a BLOCK construct that has its own variables
+  /// or USE statements.
+  void startBlockScope(const Fortran::parser::BlockConstruct &blockConstruct,
+                       bool hasVariables) {
+    if (!getLoweringOptions().getPreserveUseDebugInfo())
+      return;
+    const auto &useStmts = std::get<std::list<Fortran::lower::pft::UseStmt>>(
+        std::get<Fortran::parser::BlockSpecificationPart>(blockConstruct.t)
+            .v.t);
+    llvm::SmallVector<fir::UseAttr> uses;
+    for (const Fortran::lower::pft::UseStmt &useStmt : useStmts)
+      if (fir::UseAttr use = genUseAttr(useStmt))
+        uses.push_back(use);
+    if (!hasVariables && uses.empty())
+      return;
+    startLexicalScope(uses);
+  }
+
   void genFIR(const Fortran::parser::BlockConstruct &blockConstruct) {
     Fortran::lower::pft::Evaluation &eval = getEval();
     Fortran::lower::StatementContext stmtCtx;
@@ -4758,9 +4848,11 @@ private:
         Fortran::semantics::Scope &scope =
             bridge.getSemanticsContext().FindScope(endPosition);
         scopeBlockIdMap.try_emplace(&scope, ++blockId);
+        Fortran::lower::pft::VariableList variables =
+            Fortran::lower::pft::getScopeVariableList(scope);
+        startBlockScope(blockConstruct, !variables.empty());
         Fortran::lower::AggregateStoreMap storeMap;
-        for (const Fortran::lower::pft::Variable &var :
-             Fortran::lower::pft::getScopeVariableList(scope)) {
+        for (const Fortran::lower::pft::Variable &var : variables) {
           // Do no instantiate again variables from the block host
           // that appears in specification of block variables.
           if (!var.hasSymbol() || !lookupSymbol(var.getSymbol()))
@@ -6765,9 +6857,7 @@ private:
 
     mapDummiesAndResults(funit, callee);
 
-    // Emit USE statement operations for debug info generation
-    emitUseStatementsFromFunit(*this, *builder, toLocation(), funit);
-    setDefiningSubmoduleForDebug(*this, func, funit);
+    genProcedureScope(funit, func);
 
     // Map host associated symbols from parent procedure if any.
     if (funit.parentHasHostAssoc())
@@ -7070,6 +7160,7 @@ private:
     localSymbols.clear();
     blockId = 0;
     dummyArgsScope = mlir::Value{};
+    procedureScope = {};
     resetRegisteredDummySymbols();
   }
 
@@ -7273,7 +7364,7 @@ private:
   /// declarative construct.
   void lowerModuleDeclScope(Fortran::lower::pft::ModuleLikeUnit &mod) {
     setCurrentPosition(mod.getStartingSourceLoc());
-    emitModuleDebugImports(*this, *builder, toLocation(), mod);
+    genDefinedModuleScope(mod);
     auto &scopeVariableListMap =
         Fortran::lower::pft::getScopeVariableListMap(mod);
     for (const auto &var : Fortran::lower::pft::getScopeVariableList(
@@ -7468,6 +7559,15 @@ private:
   /// BLOCK name mangling component map
   int blockId = 0;
   Fortran::lower::mangle::ScopeBlockIdMap scopeBlockIdMap;
+
+  /// Debug information scopes of the modules and procedures.
+  llvm::DenseMap<const Fortran::semantics::Scope *, fir::ScopeAttr> debugScopes;
+
+  /// Scopes of the modules defined in this unit.
+  llvm::SmallVector<mlir::Attribute> definedModuleScopes;
+
+  /// Debug information scope of the procedure being lowered.
+  fir::ScopeAttr procedureScope;
 
   /// Tuple of host associated variables
   mlir::Value hostAssocTuple;

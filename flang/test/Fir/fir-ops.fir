@@ -1119,21 +1119,3 @@ func.func @test_create_box_2d(%arg0: !fir.ref<!fir.array<?x?xf32>>, %lb0: index,
   %0 = fir.create_box %arg0 lbs(%lb0, %lb1) extents(%ext0, %ext1) strides(%sm0, %sm1) : (!fir.ref<!fir.array<?x?xf32>>, index, index, index, index, index, index) -> !fir.box<!fir.array<?x?xf32>>
   return
 }
-
-// CHECK-LABEL: fir.module_debug_imports "debug_mod"
-// CHECK-NEXT: fir.use_stmt "used_mod"
-// CHECK-NEXT: }
-fir.module_debug_imports "debug_mod" {
-  fir.use_stmt "used_mod"
-}
-
-// A submodule records the module at the root of its ancestry and its parent.
-// CHECK-LABEL: fir.module_debug_imports "debug_sub" in "debug_mod" parent "debug_mod"
-// CHECK-NEXT: }
-fir.module_debug_imports "debug_sub" in "debug_mod" parent "debug_mod" {
-}
-
-// CHECK-LABEL: fir.module_debug_imports "debug_deep" in "debug_mod" parent "debug_sub"
-// CHECK-NEXT: }
-fir.module_debug_imports "debug_deep" in "debug_mod" parent "debug_sub" {
-}

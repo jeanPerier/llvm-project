@@ -1,18 +1,25 @@
-! The location of fir.module_debug_imports is what tells AddDebugInfo the line
-! of the MODULE statement, so the operation is emitted for every module, even
-! one with no USE statement, and only when full debug info is requested.
+! The location of a module scope is what tells AddDebugInfo the line of the
+! MODULE statement, so the builtin.module location lists a scope for every
+! module defined here, even one with no USE statement, and only when full debug
+! info is requested.
 
 ! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=standalone %s -o - \
 ! RUN:   -mmlir -mlir-print-debuginfo -mmlir -mlir-print-local-scope \
 ! RUN:   | FileCheck %s --check-prefix=WITH_DEBUG
-! RUN: %flang_fc1 -emit-hlfir %s -o - | FileCheck %s --check-prefix=NO_DEBUG
-! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=line-tables-only %s -o - \
+! RUN: %flang_fc1 -emit-hlfir %s -o - -mmlir -mlir-print-debuginfo \
 ! RUN:   | FileCheck %s --check-prefix=NO_DEBUG
+! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=line-tables-only %s -o - \
+! RUN:   -mmlir -mlir-print-debuginfo | FileCheck %s --check-prefix=NO_DEBUG
 
-! NO_DEBUG-NOT: fir.module_debug_imports
+! NO_DEBUG-NOT: #fir.scope
+! NO_DEBUG-NOT: #fir.use
 
-! WITH_DEBUG:      fir.module_debug_imports "no_use_mod" {
-! WITH_DEBUG-NEXT: } loc("{{.*}}":[[@LINE+1]]:{{[0-9]+}})
+! WITH_DEBUG-LABEL: func.func @_QMno_use_modPtest_sub()
+! WITH_DEBUG: } loc(fused<#fir.scope<procedure "test_sub", parent = #fir.scope<module "no_use_mod", loc({{[^)]*}})>, loc({{[^)]*}})>>
+! WITH_DEBUG-LABEL: func.func @_QQmain()
+! WITH_DEBUG: } loc(fused<#fir.scope<procedure "MAIN", uses = [#fir.use<#fir.scope<module "using_mod", {{.*}}>, loc({{[^)]*}})>], loc({{[^)]*}})>>
+
+! WITH_DEBUG: {{^}}} loc(fused<[#fir.scope<module "no_use_mod", loc("{{[^"]*}}":[[@LINE+1]]:1)>,
 module no_use_mod
   integer :: mod_var
 contains
@@ -21,9 +28,8 @@ contains
   end subroutine test_sub
 end module no_use_mod
 
-! WITH_DEBUG:      fir.module_debug_imports "using_mod" {
-! WITH_DEBUG-NEXT:   fir.use_stmt "no_use_mod"
-! WITH_DEBUG:      } loc("{{.*}}":[[@LINE+1]]:{{[0-9]+}})
+! WITH_DEBUG-SAME: #fir.scope<module "using_mod", uses = [#fir.use<#fir.scope<module "no_use_mod", loc({{[^)]*}})>, loc("{{[^"]*}}":[[@LINE+3]]:3)>],
+! WITH_DEBUG-SAME: loc("{{[^"]*}}":[[@LINE+1]]:1)>]>
 module using_mod
   use no_use_mod
   real :: x

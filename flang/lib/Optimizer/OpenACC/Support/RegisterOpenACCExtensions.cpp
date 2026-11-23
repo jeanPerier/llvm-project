@@ -71,8 +71,6 @@ void registerOpenACCExtensions(mlir::DialectRegistry &registry) {
         *ctx);
     fir::TypeDescOp::attachInterface<
         IndirectGlobalAccessModel<fir::TypeDescOp>>(*ctx);
-    fir::UseStmtOp::attachInterface<IndirectGlobalAccessModel<fir::UseStmtOp>>(
-        *ctx);
 
     // Attach OutlineRematerializationOpInterface to FIR operations that
     // produce synthetic types (shapes, field indices) which cannot be passed

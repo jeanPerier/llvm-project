@@ -3,11 +3,12 @@
 // Test that a named constant (Fortran PARAMETER) declared in a module is
 // described in the scope of that module.
 
+// `helper` is listed with a location in the module location because it is
+// defined in this compilation unit, as lowering does for every module it
+// compiles.
+#helper = #fir.scope<module "helper", loc("test.f90":5:1)>
+
 module {
-  // Marks `helper` as defined in this compilation unit, as lowering does for
-  // every module it compiles.
-  fir.module_debug_imports "helper" {
-  } loc(#loc0)
   fir.global @_QMhelperECpi constant : f32 {
     %cst = arith.constant 3.14159274 : f32
     fir.has_value %cst : f32
@@ -15,8 +16,7 @@ module {
   func.func @_QMhelperPtest() {
     return
   } loc(#loc2)
-}
-#loc0 = loc("test.f90":5:1)
+} loc(fused<[#helper]>["test.f90":0:0])
 #loc1 = loc("test.f90":8:26)
 #loc2 = loc("test.f90":12:5)
 
