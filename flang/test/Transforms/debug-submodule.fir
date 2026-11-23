@@ -4,25 +4,19 @@
 // scoped in it, and the module it imports.
 
 module {
-  fir.module_debug_imports "shapes" {
-  } loc(#loc_shapes)
   fir.global @_QMshapesEparent_var : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
   } loc(#loc_parent_var)
 
-  fir.module_debug_imports "impl" in "shapes" parent "shapes" {
-  } loc(#loc_impl)
   fir.global @_QMshapesSimplEsub_var : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
   } loc(#loc_sub_var)
-  func.func @_QMshapesPsquare() attributes {fir.defining_submodule = "impl"} {
+  func.func @_QMshapesPsquare() {
     return
   } loc(#loc_square)
 
-  fir.module_debug_imports "deep" in "shapes" parent "impl" {
-  } loc(#loc_deep)
   fir.global @_QMshapesSimplSdeepEdeep_var : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
@@ -30,13 +24,17 @@ module {
   func.func @_QMshapesSimplSdeepPdeep_helper() {
     return
   } loc(#loc_helper)
-}
-#loc_shapes = loc("shapes.f90":5:1)
+} loc(#loc_modules)
+#shapes = #fir.scope<module "shapes", loc("shapes.f90":5:1)>
+#impl = #fir.scope<module "impl", parent = #shapes, loc("impl.f90":6:1)>
+#deep = #fir.scope<module "deep", parent = #impl, loc("deep.f90":12:1)>
+// A separate module procedure, mangled with the module that declares its
+// interface, is defined in submodule "impl".
+#square = #fir.scope<procedure "square", parent = #impl, loc("impl.f90":10:3)>
+#loc_modules = loc(fused<[#shapes, #impl, #deep]>["shapes.f90":0:0])
 #loc_parent_var = loc("shapes.f90":7:14)
-#loc_impl = loc("impl.f90":6:1)
 #loc_sub_var = loc("impl.f90":8:14)
-#loc_square = loc("impl.f90":10:3)
-#loc_deep = loc("deep.f90":12:1)
+#loc_square = loc(fused<#square>["impl.f90":10:3])
 #loc_deep_var = loc("deep.f90":14:14)
 #loc_helper = loc("deep.f90":16:3)
 
@@ -64,7 +62,7 @@ module {
 // CHECK-DAG: #llvm.di_imported_entity<tag = DW_TAG_imported_module, scope = #[[DEEP_S]], entity = #[[IMPL_S]]
 
 // An entity is scoped in the submodule that declares it. A separate module
-// procedure goes by its attribute, anything else by its uniqued name.
+// procedure goes by the parent of its scope, anything else by its uniqued name.
 // CHECK-DAG: #llvm.di_global_variable<scope = #[[SHAPES]], name = "parent_var"
 // CHECK-DAG: #llvm.di_global_variable<scope = #[[IMPL]], name = "sub_var"
 // CHECK-DAG: #llvm.di_global_variable<scope = #[[DEEP]], name = "deep_var"

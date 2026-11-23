@@ -15,7 +15,8 @@
 llvm::Constant *mlir::LLVM::createSourceLocStrFromLocation(
     Location loc, llvm::OpenMPIRBuilder &builder, StringRef name,
     uint32_t &strLen, bool forOffloadMap) {
-  if (auto fileLoc = dyn_cast<FileLineColLoc>(loc)) {
+  // Frontends can attach source scopes to a file position in a fused location.
+  if (auto fileLoc = loc->findInstanceOf<FileLineColLoc>()) {
     StringRef fileName = fileLoc.getFilename();
     unsigned lineNo = fileLoc.getLine();
     unsigned colNo = fileLoc.getColumn();
