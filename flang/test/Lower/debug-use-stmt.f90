@@ -1,6 +1,6 @@
-! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=standalone %s -o - | FileCheck %s --check-prefix=WITH_DEBUG
-! RUN: %flang_fc1 -emit-hlfir %s -o - | FileCheck %s --check-prefix=NO_DEBUG
-! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=line-tables-only %s -o - | FileCheck %s --check-prefix=NO_DEBUG
+! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=standalone -mmlir --mlir-print-debuginfo %s -o - | FileCheck %s --check-prefix=WITH_DEBUG
+! RUN: %flang_fc1 -emit-hlfir -mmlir --mlir-print-debuginfo %s -o - | FileCheck %s --check-prefix=NO_DEBUG
+! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=line-tables-only -mmlir --mlir-print-debuginfo %s -o - | FileCheck %s --check-prefix=NO_DEBUG
 
 module mod1
   integer :: a = 10, b = 20, c = 30
@@ -49,32 +49,38 @@ subroutine test_only_rename()
   print *, local_a, local_b, c, local_x, local_y
 end subroutine
 
+! The USE statements of each procedure are listed in the procedure scope fused
+! into the location of the function, each with the location of its statement.
+
 ! WITH_DEBUG-LABEL: func.func @_QQmain()
-! WITH_DEBUG-DAG: fir.use_stmt "mod1" only_symbols{{\[}}[@_QMmod1Eb, @_QMmod1Ec]]
-! WITH_DEBUG-DAG: fir.use_stmt "mod2" renames{{\[}}[#fir.use_rename<"renamed_y", @_QMmod2Ey>]]
-
-! NO_DEBUG-LABEL: func.func @_QQmain()
-! NO_DEBUG-NOT: fir.use_stmt
-
+! WITH_DEBUG: } loc(#[[MAIN_LOC:loc[0-9]+]])
 ! WITH_DEBUG-LABEL: func.func @_QPtest_sub()
-! WITH_DEBUG-DAG: fir.use_stmt "mod1"{{$}}
-! WITH_DEBUG-DAG: fir.use_stmt "mod2" only_symbols{{\[}}[@_QMmod2Ex]]
-! WITH_DEBUG-DAG: fir.use_stmt "mod3" renames{{\[}}[#fir.use_rename<"my_flag", @_QMmod3Eflag>]]
-
-! NO_DEBUG-LABEL: func.func @_QPtest_sub()
-! NO_DEBUG-NOT: fir.use_stmt
-
+! WITH_DEBUG: } loc(#[[SUB_LOC:loc[0-9]+]])
 ! WITH_DEBUG-LABEL: func.func @_QPtest_func()
-! WITH_DEBUG-DAG: fir.use_stmt "mod1" only_symbols{{\[}}[@_QMmod1Ea]]
-! WITH_DEBUG-DAG: fir.use_stmt "mod2" renames{{\[}}[#fir.use_rename<"renamed_x", @_QMmod2Ex>, #fir.use_rename<"renamed_z", @_QMmod2Ez>]]
-! WITH_DEBUG-DAG: fir.use_stmt "mod3"{{$}}
-
-! NO_DEBUG-LABEL: func.func @_QPtest_func()
-! NO_DEBUG-NOT: fir.use_stmt
-
+! WITH_DEBUG: } loc(#[[FUNC_LOC:loc[0-9]+]])
 ! WITH_DEBUG-LABEL: func.func @_QPtest_only_rename()
-! WITH_DEBUG-DAG: fir.use_stmt "mod1" only_symbols{{\[}}[@_QMmod1Ec]] renames{{\[}}[#fir.use_rename<"local_b", @_QMmod1Eb>, #fir.use_rename<"local_a", @_QMmod1Ea>]] hasOnlyWithRenames true
-! WITH_DEBUG-DAG: fir.use_stmt "mod2" renames{{\[}}[#fir.use_rename<"local_x", @_QMmod2Ex>, #fir.use_rename<"local_y", @_QMmod2Ey>]] hasOnlyWithRenames true
+! WITH_DEBUG: } loc(#[[ONLY_RENAME_LOC:loc[0-9]+]])
 
-! NO_DEBUG-LABEL: func.func @_QPtest_only_rename()
-! NO_DEBUG-NOT: fir.use_stmt
+! WITH_DEBUG-DAG: #[[MAIN_LOC]] = loc(fused<#[[MAIN:scope[0-9]*]]>[#{{loc[0-9]*}}])
+! WITH_DEBUG-DAG: #scope_mod_mod1 = #fir.scope<module "mod1", #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod2 = #fir.scope<module "mod2", #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod3 = #fir.scope<module "mod3", #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #[[MAIN]] = #fir.scope<procedure "TEST_MAIN", uses = [#fir.use<"mod1", only [<"b">, <"c">], #[[MAIN_USE1:loc[0-9]+]]>, #fir.use<"mod2", [<"renamed_y" -> "y">], #[[MAIN_USE2:loc[0-9]+]]>], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #[[MAIN_USE1]] = loc("{{.*}}debug-use-stmt.f90":19:3)
+! WITH_DEBUG-DAG: #[[MAIN_USE2]] = loc("{{.*}}debug-use-stmt.f90":20:3)
+
+! WITH_DEBUG-DAG: #[[SUB_LOC]] = loc(fused<#[[SUB:scope[0-9]*]]>[#{{loc[0-9]*}}])
+! WITH_DEBUG-DAG: #[[SUB]] = #fir.scope<procedure "test_sub", uses = [#fir.use<"mod1", #[[SUB_USE1:loc[0-9]+]]>, #fir.use<"mod2", only [<"x">], #[[SUB_USE2:loc[0-9]+]]>, #fir.use<"mod3", [<"my_flag" -> "flag">], #[[SUB_USE3:loc[0-9]+]]>], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #[[SUB_USE1]] = loc("{{.*}}debug-use-stmt.f90":27:3)
+! WITH_DEBUG-DAG: #[[SUB_USE2]] = loc("{{.*}}debug-use-stmt.f90":28:3)
+! WITH_DEBUG-DAG: #[[SUB_USE3]] = loc("{{.*}}debug-use-stmt.f90":29:3)
+
+! WITH_DEBUG-DAG: #[[FUNC_LOC]] = loc(fused<#[[FUNC:scope[0-9]*]]>[#{{loc[0-9]*}}])
+! WITH_DEBUG-DAG: #[[FUNC]] = #fir.scope<procedure "test_func", uses = [#fir.use<"mod1", only [<"a">], #{{loc[0-9]+}}>, #fir.use<"mod2", [<"renamed_x" -> "x">, <"renamed_z" -> "z">], #{{loc[0-9]+}}>, #fir.use<"mod3", #{{loc[0-9]+}}>], #{{loc[0-9]*}}>
+
+! An ONLY list keeps its entries in source order, renamed or not.
+! WITH_DEBUG-DAG: #[[ONLY_RENAME_LOC]] = loc(fused<#[[ONLY_RENAME:scope[0-9]*]]>[#{{loc[0-9]*}}])
+! WITH_DEBUG-DAG: #[[ONLY_RENAME]] = #fir.scope<procedure "test_only_rename", uses = [#fir.use<"mod1", only [<"local_b" -> "b">, <"c">, <"local_a" -> "a">], #{{loc[0-9]+}}>, #fir.use<"mod2", only [<"local_x" -> "x">, <"local_y" -> "y">], #{{loc[0-9]+}}>], #{{loc[0-9]*}}>
+
+! NO_DEBUG-NOT: #fir.scope
+! NO_DEBUG-NOT: #fir.use

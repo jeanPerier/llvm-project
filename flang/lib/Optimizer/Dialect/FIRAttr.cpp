@@ -290,6 +290,48 @@ void fir::printFirAttribute(FIROpsDialect *dialect, mlir::Attribute attr,
 }
 
 //===----------------------------------------------------------------------===//
+// Scopes and USE statements
+//===----------------------------------------------------------------------===//
+
+llvm::LogicalResult
+fir::UseAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+                     mlir::StringAttr module, bool only,
+                     llvm::ArrayRef<UseEntityAttr> entities,
+                     mlir::LocationAttr) {
+  if (module.getValue().empty())
+    return emitError() << "a USE statement must name a module";
+  for (UseEntityAttr entity : entities)
+    if (auto owner = entity.getModule(); owner && owner.getValue().empty())
+      return emitError() << "a USE entity must name its declaring module";
+  return mlir::success();
+}
+
+llvm::LogicalResult
+fir::ScopeAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+                       ScopeKind kind, mlir::StringAttr name,
+                       mlir::LocationAttr, ScopeAttr parent,
+                       llvm::ArrayRef<UseAttr>) {
+  if (kind == ScopeKind::Module) {
+    if (!name || name.getValue().empty())
+      return emitError() << "a module scope must have a name";
+    if (parent && !parent.isModule())
+      return emitError()
+             << "a submodule must have a module or submodule parent";
+  } else if (parent && (kind == ScopeKind::Construct ? parent.isModule()
+                                                     : parent.isConstruct())) {
+    return emitError() << "invalid lexical parent for this scope";
+  }
+  return mlir::success();
+}
+
+mlir::OpAsmAliasResult fir::ScopeAttr::getAlias(llvm::raw_ostream &os) const {
+  os << "scope";
+  if (isModule() && getName())
+    os << "_mod_" << getName().getValue();
+  return mlir::OpAsmAliasResult::OverridableAlias;
+}
+
+//===----------------------------------------------------------------------===//
 // FIROpsDialect
 //===----------------------------------------------------------------------===//
 

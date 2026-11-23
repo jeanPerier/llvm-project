@@ -17,8 +17,10 @@ include "flang/Optimizer/Dialect/FIRDialect.td"
 include "mlir/Dialect/OpenACC/OpenACCAttributes.td"
 include "mlir/IR/CommonAttrConstraints.td"
 include "mlir/IR/EnumAttr.td"
+include "mlir/IR/OpAsmInterface.td"
 
-class fir_Attr<string name> : AttrDef<FIROpsDialect, name> {
+class fir_Attr<string name, list<Trait> traits = []>
+    : AttrDef<FIROpsDialect, name, traits> {
   let cppIncludes = ["flang/Optimizer/Dialect/FIRAttr.h"];
 }
 
@@ -234,27 +236,139 @@ def fir_LocationKindAttr : EnumAttr<FIROpsDialect, fir_LocationKind, "loc_kind">
 def LocationKindArrayAttr : ArrayOfAttr<FIROpsDialect, "LocationKindArray",
     "loc_kind_array", "LocationKindAttr">;
 
-def fir_LexicalScopeAttr : fir_Attr<"LexicalScope"> {
-  let mnemonic = "lexical_scope";
-  let summary = "Marks the code of a branch that associates names";
-  let description = [{
-    Constructs such as SELECT TYPE associate a name in each of their branches.
-    When it generates debug information, lowering fuses this attribute into the
-    location of each operation that it generates for such a branch. AddDebugInfo
-    can then put the operations of a branch in a lexical block, so that the
-    name of the branch is visible only there.
+def fir_ScopeKind : I32EnumAttr<"ScopeKind", "Kind of a Fortran scope", [
+    I32EnumAttrCase<"Module", 0, "module">,
+    I32EnumAttrCase<"Procedure", 1, "procedure">,
+    I32EnumAttrCase<"Construct", 2, "construct">,
+  ]> {
+  let genSpecializedAttr = 0;
+  let cppNamespace = "::fir";
+}
 
-    `loc` is the location of the statement that starts the branch, and `parent`
-    is the scope of the branch that holds the construct, if any.
+// A string parameter that is not parsed when absent, so that it can lead an
+// optional group.
+class fir_OptionalStringParameter<string desc = "">
+    : OptionalParameter<"mlir::StringAttr", desc> {
+  let parser = [{
+    [&]() -> mlir::FailureOr<mlir::StringAttr> {
+      auto str = mlir::FieldParser<std::optional<mlir::StringAttr>>::parse(
+          $_parser);
+      if (mlir::failed(str))
+        return mlir::failure();
+      return str->value_or(mlir::StringAttr{});
+    }()
+  }];
+}
+
+def fir_ScopeAttr : fir_Attr<"Scope",
+    [DeclareAttrInterfaceMethods<OpAsmAttrInterface, ["getAlias"]>]> {
+  let mnemonic = "scope";
+  let summary = "A Fortran scope, for debug information";
+  let description = [{
+    Describes a module or submodule, a procedure, or a construct scope in a
+    procedure: a BLOCK construct, or a branch of a construct that associates
+    names such as ASSOCIATE or SELECT TYPE. It lives in locations, so that it
+    costs no operation, survives the transformations that keep locations, and
+    goes away with the rest of the debug information:
+
+    The procedure and construct scopes of executable code are fused into
+    its locations. The compilation unit lists module scopes. A module read
+    from a module file has an unknown opening location. USE statements refer
+    to modules by Fortran name.
+
+    `parent` is the lexical host, or the parent of a submodule. `uses`
+    records a program unit's USE statements, including those in its BLOCK
+    constructs.
 
     ```
-    #fir.lexical_scope<loc = loc("a.f90":12:5),
-                       parent = #fir.lexical_scope<loc = loc("a.f90":10:3)>>
+    #scope_mod_m = #fir.scope<module "m", loc("a.f90":1:1)>
+    #scope_mod_other = #fir.scope<module "other", loc(unknown)>
+    #scope = #fir.scope<procedure "s", parent = #scope_mod_m,
+        uses = [#fir.use<"other", loc("a.f90":6:3)>],
+        loc("a.f90":5:1)>
+    #scope1 = #fir.scope<construct, parent = #scope, loc("a.f90":9:3)>
     ```
   }];
-  let parameters = (ins "mlir::LocationAttr":$loc,
-                        OptionalParameter<"::fir::LexicalScopeAttr">:$parent);
-  let assemblyFormat = "`<` struct(params) `>`";
+  let parameters = (ins EnumParameter<fir_ScopeKind>:$kind,
+      fir_OptionalStringParameter<>:$name,
+      "mlir::LocationAttr":$loc,
+      OptionalParameter<"::fir::ScopeAttr">:$parent,
+      OptionalArrayRefParameter<"::fir::UseAttr">:$uses);
+  let assemblyFormat = [{
+    `<` $kind ($name^)? `,` (`parent` `=` qualified($parent)^ `,`)?
+    (`uses` `=` `[` qualified($uses)^ `]` `,`)? $loc `>`
+  }];
+  let genVerifyDecl = 1;
+  let extraClassDeclaration = [{
+    bool isModule() const { return getKind() == ScopeKind::Module; }
+    bool isProcedure() const { return getKind() == ScopeKind::Procedure; }
+    bool isConstruct() const { return getKind() == ScopeKind::Construct; }
+  }];
+}
+
+def fir_UseEntityAttr : fir_Attr<"UseEntity"> {
+  let mnemonic = "use_entity";
+  let summary = "A data object that a Fortran USE statement makes visible";
+  let description = [{
+    `local_name` is the name visible in the importing scope. `name` is the
+    name of the ultimate entity in its declaring module. Equal names are
+    spelled once. If the entity is declared in a different module from the
+    one in the USE statement, `from` identifies its declaring module.
+
+    ```
+    #fir.use_entity<"x">                   // x
+    #fir.use_entity<"y" -> "z">            // y => z
+    #fir.use_entity<"y" -> "z" from "m1">   // y => z, z is declared in m1
+    ```
+  }];
+  let parameters = (ins "mlir::StringAttr":$local_name,
+                        OptionalParameter<"mlir::StringAttr">:$name,
+                        OptionalParameter<"mlir::StringAttr">:$module);
+  let assemblyFormat = "`<` $local_name (`->` $name^)? (`from` $module^)? `>`";
+}
+
+// The ONLY flag of a USE statement, printed as the `only` keyword when set.
+class fir_OnlyParameter<string desc = "">
+    : DefaultValuedParameter<"bool", "false", desc> {
+  let parser = [{
+    ::mlir::FailureOr<bool>(
+        ::mlir::succeeded($_parser.parseOptionalKeyword("only")))
+  }];
+  let printer = [{ $_printer << "only" }];
+}
+
+def fir_UseAttr : fir_Attr<"Use"> {
+  let mnemonic = "use";
+  let summary = "A Fortran USE statement, for debug information";
+  let description = [{
+    `module` is the name of the module that the statement uses. With
+    `only`, `entities` are all the data objects that the statement makes
+    visible. Without it, the whole module is visible, and `entities` are
+    those that the statement renames. `loc` is the location of the statement.
+
+    ```
+    #fir.use<"m", loc("a.f90":2:3)>                              // use m
+    #fir.use<"m", only [<"x">, <"y" -> "z">], loc("a.f90":3:3)>  // use m, only: x, y => z
+    #fir.use<"m", [<"y" -> "z">], loc("a.f90":4:3)>              // use m, y => z
+    ```
+  }];
+  let parameters = (ins "mlir::StringAttr":$module, fir_OnlyParameter<>:$only,
+      OptionalArrayRefParameter<"::fir::UseEntityAttr">:$entities,
+      "mlir::LocationAttr":$loc);
+  let assemblyFormat = [{
+    `<` $module `,` ($only^)? (` ` `[` $entities^ `]` `,`)? $loc `>`
+  }];
+  let genVerifyDecl = 1;
+  let extraClassDeclaration = [{
+    /// The Fortran name of \p entity in its defining module.
+    mlir::StringAttr getEntityName(UseEntityAttr entity) const {
+      return entity.getName() ? entity.getName() : entity.getLocalName();
+    }
+    /// The Fortran name of the defining module of \p entity.
+    mlir::StringAttr getEntityModule(UseEntityAttr entity) const {
+      return entity.getModule() ? entity.getModule() : getModule();
+    }
+  }];
 }
 
 /// Optimization heuristics for fir.pack_array operation.
@@ -336,22 +450,6 @@ def fir_FortranInlineEnum
 
 def fir_FortranInlineAttr
     : EnumAttr<FIROpsDialect, fir_FortranInlineEnum, "inline_attrs">;
-
-// USE statement rename mapping: local_name => use_name
-def fir_UseRenameAttr : fir_Attr<"UseRename"> {
-  let mnemonic = "use_rename";
-  let summary = "Represents a rename in a Fortran USE statement";
-  let description = [{
-    This attribute stores the mapping for a renamed symbol in a USE statement.
-    For example, in "USE mod, local_var => module_var", this stores the
-    local name and a symbol reference to the module variable.
-  }];
-
-  let parameters = (ins "mlir::StringAttr":$local_name,
-      "mlir::FlatSymbolRefAttr":$symbol);
-
-  let assemblyFormat = "`<` $local_name `,` $symbol `>`";
-}
 
 //===----------------------------------------------------------------------===//
 // Allocation policy

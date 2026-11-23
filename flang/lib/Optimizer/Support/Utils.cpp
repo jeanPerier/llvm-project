@@ -15,6 +15,28 @@
 #include "flang/Optimizer/Dialect/FIRType.h"
 #include "flang/Optimizer/Support/InternalNames.h"
 #include "mlir/IR/SymbolTable.h"
+#include "llvm/ADT/TypeSwitch.h"
+
+mlir::Location fir::getDiagnosticLocation(mlir::Location loc) {
+  return llvm::TypeSwitch<mlir::LocationAttr, mlir::Location>(loc)
+      .Case([](mlir::FusedLoc fused) {
+        llvm::SmallVector<mlir::Location> locs;
+        for (mlir::Location child : fused.getLocations())
+          locs.push_back(getDiagnosticLocation(child));
+        return mlir::FusedLoc::get(locs, /*metadata=*/{}, fused.getContext());
+      })
+      .Case([](mlir::CallSiteLoc callSite) -> mlir::Location {
+        return mlir::CallSiteLoc::get(
+            getDiagnosticLocation(callSite.getCallee()),
+            getDiagnosticLocation(callSite.getCaller()));
+      })
+      .Case([](mlir::NameLoc name) -> mlir::Location {
+        return mlir::NameLoc::get(name.getName(),
+                                  getDiagnosticLocation(name.getChildLoc()));
+      })
+      .Default(
+          [](mlir::LocationAttr other) -> mlir::Location { return other; });
+}
 
 fir::TypeInfoOp fir::lookupTypeInfoOp(fir::RecordType recordType,
                                       mlir::ModuleOp module,

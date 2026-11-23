@@ -3,6 +3,8 @@
 ! Test that variables inside OpenMP target region don't cause build failure.
 subroutine test1
   implicit none
+! The OpenMP runtime gets the source position of the mapped variable.
+! CHECK: c";xyz;{{[^;]*}}debug-target-region-vars.f90;[[@LINE+1]];24;;\00"
   real, allocatable :: xyz(:)
   integer :: i
 

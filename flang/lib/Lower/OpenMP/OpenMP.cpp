@@ -6693,16 +6693,8 @@ static fir::RecordType buildConditionalLpType(
   // Use atomic for thread-safety in case flang ever lowers in parallel.
   static std::atomic<unsigned> counter{0};
   unsigned line = 0;
-  if (auto fileLoc = mlir::dyn_cast<mlir::FileLineColLoc>(loc))
+  if (auto fileLoc = loc->findInstanceOf<mlir::FileLineColLoc>())
     line = fileLoc.getLine();
-  else if (auto fusedLoc = mlir::dyn_cast<mlir::FusedLoc>(loc)) {
-    for (mlir::Location sub : fusedLoc.getLocations()) {
-      if (auto fileSub = mlir::dyn_cast<mlir::FileLineColLoc>(sub)) {
-        line = fileSub.getLine();
-        break;
-      }
-    }
-  }
   std::string typeName =
       "_lp_cond_t.l" + std::to_string(line) + "." + std::to_string(counter++);
 

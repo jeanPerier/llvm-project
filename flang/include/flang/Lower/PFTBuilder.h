@@ -41,6 +41,8 @@ struct Program;
 using ContainedUnit = std::variant<CompilerDirectiveUnit, FunctionLikeUnit>;
 using ContainedUnitList = std::list<ContainedUnit>;
 using EvaluationList = std::list<Evaluation>;
+using UseStmt = parser::Statement<common::Indirection<parser::UseStmt>>;
+using UseStmtList = std::list<const UseStmt *>;
 
 /// Provide a variant like container that can hold references. It can hold
 /// constant or mutable references. It is used in the other classes to provide
@@ -812,8 +814,8 @@ struct FunctionLikeUnit : public ProgramUnit {
   /// Terminal basic block (if any)
   mlir::Block *finalBlock{};
   HostAssociations hostAssociations;
-  /// Preserved USE statements for debug info generation
-  std::list<Fortran::semantics::PreservedUseStmt> preservedUseStmts;
+  /// USE statements of the specification part, for the debug information.
+  UseStmtList useStmts;
 };
 
 /// Module-like units contain a list of function-like units.
@@ -843,8 +845,8 @@ struct ModuleLikeUnit : public ProgramUnit {
   ModuleStatement endStmt;
   ContainedUnitList containedUnitList;
   EvaluationList evaluationList;
-  /// Preserved USE statements for debug info generation
-  std::list<Fortran::semantics::PreservedUseStmt> preservedUseStmts;
+  /// USE statements of the specification part, for the debug information.
+  UseStmtList useStmts;
 };
 
 /// Block data units contain the variables and data initializers for common

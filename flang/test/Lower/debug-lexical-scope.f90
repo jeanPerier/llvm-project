@@ -30,45 +30,66 @@
 ! CHECK: hlfir.declare %{{[0-9#]+}} uniq_name("_QMmFincEp"){{.*}} loc(#[[INC_TYPE_IS:loc[0-9]+]])
 ! CHECK: hlfir.declare %{{[0-9#]+}} uniq_name("_QMmFincEp"){{.*}} loc(#[[INC_CLASS_DEFAULT:loc[0-9]+]])
 
-! The declaration of a dummy argument is in no branch.
-! CHECK-DAG: #[[DUMMY_P]] = loc("{{.*}}test.f90":10:{{[0-9]+}})
+! The block scopes of the branches end their parent chain at the scope of the
+! procedure, whose parent is the module.
+! CHECK-DAG: #scope_mod_m = #fir.scope<module "m", #{{loc[0-9]*}}>
+! CHECK-DAG: #[[TYPES:scope[0-9]*]] = #fir.scope<procedure "types", parent = #scope_mod_m, #{{loc[0-9]*}}>
+! CHECK-DAG: #[[RANKS:scope[0-9]*]] = #fir.scope<procedure "ranks", parent = #scope_mod_m, #{{loc[0-9]*}}>
+! CHECK-DAG: #[[ASSOC:scope[0-9]*]] = #fir.scope<procedure "assoc", parent = #scope_mod_m, #{{loc[0-9]*}}>
+! CHECK-DAG: #[[INC:scope[0-9]*]] = #fir.scope<procedure "inc", parent = #scope_mod_m, #{{loc[0-9]*}}>
+
+! The dummy argument is declared directly in the procedure.
+! CHECK-DAG: #[[DUMMY_P]] = loc(fused<#[[TYPES]]>[#[[DUMMY_P_POS:loc[0-9]+]]])
+! CHECK-DAG: #[[DUMMY_P_POS]] = loc("{{.*}}test.f90":10:{{[0-9]+}})
 
 ! The scope of a branch starts at its statement and covers the declarations of
 ! the names that it associates. The scope of a branch of a nested construct has
 ! the scope of the branch that holds the construct as parent.
-! CHECK-DAG: #[[TYPE_IS]] = loc(fused<#fir.lexical_scope<loc = #[[TYPE_IS_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[TYPE_IS]] = loc(fused<#[[TYPE_IS_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[TYPE_IS_SCOPE]] = #fir.scope<construct, parent = #[[TYPES]], #[[TYPE_IS_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[TYPE_IS_STMT]] = loc("{{.*}}test.f90":12:5)
-! CHECK-DAG: #[[CLASS_IS]] = loc(fused<#fir.lexical_scope<loc = #[[CLASS_IS_STMT:loc[0-9]+]], parent = <loc = #[[TYPE_IS_STMT]]>>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[CLASS_IS]] = loc(fused<#[[CLASS_IS_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[CLASS_IS_SCOPE]] = #fir.scope<construct, parent = #[[TYPE_IS_SCOPE]], #[[CLASS_IS_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[CLASS_IS_STMT]] = loc("{{.*}}test.f90":14:7)
-! CHECK-DAG: #[[CLASS_DEFAULT]] = loc(fused<#fir.lexical_scope<loc = #[[CLASS_DEFAULT_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[CLASS_DEFAULT]] = loc(fused<#[[CLASS_DEFAULT_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[CLASS_DEFAULT_SCOPE]] = #fir.scope<construct, parent = #[[TYPES]], #[[CLASS_DEFAULT_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[CLASS_DEFAULT_STMT]] = loc("{{.*}}test.f90":17:5)
 
 ! The scope covers the other code of the branch, whose runtime calls still get
 ! the line of their statement. The code after the construct is in no branch.
-! CHECK-DAG: #[[CLASS_IS_PRINT]] = loc(fused<#fir.lexical_scope<loc = #[[CLASS_IS_STMT]], parent = <loc = #[[TYPE_IS_STMT]]>>>[#{{loc[0-9]+}}])
-! CHECK-DAG: #[[AFTER]] = loc("{{.*}}test.f90":20:5)
+! CHECK-DAG: #[[CLASS_IS_PRINT]] = loc(fused<#[[CLASS_IS_SCOPE]]>[#[[CLASS_IS_PRINT_POS:loc[0-9]+]]])
+! CHECK-DAG: #[[CLASS_IS_PRINT_POS]] = loc("{{.*}}test.f90":15:9)
+! CHECK-DAG: #[[AFTER]] = loc(fused<#[[TYPES]]>[#[[AFTER_POS:loc[0-9]+]]])
+! CHECK-DAG: #[[AFTER_POS]] = loc("{{.*}}test.f90":20:5)
 
-! CHECK-DAG: #[[RANK0]] = loc(fused<#fir.lexical_scope<loc = #[[RANK0_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[RANK0]] = loc(fused<#[[RANK0_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[RANK0_SCOPE]] = #fir.scope<construct, parent = #[[RANKS]], #[[RANK0_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[RANK0_STMT]] = loc("{{.*}}test.f90":26:5)
-! CHECK-DAG: #[[RANK1]] = loc(fused<#fir.lexical_scope<loc = #[[RANK1_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[RANK1]] = loc(fused<#[[RANK1_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[RANK1_SCOPE]] = #fir.scope<construct, parent = #[[RANKS]], #[[RANK1_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[RANK1_STMT]] = loc("{{.*}}test.f90":28:5)
-! CHECK-DAG: #[[RANK_DEFAULT]] = loc(fused<#fir.lexical_scope<loc = #[[RANK_DEFAULT_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[RANK_DEFAULT]] = loc(fused<#[[RANK_DEFAULT_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[RANK_DEFAULT_SCOPE]] = #fir.scope<construct, parent = #[[RANKS]], #[[RANK_DEFAULT_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[RANK_DEFAULT_STMT]] = loc("{{.*}}test.f90":30:5)
 
 ! The names that one statement associates share a scope.
-! CHECK-DAG: #[[ASSOC_A]] = loc(fused<#fir.lexical_scope<loc = #[[ASSOC_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
-! CHECK-DAG: #[[ASSOC_B]] = loc(fused<#fir.lexical_scope<loc = #[[ASSOC_STMT]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[ASSOC_A]] = loc(fused<#[[ASSOC_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[ASSOC_B]] = loc(fused<#[[ASSOC_SCOPE]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[ASSOC_SCOPE]] = #fir.scope<construct, parent = #[[ASSOC]], #[[ASSOC_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[ASSOC_STMT]] = loc("{{.*}}test.f90":37:5)
 
 ! The scope of a branch in an included file starts in that file.
-! CHECK-DAG: #[[INC_TYPE_IS]] = loc(fused<#fir.lexical_scope<loc = #[[INC_TYPE_IS_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[INC_TYPE_IS]] = loc(fused<#[[INC_TYPE_IS_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[INC_TYPE_IS_SCOPE]] = #fir.scope<construct, parent = #[[INC]], #[[INC_TYPE_IS_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[INC_TYPE_IS_STMT]] = loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>[#[[INC_TYPE_IS_POS:loc[0-9]+]], #{{loc[0-9]+}}])
 ! CHECK-DAG: #[[INC_TYPE_IS_POS]] = loc("{{.*}}construct.inc":2:1)
-! CHECK-DAG: #[[INC_CLASS_DEFAULT]] = loc(fused<#fir.lexical_scope<loc = #[[INC_CLASS_DEFAULT_STMT:loc[0-9]+]]>>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[INC_CLASS_DEFAULT]] = loc(fused<#[[INC_CLASS_DEFAULT_SCOPE:scope[0-9]+]]>[#{{loc[0-9]+}}])
+! CHECK-DAG: #[[INC_CLASS_DEFAULT_SCOPE]] = #fir.scope<construct, parent = #[[INC]], #[[INC_CLASS_DEFAULT_STMT:loc[0-9]+]]>
 ! CHECK-DAG: #[[INC_CLASS_DEFAULT_STMT]] = loc(fused<#fir<loc_kind_array[<base>, <inclusion>]>>[#[[INC_CLASS_DEFAULT_POS:loc[0-9]+]], #{{loc[0-9]+}}])
 ! CHECK-DAG: #[[INC_CLASS_DEFAULT_POS]] = loc("{{.*}}construct.inc":4:1)
 
-! NODEBUG-NOT: lexical_scope
+! NODEBUG-NOT: #fir.scope
+! NODEBUG-NOT: #fir.use
 
 !--- test.f90
 module m

@@ -211,6 +211,18 @@ bool CodeGenAction::beginSourceFileAction() {
     mlirModule = mlir::OwningOpRef<mlir::ModuleOp>(nullptr);
   // Load the MLIR dialects required by Flang
   mlirCtx = std::make_unique<mlir::MLIRContext>();
+  // Report errors like the default MLIR handler, but without the metadata
+  // fused into the locations.
+  mlirCtx->getDiagEngine().registerHandler([](mlir::Diagnostic &diag) {
+    if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
+      return mlir::failure();
+    llvm::raw_ostream &os = llvm::errs();
+    if (!mlir::isa<mlir::UnknownLoc>(diag.getLocation()))
+      os << fir::getDiagnosticLocation(diag.getLocation()) << ": ";
+    os << "error: " << diag << '\n';
+    os.flush();
+    return mlir::success();
+  });
   fir::support::loadDialects(*mlirCtx);
   fir::support::registerLLVMTranslation(*mlirCtx);
   mlir::DialectRegistry registry;

@@ -55,6 +55,11 @@ getFileAttrFromLoc(mlir::Location loc, mlir::LLVM::DIFileAttr fallback) {
                                      llvm::sys::path::parent_path(path));
 }
 
+/// Return \p loc without the metadata of its fused locations, to print it in a
+/// diagnostic. Source scopes and debug information are fused into locations
+/// with -g; they can be large and do not help to locate the error.
+mlir::Location getDiagnosticLocation(mlir::Location loc);
+
 /// Return the integer value of a arith::ConstantOp.
 inline std::int64_t toInt(mlir::arith::ConstantOp cop) {
   return mlir::cast<mlir::IntegerAttr>(cop.getValue())
