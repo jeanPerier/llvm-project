@@ -310,6 +310,20 @@ mlir::OpAsmAliasResult fir::ScopeAttr::getAlias(llvm::raw_ostream &os) const {
   return mlir::OpAsmAliasResult::OverridableAlias;
 }
 
+llvm::LogicalResult fir::ModuleVarAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError, mlir::StringAttr,
+    mlir::Type type, mlir::StringAttr, mlir::StringAttr common,
+    mlir::StringAttr equivalence, uint64_t, llvm::ArrayRef<int64_t>,
+    mlir::LocationAttr) {
+  if (common && equivalence)
+    return emitError()
+           << "a variable cannot be in a COMMON block and in an EQUIVALENCE";
+  if ((common || equivalence) && !type)
+    return emitError() << "a member of a COMMON block or of an EQUIVALENCE "
+                          "must have a type";
+  return mlir::success();
+}
+
 //===----------------------------------------------------------------------===//
 // FIROpsDialect
 //===----------------------------------------------------------------------===//

@@ -260,6 +260,65 @@ class fir_OptionalStringParameter<string desc = "">
   }];
 }
 
+// A string parameter parsed as a string only, so that a `:` after it is not
+// taken for the type of a string attribute.
+class fir_StringParameter<string desc = "">
+    : AttrParameter<"mlir::StringAttr", desc> {
+  let parser = [{
+    [&]() -> mlir::FailureOr<mlir::StringAttr> {
+      std::string str;
+      if ($_parser.parseString(&str))
+        return mlir::failure();
+      return mlir::StringAttr::get($_parser.getContext(), str);
+    }()
+  }];
+}
+
+def fir_ModuleVarAttr : fir_Attr<"ModuleVar"> {
+  let mnemonic = "module_var";
+  let summary = "A module variable that its global alone does not describe";
+  let description = [{
+    What the debug information of a module variable needs and its global, if
+    any, cannot tell. `name` is its Fortran name in the module.
+
+    - `bind_c` is its binding label, which is the name of its global instead
+      of the uniqued name of the variable,
+    - a member of a COMMON block, named `common` (the empty string for the
+      blank COMMON), or of the storage of an EQUIVALENCE, which is named
+      after the variable `equivalence`, has no global of its own: it is at
+      `offset` bytes into that storage, and has type `type`,
+    - `lbounds` are the lower bounds of an array whose bounds are not all 1.
+
+    `loc` is the location of its declaration.
+
+    ```
+    #fir.module_var<"z", lbounds [5], loc(unknown)>
+    #fir.module_var<"x", bind_c "c_x", loc(unknown)>
+    #fir.module_var<"a" : i32, common "blk", loc("m.f90":4:14)>
+    #fir.module_var<"e2" : !fir.array<4xi32>, equivalence "e1", offset 4,
+                    loc("m.f90":6:14)>
+    ```
+  }];
+  let parameters = (ins fir_StringParameter<>:$name,
+      OptionalParameter<"mlir::Type">:$type,
+      OptionalParameter<"mlir::StringAttr">:$bind_c_name,
+      OptionalParameter<"mlir::StringAttr">:$common,
+      OptionalParameter<"mlir::StringAttr">:$equivalence,
+      DefaultValuedParameter<"uint64_t", "0">:$offset,
+      OptionalArrayRefParameter<"int64_t">:$lbounds,
+      "mlir::LocationAttr":$loc);
+  let assemblyFormat = [{
+    `<` $name (`:` $type^)? `,` (`bind_c` $bind_c_name^ `,`)?
+    (`common` $common^ `,`)? (`equivalence` $equivalence^ `,`)?
+    (`offset` $offset^ `,`)? (`lbounds` ` ` `[` $lbounds^ `]` `,`)? $loc `>`
+  }];
+  let genVerifyDecl = 1;
+  let extraClassDeclaration = [{
+    /// Whether the variable is stored in a COMMON block or an EQUIVALENCE.
+    bool isStorageMember() const { return getCommon() || getEquivalence(); }
+  }];
+}
+
 def fir_ScopeAttr : fir_Attr<"Scope",
     [DeclareAttrInterfaceMethods<OpAsmAttrInterface, ["getAlias"]>]> {
   let mnemonic = "scope";
@@ -288,8 +347,16 @@ def fir_ScopeAttr : fir_Attr<"Scope",
     A module scope prints under an alias named after the module,
     `#scope_mod_<name>`, and the other scopes under `#scope`, `#scope1`, ...
 
+    `variables` are the variables of a module that their globals do not
+    describe completely. A module defined in the compilation unit lists all
+    of them. A module compiled elsewhere lists those that change which global
+    holds a variable: a variable that has a binding label, or that is in a
+    COMMON block or an EQUIVALENCE.
+
     ```
-    #scope_mod_m = #fir.scope<module "m", loc("a.f90":1:1)>
+    #scope_mod_m = #fir.scope<module "m",
+        variables = [#fir.module_var<"z", lbounds [0], loc(unknown)>],
+        loc("a.f90":1:1)>
     #scope_mod_other = #fir.scope<module "other", loc(unknown)>
     #scope = #fir.scope<procedure "s", parent = #scope_mod_m,
         uses = [#fir.use<#scope_mod_other, loc("a.f90":6:3)>],
@@ -301,10 +368,12 @@ def fir_ScopeAttr : fir_Attr<"Scope",
       fir_OptionalStringParameter<>:$name,
       "mlir::LocationAttr":$loc,
       OptionalParameter<"::fir::ScopeAttr">:$parent,
-      OptionalArrayRefParameter<"::fir::UseAttr">:$uses);
+      OptionalArrayRefParameter<"::fir::UseAttr">:$uses,
+      OptionalArrayRefParameter<"::fir::ModuleVarAttr">:$variables);
   let assemblyFormat = [{
     `<` $kind ($name^)? `,` (`parent` `=` qualified($parent)^ `,`)?
-    (`uses` `=` `[` qualified($uses)^ `]` `,`)? $loc `>`
+    (`uses` `=` `[` qualified($uses)^ `]` `,`)?
+    (`variables` `=` `[` qualified($variables)^ `]` `,`)? $loc `>`
   }];
   let extraClassDeclaration = [{
     bool isModule() const { return getKind() == ScopeKind::Module; }
