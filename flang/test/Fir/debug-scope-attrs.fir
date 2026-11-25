@@ -3,13 +3,14 @@
 
 // RUN: fir-opt --mlir-print-debuginfo %s | fir-opt --mlir-print-debuginfo | FileCheck %s
 
-// RUN: fir-opt --strip-debuginfo --mlir-print-debuginfo %s | FileCheck %s --check-prefix=STRIP --implicit-check-not='#fir.scope' --implicit-check-not='#fir.use'
+// RUN: fir-opt --strip-debuginfo --mlir-print-debuginfo %s | FileCheck %s --check-prefix=STRIP --implicit-check-not='#fir.module_var' --implicit-check-not='#fir.scope' --implicit-check-not='#fir.use'
 // RUN: fir-opt --symbol-dce --mlir-print-debuginfo %s | FileCheck %s --check-prefix=DCE --implicit-check-not='fir.global'
 
 // STRIP: func.func @f()
 // DCE: func.func @f()
 // DCE: #fir.scope<module "o", exports = [<"d" from "p">]
 
+// CHECK: fir.global private @_QMpEd : i32 loc(#[[GLOBAL:loc[0-9]*]])
 // CHECK-LABEL: func.func @f()
 // CHECK: fir.call @g() : () -> () loc(#[[CALL1:.*]])
 // CHECK: fir.call @g() : () -> () loc(#[[CALL2:.*]])
@@ -28,6 +29,7 @@
 // CHECK-DAG: #[[CALL2]] = loc(fused<#[[BRANCH]]>[
 // CHECK-DAG: #[[FUNC]] = loc(fused<#[[PROC]]>[
 // CHECK-DAG: #[[MODULE]] = loc(fused<[#scope_mod_p, #scope_mod_n, #scope_mod_o, #scope_mod_m, #scope_mod_s]>[
+// CHECK-DAG: #[[GLOBAL]] = loc(fused<[#fir.module_var<"p", "d", #{{loc[0-9]*}}>]>[
 
 #p = #fir.scope<module "p", loc(unknown)>
 #n = #fir.scope<module "n", uses = [#fir.use<"p", only [<"x">], loc(unknown)>], loc(unknown)>
@@ -39,7 +41,7 @@
 #c = #fir.scope<construct, parent = #b, loc("test.f90":16:7)>
 
 module {
-  fir.global private @_QMpEd : i32
+  fir.global private @_QMpEd : i32 loc(fused<[#fir.module_var<"p", "d", loc(unknown)>]>[unknown])
   func.func private @g()
   func.func @f() {
     fir.call @g() : () -> () loc(fused<#b>["test.f90":15:7])

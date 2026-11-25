@@ -322,6 +322,7 @@ llvm::LogicalResult fir::ScopeAttr::verify(
     if (parent && !parent.isModule())
       return emitError()
              << "a submodule must have a module or submodule parent";
+
   } else if (!exports.empty()) {
     return emitError() << "only a module scope can have public exports";
   } else if (parent && (kind == ScopeKind::Construct ? parent.isModule()
@@ -336,6 +337,28 @@ mlir::OpAsmAliasResult fir::ScopeAttr::getAlias(llvm::raw_ostream &os) const {
   if (isModule() && getName())
     os << "_mod_" << getName().getValue();
   return mlir::OpAsmAliasResult::OverridableAlias;
+}
+
+std::string fir::ScopeAttr::getDebugModuleName() const {
+  assert(isModule() && "expected a module scope");
+  if (!getParent())
+    return getName().str();
+  ScopeAttr ancestor = getParent();
+  while (ancestor.getParent())
+    ancestor = ancestor.getParent();
+  return (ancestor.getName().getValue() + "." + getName().getValue()).str();
+}
+
+llvm::LogicalResult fir::ModuleVarAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+    mlir::StringAttr module, mlir::StringAttr name, mlir::Type type,
+    mlir::StringAttr common, uint64_t offset, llvm::ArrayRef<int64_t>,
+    mlir::LocationAttr) {
+  if (module.getValue().empty() || name.getValue().empty())
+    return emitError() << "a module variable must name its module and variable";
+  if ((common || offset) && !type)
+    return emitError() << "a COMMON member or an offset requires a member type";
+  return mlir::success();
 }
 
 //===----------------------------------------------------------------------===//

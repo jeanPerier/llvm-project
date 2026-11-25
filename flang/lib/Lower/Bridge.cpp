@@ -78,7 +78,6 @@
 #include "mlir/Transforms/RegionUtils.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/IR/Assumptions.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
@@ -228,13 +227,17 @@ static mlir::FlatSymbolRefAttr gatherComponentInit(
   return mlir::FlatSymbolRefAttr::get(mlirContext, name);
 }
 
+static bool isDebugDataObject(const Fortran::semantics::Symbol &symbol) {
+  return symbol.has<Fortran::semantics::ObjectEntityDetails>() ||
+         (symbol.has<Fortran::semantics::ProcEntityDetails>() &&
+          Fortran::semantics::IsPointer(symbol));
+}
+
 /// Return the module that declares \p ultimate if it is a data object of a
 /// module, which is what a debugger can import.
 static const Fortran::semantics::Symbol *
 getModuleOfDataObject(const Fortran::semantics::Symbol &ultimate) {
-  if (!ultimate.has<Fortran::semantics::ObjectEntityDetails>() &&
-      !(ultimate.has<Fortran::semantics::ProcEntityDetails>() &&
-        Fortran::semantics::IsPointer(ultimate)))
+  if (!isDebugDataObject(ultimate))
     return nullptr;
   const Fortran::semantics::Scope &owner = ultimate.owner();
   return owner.IsModule() ? owner.symbol() : nullptr;
@@ -602,8 +605,13 @@ public:
     // Once all the code has been translated, create global runtime type info
     // data structures for the derived types that have been processed, as well
     // as fir.type_info operations for the dispatch tables.
-    createBuilderOutsideOfFuncOpAndDo(
-        [&]() { typeInfoConverter.createTypeInfo(*this); });
+    createBuilderOutsideOfFuncOpAndDo([&]() {
+      // A storage-associated module variable can refer to a derived type.
+      // Translate its member type before finalizing the type information.
+      if (!moduleScopes.empty())
+        attachModuleVariableInfo();
+      typeInfoConverter.createTypeInfo(*this);
+    });
 
     // Generate the `main` entry point if necessary
     if (hasMainProgram)
@@ -2082,6 +2090,94 @@ private:
         genModuleScope(scope, mlir::UnknownLoc::get(&getMLIRContext()), {});
     moduleScopes[&scope] = moduleScope;
     return moduleScope;
+  }
+
+  /// Describe module objects on the global that supplies their storage. The
+  /// same COMMON global can hold members from more than one module.
+  void attachModuleVariableInfo() {
+    llvm::DenseMap<fir::GlobalOp, llvm::SmallVector<mlir::Attribute>> members;
+    for (auto &[scope, module] : moduleScopes)
+      collectModuleVariables(*scope, module, members);
+    for (auto &[global, variables] : members)
+      global->setLoc(mlir::FusedLoc::get(&getMLIRContext(), {global.getLoc()},
+                                         builder->getArrayAttr(variables)));
+  }
+
+  void collectModuleVariables(
+      const Fortran::semantics::Scope &scope, fir::ScopeAttr module,
+      llvm::DenseMap<fir::GlobalOp, llvm::SmallVector<mlir::Attribute>>
+          &members) {
+    auto moduleName = builder->getStringAttr(module.getDebugModuleName());
+    bool isDefined = !mlir::isa<mlir::UnknownLoc>(module.getLoc());
+    // The variable after which the storage of each EQUIVALENCE'd variable is
+    // named, and the offset of the variable in it.
+    llvm::DenseMap<const Fortran::semantics::Symbol *,
+                   std::pair<const Fortran::semantics::Symbol *, std::size_t>>
+        equivalences;
+    if (!scope.equivalenceSets().empty()) {
+      Fortran::lower::pft::VariableList vars =
+          Fortran::lower::pft::getScopeVariableList(scope);
+      llvm::DenseMap<std::size_t, const Fortran::semantics::Symbol *>
+          storageByOffset;
+      for (const Fortran::lower::pft::Variable &var : vars)
+        if (var.isAggregateStore())
+          storageByOffset[var.getAggregateStore().getOffset()] =
+              &var.getAggregateStore().getNamingSymbol();
+      for (const Fortran::lower::pft::Variable &var : vars)
+        if (var.isAlias())
+          if (const Fortran::semantics::Symbol *storage =
+                  storageByOffset.lookup(var.getAliasOffset()))
+            equivalences[&var.getSymbol()] = {
+                storage, var.getSymbol().offset() - var.getAliasOffset()};
+    }
+    for (const auto &[name, symbol] : scope) {
+      if (!isDebugDataObject(*symbol) || &symbol->owner() != &scope ||
+          symbol->test(Fortran::semantics::Symbol::Flag::CompilerCreated))
+        continue;
+
+      const Fortran::semantics::Symbol *storage = nullptr;
+      mlir::StringAttr common;
+      std::size_t offset = 0;
+      if (const auto *block =
+              Fortran::semantics::FindCommonBlockContaining(*symbol)) {
+        common = builder->getStringAttr(toStringRef(block->name()));
+        storage = block;
+        offset = symbol->offset();
+      } else if (auto iter = equivalences.find(&*symbol);
+                 iter != equivalences.end()) {
+        std::tie(storage, offset) = iter->second;
+      }
+      fir::GlobalOp global =
+          builder->getNamedGlobal(mangleName(storage ? *storage : *symbol));
+      if (!global)
+        continue;
+
+      llvm::SmallVector<int64_t> lbounds;
+      bool hasNonDefaultLbounds = false;
+      if (const auto *details =
+              symbol->detailsIf<Fortran::semantics::ObjectEntityDetails>();
+          details &&
+          !Fortran::semantics::IsAllocatableOrObjectPointer(&*symbol))
+        for (const Fortran::semantics::ShapeSpec &bounds : details->shape()) {
+          std::optional<std::int64_t> lbound;
+          if (const auto &explicitLbound = bounds.lbound().GetExplicit())
+            lbound = Fortran::evaluate::ToInt64(*explicitLbound);
+          if (!lbound) {
+            hasNonDefaultLbounds = false;
+            break;
+          }
+          hasNonDefaultLbounds |= *lbound != 1;
+          lbounds.push_back(*lbound);
+        }
+      if (!hasNonDefaultLbounds)
+        lbounds.clear();
+      members[global].push_back(fir::ModuleVarAttr::get(
+          &getMLIRContext(), moduleName,
+          builder->getStringAttr(toStringRef(name)),
+          storage ? genType(*symbol) : mlir::Type{}, common, offset, lbounds,
+          isDefined ? genSourceLocation(symbol->name())
+                    : mlir::UnknownLoc::get(&getMLIRContext())));
+    }
   }
 
   fir::ScopeAttr genModuleScope(const Fortran::semantics::Scope &scope,

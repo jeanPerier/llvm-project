@@ -785,6 +785,32 @@ llvm.func @test() {
 // CHECK: ![[FILE]] = !DIFile(filename: "test.f90"{{.*}})
 // -----
 
+// Test that a variable of a common block in a module is a global variable of
+// its compile unit.
+#bt = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "int", sizeInBits = 32>
+#file = #llvm.di_file<"test.f90" in "">
+#cu = #llvm.di_compile_unit<id = distinct[0]<>, sourceLanguage = DW_LANG_Fortran95,
+ file = #file, isOptimized = false, emissionKind = Full>
+#module = #llvm.di_module<file = #file, scope = #cu, name = "m", line = 1>
+#di_common_block = #llvm.di_common_block<scope = #module, name = "block",
+ file = #file, line = 3>
+#global_var = #llvm.di_global_variable<scope = #di_common_block, name = "a",
+ file = #file, line = 2, type = #bt, isDefined = true>
+#var_expression = #llvm.di_global_variable_expression<var = #global_var,
+ expr = <>>
+
+llvm.mlir.global common @block_(dense<0> : tensor<8xi8>)
+  {dbg_exprs = [#var_expression]} : !llvm.array<8 x i8>
+
+// CHECK: @block_ = common global [8 x i8] zeroinitializer, !dbg ![[EXPR:[0-9]+]]
+// CHECK: ![[EXPR]] = !DIGlobalVariableExpression(var: ![[VAR:[0-9]+]], expr: !DIExpression())
+// CHECK: ![[VAR]] = distinct !DIGlobalVariable(name: "a", scope: ![[BLOCK:[0-9]+]]
+// CHECK: ![[BLOCK]] = !DICommonBlock(scope: ![[MODULE:[0-9]+]], declaration: null, name: "block"
+// CHECK: ![[MODULE]] = !DIModule(scope: ![[CU:[0-9]+]], name: "m"
+// CHECK: ![[CU]] = distinct !DICompileUnit({{.*}}globals: ![[GLOBALS:[0-9]+]]
+// CHECK: ![[GLOBALS]] = !{![[EXPR]]}
+// -----
+
 // Test multiple DIGlobalVariableExpression on a global.
 #bt = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "int", sizeInBits = 32>
 #file = #llvm.di_file<"test.f90" in "">

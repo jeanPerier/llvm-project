@@ -42,3 +42,18 @@ func.func private @g() attributes {scope = #fir.scope<construct, parent = #m, lo
 
 // expected-error@+1 {{the ONLY list of a USE statement cannot be empty}}
 func.func private @g() attributes {use = #fir.use<"m", only loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a module variable must name its module and variable}}
+func.func private @g() attributes {var = #fir.module_var<"", "x", loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a COMMON member or an offset requires a member type}}
+func.func private @g() attributes {var = #fir.module_var<"m", "x", common "blk", loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a COMMON member or an offset requires a member type}}
+func.func private @g() attributes {var = #fir.module_var<"m", "x", offset 4, loc(unknown)>}
