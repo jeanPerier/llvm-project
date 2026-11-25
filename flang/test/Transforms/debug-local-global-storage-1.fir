@@ -27,7 +27,7 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<#dlti.dl_entry<i64, dense<64> : 
   fir.global @_QMexampleEmod_arr : !fir.array<2x2xi32> {
     %0 = fir.zero_bits !fir.array<2x2xi32>
     fir.has_value %0 : !fir.array<2x2xi32>
-  } loc(#loc4)
+  } loc(fused<#fir.global_name<"_QMexampleEmod_arr">>["test.f90":5:1])
   fir.global internal @_QMexampleFmod_subEss : i32 {
     %c2_i32 = arith.constant 2 : i32
     fir.has_value %c2_i32 : i32

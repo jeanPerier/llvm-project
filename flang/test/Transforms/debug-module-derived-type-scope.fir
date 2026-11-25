@@ -36,7 +36,7 @@ module {
     return
   } loc(fused<#smod_sub>["defined.f90":25:3])
 } loc(fused<[#defined_m, #impl]>["defined.f90":0:0])
-#loc_counter = loc("defined.f90":5:14)
+#loc_counter = loc(fused<#fir.global_name<"_QMdefined_mEcounter">>["defined.f90":5:14])
 #loc_m = loc("defined.f90":14:5)
 #loc_s = loc("defined.f90":26:5)
 #loc_x = loc("user.f90":3:3)

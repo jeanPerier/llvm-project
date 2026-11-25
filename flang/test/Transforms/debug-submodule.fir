@@ -32,10 +32,10 @@ module {
 // interface, is defined in submodule "impl".
 #square = #fir.scope<procedure "square", parent = #impl, loc("impl.f90":10:3)>
 #loc_modules = loc(fused<[#shapes, #impl, #deep]>["shapes.f90":0:0])
-#loc_parent_var = loc("shapes.f90":7:14)
-#loc_sub_var = loc("impl.f90":8:14)
+#loc_parent_var = loc(fused<#fir.global_name<"_QMshapesEparent_var">>["shapes.f90":7:14])
+#loc_sub_var = loc(fused<#fir.global_name<"_QMshapesSimplEsub_var">>["impl.f90":8:14])
 #loc_square = loc(fused<#square>["impl.f90":10:3])
-#loc_deep_var = loc("deep.f90":14:14)
+#loc_deep_var = loc(fused<#fir.global_name<"_QMshapesSimplSdeepEdeep_var">>["deep.f90":14:14])
 #loc_helper = loc("deep.f90":16:3)
 
 // Each module is described in the file that defines it.

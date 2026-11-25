@@ -42,3 +42,18 @@ func.func private @g() attributes {scope = #fir.scope<construct, parent = #m, lo
 
 // expected-error@+1 {{the ONLY list of a USE statement cannot be empty}}
 func.func private @g() attributes {use = #fir.use<"m", only loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a variable cannot be in a COMMON block and in an EQUIVALENCE}}
+func.func private @g() attributes {var = #fir.module_var<"x" : i32, common "blk" ("blk_"), equivalence "x", loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a member of a COMMON block or of an EQUIVALENCE must have a type}}
+func.func private @g() attributes {var = #fir.module_var<"x", common "blk" ("blk_"), loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{only a module scope can describe module variables}}
+func.func private @f() attributes {scope = #fir.scope<procedure "f", variables = [#fir.module_var<"v", bind_c "v", loc(unknown)>], loc(unknown)>}

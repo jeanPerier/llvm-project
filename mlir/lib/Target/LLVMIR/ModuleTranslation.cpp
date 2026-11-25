@@ -1294,22 +1294,23 @@ LogicalResult ModuleTranslation::convertGlobalsAndAliases() {
         // be variable -> DIModule -> DICompileUnit
         //
         // 2. For the Fortran common block variable, the scope hierarchy can
-        // be variable -> DICommonBlock -> DISubprogram -> DICompileUnit
+        // be variable -> DICommonBlock -> DISubprogram -> DICompileUnit, or
+        // variable -> DICommonBlock -> DIModule -> DICompileUnit
         //
         // 3. For entities like static local variables in C or variable with
         // SAVE attribute in Fortran, the scope hierarchy can be
         // variable (-> DILocalScope)* -> DISubprogram
         llvm::DIScope *scope = diGlobalVar->getScope();
+        if (auto *cb = dyn_cast_if_present<llvm::DICommonBlock>(scope)) {
+          scope = cb->getScope();
+          if (auto *sp = dyn_cast_if_present<llvm::DISubprogram>(scope))
+            scope = sp->getUnit();
+        }
         if (auto *mod = dyn_cast_if_present<llvm::DIModule>(scope))
           scope = mod->getScope();
-        else if (auto *cb = dyn_cast_if_present<llvm::DICommonBlock>(scope)) {
-          if (auto *sp =
-                  dyn_cast_if_present<llvm::DISubprogram>(cb->getScope()))
-            scope = sp->getUnit();
-        } else if (auto *lbb =
-                       dyn_cast_if_present<llvm::DILexicalBlockBase>(scope)) {
+        else if (auto *lbb =
+                     dyn_cast_if_present<llvm::DILexicalBlockBase>(scope))
           scope = lbb->getSubprogram();
-        }
 
         // Get the compile unit (scope) of the the global variable, or the
         // subprogram of the static local variable.

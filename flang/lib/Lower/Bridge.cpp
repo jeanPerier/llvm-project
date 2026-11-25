@@ -633,6 +633,17 @@ public:
 
     finalizeOpenMPLowering(globalOmpRequiresSymbols);
 
+    if (getLoweringOptions().getPreserveUseDebugInfo())
+      for (fir::GlobalOp global : getModuleOp().getOps<fir::GlobalOp>()) {
+        llvm::StringRef name = global.getSymName();
+        if (fir::NameUniquer::isModuleScopeDataUniquedName(name) ||
+            debugStorageNames.contains(name))
+          global->setLoc(mlir::FusedLoc::get(
+              &getMLIRContext(), {global.getLoc()},
+              fir::GlobalNameAttr::get(&getMLIRContext(),
+                                       global.getSymNameAttr())));
+      }
+
     // Keep one description for each module used or defined in the unit.
     if (!moduleScopes.empty()) {
       llvm::SmallVector<mlir::Attribute> scopes;
@@ -2038,7 +2049,8 @@ private:
       fir::ScopeAttr parent = getLexicalScope();
       construct.lexicalScope = fir::ScopeAttr::get(
           &getMLIRContext(), fir::ScopeKind::Construct, mlir::StringAttr{},
-          genSourceLocation(currentPosition), parent, uses, /*exports=*/{});
+          genSourceLocation(currentPosition), parent, uses, /*exports=*/{},
+          /*variables=*/{});
     }
   }
 
@@ -2079,14 +2091,102 @@ private:
     if (auto iter = moduleScopes.find(&scope); iter != moduleScopes.end())
       return iter->second;
     auto moduleScope =
-        genModuleScope(scope, mlir::UnknownLoc::get(&getMLIRContext()), {});
+        genModuleScope(scope, mlir::UnknownLoc::get(&getMLIRContext()), {},
+                       genModuleVariables(scope, /*isDefined=*/false));
     moduleScopes[&scope] = moduleScope;
     return moduleScope;
   }
 
+  /// Describe the variables of a module that their globals do not describe
+  /// completely. For a module compiled elsewhere, only those that are not in
+  /// a global named after them are needed.
+  llvm::SmallVector<fir::ModuleVarAttr>
+  genModuleVariables(const Fortran::semantics::Scope &scope, bool isDefined) {
+    mlir::MLIRContext *context = &getMLIRContext();
+    // The variable after which the storage of each EQUIVALENCE'd variable is
+    // named, and the offset of the variable in it.
+    llvm::DenseMap<const Fortran::semantics::Symbol *,
+                   std::pair<const Fortran::semantics::Symbol *, std::size_t>>
+        equivalences;
+    if (!scope.equivalenceSets().empty()) {
+      Fortran::lower::pft::VariableList vars =
+          Fortran::lower::pft::getScopeVariableList(scope);
+      llvm::DenseMap<std::size_t, const Fortran::semantics::Symbol *>
+          storageByOffset;
+      for (const Fortran::lower::pft::Variable &var : vars)
+        if (var.isAggregateStore())
+          storageByOffset[var.getAggregateStore().getOffset()] =
+              &var.getAggregateStore().getNamingSymbol();
+      for (const Fortran::lower::pft::Variable &var : vars)
+        if (var.isAlias())
+          if (const Fortran::semantics::Symbol *storage =
+                  storageByOffset.lookup(var.getAliasOffset()))
+            equivalences[&var.getSymbol()] = {
+                storage, var.getSymbol().offset() - var.getAliasOffset()};
+    }
+    llvm::SmallVector<fir::ModuleVarAttr> variables;
+    for (const auto &[name, symbol] : scope) {
+      const auto *details =
+          symbol->detailsIf<Fortran::semantics::ObjectEntityDetails>();
+      if (!details || &symbol->owner() != &scope ||
+          symbol->test(Fortran::semantics::Symbol::Flag::CompilerCreated))
+        continue;
+      mlir::StringAttr bindCName;
+      if (const std::string *bindName = symbol->GetBindName())
+        bindCName = mlir::StringAttr::get(context, *bindName);
+      if (bindCName)
+        debugStorageNames.insert(bindCName.getValue());
+      mlir::StringAttr common, commonStorage, equivalence;
+      std::size_t offset = 0;
+      if (const Fortran::semantics::Symbol *commonBlock =
+              Fortran::semantics::FindCommonBlockContaining(*symbol)) {
+        common =
+            mlir::StringAttr::get(context, toStringRef(commonBlock->name()));
+        commonStorage =
+            mlir::StringAttr::get(context, mangleName(*commonBlock));
+        debugStorageNames.insert(commonStorage.getValue());
+        offset = symbol->offset();
+      } else if (auto iter = equivalences.find(&*symbol);
+                 iter != equivalences.end()) {
+        equivalence = mlir::StringAttr::get(
+            context, toStringRef(iter->second.first->name()));
+        offset = iter->second.second;
+      }
+      bool isStorageMember = common || equivalence;
+      if (!isDefined && !bindCName && !isStorageMember)
+        continue;
+      llvm::SmallVector<int64_t> lbounds;
+      bool hasNonDefaultLbounds = false;
+      if (!Fortran::semantics::IsAllocatableOrObjectPointer(&*symbol))
+        for (const Fortran::semantics::ShapeSpec &bounds : details->shape()) {
+          std::optional<std::int64_t> lbound;
+          if (const auto &explicitLbound = bounds.lbound().GetExplicit())
+            lbound = Fortran::evaluate::ToInt64(*explicitLbound);
+          if (!lbound) {
+            hasNonDefaultLbounds = false;
+            break;
+          }
+          hasNonDefaultLbounds |= *lbound != 1;
+          lbounds.push_back(*lbound);
+        }
+      if (!hasNonDefaultLbounds)
+        lbounds.clear();
+      if (!bindCName && !isStorageMember && lbounds.empty())
+        continue;
+      variables.push_back(fir::ModuleVarAttr::get(
+          context, mlir::StringAttr::get(context, toStringRef(name)),
+          isStorageMember ? genType(*symbol) : mlir::Type{}, bindCName, common,
+          commonStorage, equivalence, offset, lbounds,
+          isDefined ? genSourceLocation(symbol->name())
+                    : mlir::UnknownLoc::get(context)));
+    }
+    return variables;
+  }
+
   fir::ScopeAttr genModuleScope(const Fortran::semantics::Scope &scope,
                                 mlir::Location loc,
-                                llvm::ArrayRef<fir::UseAttr> uses) {
+                                llvm::ArrayRef<fir::UseAttr> uses,
+                                llvm::ArrayRef<fir::ModuleVarAttr> variables) {
     const Fortran::semantics::Symbol &symbol = DEREF(scope.symbol());
     fir::ScopeAttr parent;
     if (const auto *details =
@@ -2113,7 +2213,7 @@ private:
     return fir::ScopeAttr::get(
         context, fir::ScopeKind::Module,
         mlir::StringAttr::get(context, toStringRef(symbol.name())), loc, parent,
-        uses, exports);
+        uses, exports, variables);
   }
 
   /// Describe a module defined in this unit for the debug information.
@@ -2123,7 +2223,8 @@ private:
       return;
     fir::ScopeAttr moduleScope =
         genModuleScope(scope, genSourceLocation(mod.getStartingSourceLoc()),
-                       genUseAttrs(mod.useStmts));
+                       genUseAttrs(mod.useStmts),
+                       genModuleVariables(scope, /*isDefined=*/true));
     moduleScopes[&scope] = moduleScope;
   }
 
@@ -2149,7 +2250,7 @@ private:
       procedureScope = fir::ScopeAttr::get(
           context, fir::ScopeKind::Procedure, name,
           genSourceLocation(funit.getStartingSourceLoc()), parent,
-          genUseAttrs(funit.useStmts), /*exports=*/{});
+          genUseAttrs(funit.useStmts), /*exports=*/{}, /*variables=*/{});
       procedureScopes[&scope] = procedureScope;
     }
     func->setLoc(mlir::FusedLoc::get(&getMLIRContext(), {func.getLoc()},
@@ -7534,6 +7635,8 @@ private:
   /// A USE references one of these module descriptions by source name.
   llvm::MapVector<const Fortran::semantics::Scope *, fir::ScopeAttr>
       moduleScopes;
+  /// Original storage names that cannot be recognized by demangling.
+  llvm::StringSet<> debugStorageNames;
 
   /// Debug information scope of the procedure being lowered.
   fir::ScopeAttr procedureScope;

@@ -312,7 +312,8 @@ fir::UseAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
 llvm::LogicalResult fir::ScopeAttr::verify(
     llvm::function_ref<mlir::InFlightDiagnostic()> emitError, ScopeKind kind,
     mlir::StringAttr name, mlir::LocationAttr, ScopeAttr parent,
-    llvm::ArrayRef<UseAttr>, llvm::ArrayRef<UseEntityAttr> exports) {
+    llvm::ArrayRef<UseAttr>, llvm::ArrayRef<UseEntityAttr> exports,
+    llvm::ArrayRef<ModuleVarAttr> variables) {
   if (kind == ScopeKind::Module) {
     if (!name || name.getValue().empty())
       return emitError() << "a module scope must have a name";
@@ -322,6 +323,8 @@ llvm::LogicalResult fir::ScopeAttr::verify(
     if (parent && !parent.isModule())
       return emitError()
              << "a submodule must have a module or submodule parent";
+  } else if (!variables.empty()) {
+    return emitError() << "only a module scope can describe module variables";
   } else if (!exports.empty()) {
     return emitError() << "only a module scope can have public exports";
   } else if (parent && (kind == ScopeKind::Construct ? parent.isModule()
@@ -336,6 +339,22 @@ mlir::OpAsmAliasResult fir::ScopeAttr::getAlias(llvm::raw_ostream &os) const {
   if (isModule() && getName())
     os << "_mod_" << getName().getValue();
   return mlir::OpAsmAliasResult::OverridableAlias;
+}
+
+llvm::LogicalResult fir::ModuleVarAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError, mlir::StringAttr,
+    mlir::Type type, mlir::StringAttr, mlir::StringAttr common,
+    mlir::StringAttr commonStorage, mlir::StringAttr equivalence, uint64_t,
+    llvm::ArrayRef<int64_t>, mlir::LocationAttr) {
+  if (bool(common) != bool(commonStorage))
+    return emitError() << "a COMMON block needs its source and storage names";
+  if (common && equivalence)
+    return emitError()
+           << "a variable cannot be in a COMMON block and in an EQUIVALENCE";
+  if ((common || equivalence) && !type)
+    return emitError() << "a member of a COMMON block or of an EQUIVALENCE "
+                          "must have a type";
+  return mlir::success();
 }
 
 //===----------------------------------------------------------------------===//

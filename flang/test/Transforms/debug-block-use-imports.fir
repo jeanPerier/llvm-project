@@ -19,9 +19,9 @@
 // end subroutine
 
 module {
-  fir.global @_QMm1Ev : i32 loc(#loc_mod)
-  fir.global @_QMm2Ea : i32 loc(#loc_mod)
-  fir.global @_QMm2Eb : i32 loc(#loc_mod)
+  fir.global @_QMm1Ev : i32 loc(fused<#fir.global_name<"_QMm1Ev">>["m.f90":2:14])
+  fir.global @_QMm2Ea : i32 loc(fused<#fir.global_name<"_QMm2Ea">>["m.f90":2:14])
+  fir.global @_QMm2Eb : i32 loc(fused<#fir.global_name<"_QMm2Eb">>["m.f90":2:14])
   func.func @_QPs(%arg0: !fir.ref<i32>) {
     %0 = fircg.ext_declare %arg0 uniq_name("_QFsEn") : (!fir.ref<i32>) -> !fir.ref<i32> loc(#loc_n)
     %1 = fir.alloca i32 loc(#loc_b1_n)
@@ -41,7 +41,6 @@ module {
 #s = #fir.scope<procedure "s", uses = [#use_m1], loc("t.f90":1:1)>
 #b1 = #fir.scope<construct, parent = #s, uses = [#fir.use<"m2", only [<"a">, <"c" -> "b">], loc("t.f90":5:5)>], loc("t.f90":4:3)>
 #b2 = #fir.scope<construct, parent = #b1, uses = [#fir.use<"m1", loc("t.f90":9:7)>], loc("t.f90":8:5)>
-#loc_mod = loc("m.f90":2:14)
 #loc_module = loc(fused<[#m1_mod, #m2_mod]>["t.f90":0:0])
 #loc_func = loc(fused<#s>["t.f90":1:1])
 #loc_n = loc("t.f90":3:14)

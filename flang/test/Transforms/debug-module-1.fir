@@ -25,8 +25,8 @@ module {
     return
   } loc(#loc3)
 } loc(fused<[#helper]>["test.f90":0:0])
-#loc1 = loc("test.f90":12:11)
-#loc2 = loc("test.f90":15:8)
+#loc1 = loc(fused<#fir.global_name<"_QMhelperEgli">>["test.f90":12:11])
+#loc2 = loc(fused<#fir.global_name<"_QMhelperEglr">>["test.f90":15:8])
 #loc3 = loc("test.f90":20:5)
 
 // CHECK-DAG: #[[I4:.*]] = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "integer(kind=4)", sizeInBits = 32, encoding = DW_ATE_signed>
@@ -41,7 +41,9 @@ module {
 // CHECK-DAG: #[[GLRE:.*]] = #llvm.di_global_variable_expression<var = #[[GLR]]>
 // CHECK-DAG: #[[LOC3:.*]] = loc("{{.*}}test.f90":20{{.*}})
 // CHECK-DAG: #[[TEST:.*]] = #llvm.di_subprogram<{{.*}}compileUnit = #[[CU]], scope = #[[MOD]], name = "test", linkageName = "_QMhelperPtest"{{.*}}line = 20, scopeLine = 20{{.*}}>
-// CHECK-DAG: loc(fused<[#[[GLIE]]]>[#[[LOC1]]])
-// CHECK-DAG: loc(fused<[#[[GLRE]]]>[#[[LOC2]]])
+// CHECK-DAG: #[[SOURCE1:.*]] = loc(fused<#fir.global_name<"_QMhelperEgli">>[#[[LOC1]]])
+// CHECK-DAG: loc(fused<[#[[GLIE]]]>[#[[SOURCE1]]])
+// CHECK-DAG: #[[SOURCE2:.*]] = loc(fused<#fir.global_name<"_QMhelperEglr">>[#[[LOC2]]])
+// CHECK-DAG: loc(fused<[#[[GLRE]]]>[#[[SOURCE2]]])
 // CHECK-DAG: loc(fused<#[[TEST]]>[#[[LOC3]]])
 

@@ -17,7 +17,7 @@ module {
     return
   } loc(#loc2)
 } loc(fused<[#helper]>["test.f90":0:0])
-#loc1 = loc("test.f90":8:26)
+#loc1 = loc(fused<#fir.global_name<"_QMhelperECpi">>["test.f90":8:26])
 #loc2 = loc("test.f90":12:5)
 
 // CHECK-DAG: #[[R4:.*]] = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "real(kind=4)", sizeInBits = 32, encoding = DW_ATE_float>

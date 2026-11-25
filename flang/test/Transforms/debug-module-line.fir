@@ -31,8 +31,8 @@ module {
     fir.has_value %0 : i32
   } loc(#loc_z)
 } loc(fused<[#no_use, #other_mod, #with_use]>["mod.f90":0:0])
-#loc_x = loc("mod.f90":20:14)
-#loc_y = loc("mod.f90":24:14)
+#loc_x = loc(fused<#fir.global_name<"_QMno_useEx">>["mod.f90":20:14])
+#loc_y = loc(fused<#fir.global_name<"_QMwith_useEy">>["mod.f90":24:14])
 #loc_z = loc("mod.f90":30:14)
 
 // The MODULE statement line is used, not 19 as guessed from the member.

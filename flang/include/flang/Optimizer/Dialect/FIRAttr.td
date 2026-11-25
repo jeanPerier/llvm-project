@@ -260,6 +260,82 @@ class fir_OptionalStringParameter<string desc = "">
   }];
 }
 
+// A string parameter parsed as a string only, so that a `:` after it is not
+// taken for the type of a string attribute.
+class fir_StringParameter<string desc = "">
+    : AttrParameter<"mlir::StringAttr", desc> {
+  let parser = [{
+    [&]() -> mlir::FailureOr<mlir::StringAttr> {
+      std::string str;
+      if ($_parser.parseString(&str))
+        return mlir::failure();
+      return mlir::StringAttr::get($_parser.getContext(), str);
+    }()
+  }];
+}
+
+def fir_GlobalNameAttr : fir_Attr<"GlobalName"> {
+  let mnemonic = "global_name";
+  let summary = "Original name of global storage for Fortran debug information";
+  let description = [{
+    Attached to the location of a fir.global. Lowering and module debug
+    descriptions agree on this name before transformations run. Keep it when
+    renaming the storage so debug info can recover the source variable and
+    derive its current linkage name from the operation. When the compilation
+    unit lists a module scope, its variables can only be backed by storage
+    with such an identity. Reusing the symbol of deleted storage does not
+    associate the new global with the deleted source variable.
+  }];
+  let parameters = (ins "mlir::StringAttr":$name);
+  let assemblyFormat = "`<` $name `>`";
+}
+
+def fir_ModuleVarAttr : fir_Attr<"ModuleVar"> {
+  let mnemonic = "module_var";
+  let summary = "A module variable that its global alone does not describe";
+  let description = [{
+    What the debug information of a module variable needs and its global, if
+    any, cannot tell. `name` is its Fortran name in the module.
+
+    - `bind_c` is its binding label, which is the name of its global instead
+      of the uniqued name of the variable,
+    - a member of a COMMON block, named `common` (the empty string for the
+      blank COMMON), with its exact object name in parentheses, or of the storage of an EQUIVALENCE, which is named
+      after the variable `equivalence`, has no global of its own: it is at
+      `offset` bytes into that storage, and has type `type`,
+    - `lbounds` are the lower bounds of an array whose bounds are not all 1.
+
+    `loc` is the location of its declaration.
+
+    ```
+    #fir.module_var<"z", lbounds [5], loc(unknown)>
+    #fir.module_var<"x", bind_c "c_x", loc(unknown)>
+    #fir.module_var<"a" : i32, common "blk" ("blk_"), loc("m.f90":4:14)>
+    #fir.module_var<"e2" : !fir.array<4xi32>, equivalence "e1", offset 4,
+                    loc("m.f90":6:14)>
+    ```
+  }];
+  let parameters = (ins fir_StringParameter<>:$name,
+      OptionalParameter<"mlir::Type">:$type,
+      OptionalParameter<"mlir::StringAttr">:$bind_c_name,
+      OptionalParameter<"mlir::StringAttr">:$common,
+      OptionalParameter<"mlir::StringAttr">:$common_storage,
+      OptionalParameter<"mlir::StringAttr">:$equivalence,
+      DefaultValuedParameter<"uint64_t", "0">:$offset,
+      OptionalArrayRefParameter<"int64_t">:$lbounds,
+      "mlir::LocationAttr":$loc);
+  let assemblyFormat = [{
+    `<` $name (`:` $type^)? `,` (`bind_c` $bind_c_name^ `,`)?
+    (`common` $common^ ` ` `(` $common_storage `)` `,`)? (`equivalence` $equivalence^ `,`)?
+    (`offset` $offset^ `,`)? (`lbounds` ` ` `[` $lbounds^ `]` `,`)? $loc `>`
+  }];
+  let genVerifyDecl = 1;
+  let extraClassDeclaration = [{
+    /// Whether the variable is stored in a COMMON block or an EQUIVALENCE.
+    bool isStorageMember() const { return getCommon() || getEquivalence(); }
+  }];
+}
+
 def fir_ScopeAttr : fir_Attr<"Scope",
     [DeclareAttrInterfaceMethods<OpAsmAttrInterface, ["getAlias"]>]> {
   let mnemonic = "scope";
@@ -282,8 +358,16 @@ def fir_ScopeAttr : fir_Attr<"Scope",
     `parent` is the lexical host, or the parent of a submodule. `uses`
     records the USE statements written in the scope.
 
+    `variables` are the variables of a module that their globals do not
+    describe completely. A module defined in the compilation unit lists all
+    of them. A module compiled elsewhere lists those that change which global
+    holds a variable: a variable that has a binding label, or that is in a
+    COMMON block or an EQUIVALENCE.
+
     ```
-    #scope_mod_m = #fir.scope<module "m", loc("a.f90":1:1)>
+    #scope_mod_m = #fir.scope<module "m",
+        variables = [#fir.module_var<"z", lbounds [0], loc(unknown)>],
+        loc("a.f90":1:1)>
     #scope_mod_other = #fir.scope<module "other", loc(unknown)>
     #scope = #fir.scope<procedure "s", parent = #scope_mod_m,
         uses = [#fir.use<"other", loc("a.f90":6:3)>],
@@ -296,11 +380,13 @@ def fir_ScopeAttr : fir_Attr<"Scope",
       "mlir::LocationAttr":$loc,
       OptionalParameter<"::fir::ScopeAttr">:$parent,
       OptionalArrayRefParameter<"::fir::UseAttr">:$uses,
-      OptionalArrayRefParameter<"::fir::UseEntityAttr">:$exports);
+      OptionalArrayRefParameter<"::fir::UseEntityAttr">:$exports,
+      OptionalArrayRefParameter<"::fir::ModuleVarAttr">:$variables);
   let assemblyFormat = [{
     `<` $kind ($name^)? `,` (`parent` `=` qualified($parent)^ `,`)?
     (`uses` `=` `[` qualified($uses)^ `]` `,`)?
-    (`exports` `=` `[` $exports^ `]` `,`)? $loc `>`
+    (`exports` `=` `[` $exports^ `]` `,`)?
+    (`variables` `=` `[` qualified($variables)^ `]` `,`)? $loc `>`
   }];
   let genVerifyDecl = 1;
   let extraClassDeclaration = [{

@@ -7,11 +7,11 @@ module {
   fir.global @_QMchildEx : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
-  }
+  } loc(fused<#fir.global_name<"_QMchildEx">>[unknown])
   fir.global @_QMparentEy : i32 {
     %0 = fir.zero_bits i32
     fir.has_value %0 : i32
-  }
+  } loc(fused<#fir.global_name<"_QMparentEy">>[unknown])
   func.func @_QQmain() attributes {fir.bindc_name = "MAIN_USE"} {
     return
   } loc(#loc_main)
