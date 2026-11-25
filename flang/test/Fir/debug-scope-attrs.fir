@@ -8,7 +8,7 @@
 
 // STRIP: func.func @f()
 // DCE: func.func @f()
-// DCE: #fir.scope<module "o", uses = [#fir.use<"n", only [<"d" from "p">]
+// DCE: #fir.scope<module "o", exports = [<"d" from "p">]
 
 // CHECK-LABEL: func.func @f()
 // CHECK: fir.call @g() : () -> () loc(#[[CALL1:.*]])
@@ -18,7 +18,7 @@
 
 // CHECK-DAG: #scope_mod_p = #fir.scope<module "p", #{{.*}}>
 // CHECK-DAG: #scope_mod_n = #fir.scope<module "n", uses = [#fir.use<"p", only [<"x">], #{{.*}}>], #{{.*}}>
-// CHECK-DAG: #scope_mod_o = #fir.scope<module "o", uses = [#fir.use<"n", only [<"d" from "p">], #{{.*}}>], #{{.*}}>
+// CHECK-DAG: #scope_mod_o = #fir.scope<module "o", exports = [<"d" from "p">], #{{.*}}>
 // CHECK-DAG: #scope_mod_m = #fir.scope<module "m", uses = [#fir.use<"n", #{{.*}}>, #fir.use<"o", [<"a" -> "b">, <"c" -> "d">], #{{.*}}>], #{{.*}}>
 // CHECK-DAG: #scope_mod_s = #fir.scope<module "s", parent = #scope_mod_m, #{{.*}}>
 // CHECK-DAG: #[[PROC:.*]] = #fir.scope<procedure "f", parent = #scope_mod_s, uses = [#fir.use<"m", #{{.*}}>, #fir.use<"n", only [<"x">, <"y" -> "z">, <"w">], #{{.*}}>], #{{.*}}>
@@ -31,7 +31,7 @@
 
 #p = #fir.scope<module "p", loc(unknown)>
 #n = #fir.scope<module "n", uses = [#fir.use<"p", only [<"x">], loc(unknown)>], loc(unknown)>
-#o = #fir.scope<module "o", uses = [#fir.use<"n", only [<"d" from "p">], loc(unknown)>], loc(unknown)>
+#o = #fir.scope<module "o", exports = [<"d" from "p">], loc(unknown)>
 #m = #fir.scope<module "m", uses = [#fir.use<"n", loc("test.f90":2:3)>, #fir.use<"o", [<"a" -> "b">, <"c" -> "d">], loc("test.f90":3:3)>], loc("test.f90":1:1)>
 #s = #fir.scope<module "s", parent = #m, loc("test.f90":10:1)>
 #f = #fir.scope<procedure "f", parent = #s, uses = [#fir.use<"m", loc("test.f90":13:5)>, #fir.use<"n", only [<"x">, <"y" -> "z">, <"w">], loc("test.f90":14:5)>], loc("test.f90":12:3)>

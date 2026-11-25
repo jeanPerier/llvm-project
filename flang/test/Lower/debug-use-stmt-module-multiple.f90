@@ -35,10 +35,10 @@ end subroutine
 ! WITH_DEBUG: } loc(#[[SUB_LOC:loc[0-9]+]])
 ! WITH_DEBUG: {{^}}} loc(#[[MOD_LOC:loc[0-9]+]])
 
-! WITH_DEBUG-DAG: #scope_mod_mod_ma = #fir.scope<module "mod_ma", #{{loc[0-9]*}}>
-! WITH_DEBUG-DAG: #scope_mod_mod_mb = #fir.scope<module "mod_mb", #{{loc[0-9]*}}>
-! WITH_DEBUG-DAG: #scope_mod_mod_mc = #fir.scope<module "mod_mc", #{{loc[0-9]*}}>
-! WITH_DEBUG-DAG: #scope_mod_mod_multi = #fir.scope<module "mod_multi", uses = [#fir.use<"mod_ma", only [<"va">], #[[USE_MA:loc[0-9]+]]>, #fir.use<"mod_mb", #[[USE_MB:loc[0-9]+]]>, #fir.use<"mod_mc", [<"renamed_vc" -> "vc">], #[[USE_MC:loc[0-9]+]]>], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod_ma = #fir.scope<module "mod_ma", exports = [<"va">], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod_mb = #fir.scope<module "mod_mb", exports = [<"vb">], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod_mc = #fir.scope<module "mod_mc", exports = [<"vc">], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod_multi = #fir.scope<module "mod_multi", uses = [#fir.use<"mod_ma", only [<"va">], #[[USE_MA:loc[0-9]+]]>, #fir.use<"mod_mb", #[[USE_MB:loc[0-9]+]]>, #fir.use<"mod_mc", [<"renamed_vc" -> "vc">], #[[USE_MC:loc[0-9]+]]>], exports = [<"renamed_vc" -> "vc" from "mod_mc">, <"va" from "mod_ma">, <"vb" from "mod_mb">, <"vx">], #{{loc[0-9]*}}>
 ! WITH_DEBUG-DAG: #[[MOD_LOC]] = loc(fused<[#scope_mod_mod_ma, #scope_mod_mod_mb, #scope_mod_mod_mc, #scope_mod_mod_multi]>[#{{loc[0-9]*}}])
 ! WITH_DEBUG-DAG: #[[USE_MA]] = loc("{{.*}}debug-use-stmt-module-multiple.f90":19:3)
 ! WITH_DEBUG-DAG: #[[USE_MB]] = loc("{{.*}}debug-use-stmt-module-multiple.f90":20:3)

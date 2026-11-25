@@ -301,22 +301,29 @@ fir::UseAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
   if (module.getValue().empty())
     return emitError() << "a USE statement must name a module";
   for (UseEntityAttr entity : entities)
-    if (auto owner = entity.getModule(); owner && owner.getValue().empty())
-      return emitError() << "a USE entity must name its declaring module";
+    if (entity.getModule())
+      return emitError()
+             << "a USE entity names an identifier in the used module";
+  if (only && entities.empty())
+    return emitError() << "the ONLY list of a USE statement cannot be empty";
   return mlir::success();
 }
 
-llvm::LogicalResult
-fir::ScopeAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
-                       ScopeKind kind, mlir::StringAttr name,
-                       mlir::LocationAttr, ScopeAttr parent,
-                       llvm::ArrayRef<UseAttr>) {
+llvm::LogicalResult fir::ScopeAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError, ScopeKind kind,
+    mlir::StringAttr name, mlir::LocationAttr, ScopeAttr parent,
+    llvm::ArrayRef<UseAttr>, llvm::ArrayRef<UseEntityAttr> exports) {
   if (kind == ScopeKind::Module) {
     if (!name || name.getValue().empty())
       return emitError() << "a module scope must have a name";
+    for (UseEntityAttr entity : exports)
+      if (auto module = entity.getModule(); module && module.getValue().empty())
+        return emitError() << "a re-export must name its declaring module";
     if (parent && !parent.isModule())
       return emitError()
              << "a submodule must have a module or submodule parent";
+  } else if (!exports.empty()) {
+    return emitError() << "only a module scope can have public exports";
   } else if (parent && (kind == ScopeKind::Construct ? parent.isModule()
                                                      : parent.isConstruct())) {
     return emitError() << "invalid lexical parent for this scope";

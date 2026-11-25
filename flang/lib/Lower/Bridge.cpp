@@ -240,34 +240,34 @@ getModuleOfDataObject(const Fortran::semantics::Symbol &ultimate) {
   return owner.IsModule() ? owner.symbol() : nullptr;
 }
 
+/// A local identifier and the name under which the referenced module makes
+/// the object accessible. The module is explicit only for a re-export.
+static fir::UseEntityAttr genUseEntityAttr(mlir::MLIRContext *context,
+                                           llvm::StringRef local,
+                                           llvm::StringRef name,
+                                           mlir::StringAttr module = {}) {
+  return fir::UseEntityAttr::get(
+      context, mlir::StringAttr::get(context, local),
+      name == local ? mlir::StringAttr{} : mlir::StringAttr::get(context, name),
+      module);
+}
+
 static fir::UseAttr genUseAttr(mlir::MLIRContext *context,
                                const Fortran::parser::UseStmt &useStmt,
-                               const Fortran::semantics::Scope &scope,
                                mlir::StringAttr usedModule,
                                mlir::Location loc) {
   llvm::SmallVector<fir::UseEntityAttr> entities;
-  auto addEntity = [&](const Fortran::parser::Name &localName) {
-    const auto *symbol = scope.FindSymbol(localName.source);
-    if (!symbol)
-      return;
-    const Fortran::semantics::Symbol &ultimate = symbol->GetUltimate();
-    if (const auto *owner = getModuleOfDataObject(ultimate)) {
-      llvm::StringRef local = toStringRef(localName.source);
-      llvm::StringRef name = toStringRef(ultimate.name());
-      llvm::StringRef module = toStringRef(owner->name());
-      entities.push_back(fir::UseEntityAttr::get(
-          context, mlir::StringAttr::get(context, local),
-          local == name ? mlir::StringAttr{}
-                        : mlir::StringAttr::get(context, name),
-          module == usedModule.getValue()
-              ? mlir::StringAttr{}
-              : mlir::StringAttr::get(context, module)));
-    }
+  auto addEntity = [&](const Fortran::parser::Name &localName,
+                       const Fortran::parser::Name &useName) {
+    if (localName.symbol &&
+        getModuleOfDataObject(localName.symbol->GetUltimate()))
+      entities.push_back(genUseEntityAttr(
+          context, toStringRef(localName.source), toStringRef(useName.source)));
   };
   auto addRename = [&](const Fortran::parser::Rename &rename) {
     if (const auto *names =
             std::get_if<Fortran::parser::Rename::Names>(&rename.u))
-      addEntity(std::get<0>(names->t));
+      addEntity(std::get<0>(names->t), std::get<1>(names->t));
   };
   bool only = Fortran::common::visit(
       Fortran::common::visitors{
@@ -285,10 +285,10 @@ static fir::UseAttr genUseAttr(mlir::MLIRContext *context,
                         if (const auto *name =
                                 std::get_if<Fortran::parser::Name>(
                                     &spec.value().u))
-                          addEntity(*name);
+                          addEntity(*name, *name);
                       },
                       [&](const Fortran::parser::Name &name) {
-                        addEntity(name);
+                        addEntity(name, name);
                       },
                       [&](const Fortran::parser::Rename &rename) {
                         addRename(rename);
@@ -297,6 +297,8 @@ static fir::UseAttr genUseAttr(mlir::MLIRContext *context,
             return true;
           }},
       useStmt.u);
+  if (only && entities.empty())
+    return {};
   return fir::UseAttr::get(context, usedModule, only, entities, loc);
 }
 
@@ -2028,7 +2030,7 @@ private:
   /// begins at the current statement. It lasts until the next branch or the
   /// end of the construct, and lets debug information make the names that
   /// the branch associates visible only in the branch.
-  void startLexicalScope() {
+  void startLexicalScope(llvm::ArrayRef<fir::UseAttr> uses = {}) {
     assert(!activeConstructStack.empty() && "must be inside a construct");
     ConstructContext &construct = activeConstructStack.back();
     construct.lexicalScope = {};
@@ -2036,7 +2038,7 @@ private:
       fir::ScopeAttr parent = getLexicalScope();
       construct.lexicalScope = fir::ScopeAttr::get(
           &getMLIRContext(), fir::ScopeKind::Construct, mlir::StringAttr{},
-          genSourceLocation(currentPosition), parent, /*uses=*/{});
+          genSourceLocation(currentPosition), parent, uses, /*exports=*/{});
     }
   }
 
@@ -2049,29 +2051,30 @@ private:
     return procedureScope;
   }
 
-  /// Describe a USE statement in the enclosing program unit.
-  fir::UseAttr genUseAttr(const Fortran::lower::pft::UseStmt &useStmt,
-                          const Fortran::semantics::Scope &scope) {
+  /// Describe a USE statement, or return null if it makes no data object
+  /// visible.
+  fir::UseAttr genUseAttr(const Fortran::lower::pft::UseStmt &useStmt) {
     const Fortran::parser::UseStmt &stmt = useStmt.statement.value();
     mlir::MLIRContext *context = &getMLIRContext();
     if (stmt.moduleName.symbol && stmt.moduleName.symbol->scope())
       getModuleScope(*stmt.moduleName.symbol->scope());
     return ::genUseAttr(
-        context, stmt, scope,
+        context, stmt,
         mlir::StringAttr::get(context, toStringRef(stmt.moduleName.source)),
         genSourceLocation(useStmt.source));
   }
 
   llvm::SmallVector<fir::UseAttr>
-  genUseAttrs(const Fortran::lower::pft::UseStmtList &useStmts,
-              const Fortran::semantics::Scope &scope) {
+  genUseAttrs(const Fortran::lower::pft::UseStmtList &useStmts) {
     llvm::SmallVector<fir::UseAttr> uses;
     for (const Fortran::lower::pft::UseStmt *useStmt : useStmts)
-      uses.push_back(genUseAttr(*useStmt, scope));
+      if (fir::UseAttr use = genUseAttr(*useStmt))
+        uses.push_back(use);
     return uses;
   }
 
-  /// A module read from a module file has no source statements in this unit.
+  /// Modules read from module files have the same public interface as
+  /// modules defined here, but no source statements in this compilation.
   fir::ScopeAttr getModuleScope(const Fortran::semantics::Scope &scope) {
     if (auto iter = moduleScopes.find(&scope); iter != moduleScopes.end())
       return iter->second;
@@ -2091,10 +2094,26 @@ private:
       if (const Fortran::semantics::Scope *parentScope = details->parent())
         parent = getModuleScope(*parentScope);
     mlir::MLIRContext *context = &getMLIRContext();
+    llvm::SmallVector<fir::UseEntityAttr> exports;
+    for (const auto &[name, sym] : scope) {
+      if (!sym->attrs().test(Fortran::semantics::Attr::PUBLIC) ||
+          sym->test(Fortran::semantics::Symbol::Flag::CompilerCreated))
+        continue;
+      const auto &ultimate = sym->GetUltimate();
+      if (const auto *owner = getModuleOfDataObject(ultimate)) {
+        mlir::StringAttr from;
+        if (&ultimate.owner() != &scope) {
+          from = mlir::StringAttr::get(context, toStringRef(owner->name()));
+          getModuleScope(ultimate.owner());
+        }
+        exports.push_back(genUseEntityAttr(context, toStringRef(name),
+                                           toStringRef(ultimate.name()), from));
+      }
+    }
     return fir::ScopeAttr::get(
         context, fir::ScopeKind::Module,
         mlir::StringAttr::get(context, toStringRef(symbol.name())), loc, parent,
-        uses);
+        uses, exports);
   }
 
   /// Describe a module defined in this unit for the debug information.
@@ -2104,7 +2123,7 @@ private:
       return;
     fir::ScopeAttr moduleScope =
         genModuleScope(scope, genSourceLocation(mod.getStartingSourceLoc()),
-                       genUseAttrs(mod.useStmts, scope));
+                       genUseAttrs(mod.useStmts));
     moduleScopes[&scope] = moduleScope;
   }
 
@@ -2127,10 +2146,10 @@ private:
       mlir::StringAttr name;
       if (const Fortran::semantics::Symbol *symbol = scope.symbol())
         name = mlir::StringAttr::get(context, toStringRef(symbol->name()));
-      procedureScope =
-          fir::ScopeAttr::get(context, fir::ScopeKind::Procedure, name,
-                              genSourceLocation(funit.getStartingSourceLoc()),
-                              parent, genUseAttrs(funit.useStmts, scope));
+      procedureScope = fir::ScopeAttr::get(
+          context, fir::ScopeKind::Procedure, name,
+          genSourceLocation(funit.getStartingSourceLoc()), parent,
+          genUseAttrs(funit.useStmts), /*exports=*/{});
       procedureScopes[&scope] = procedureScope;
     }
     func->setLoc(mlir::FusedLoc::get(&getMLIRContext(), {func.getLoc()},
@@ -4759,7 +4778,25 @@ private:
     popActiveConstruct();
   }
 
-  void genFIR(const Fortran::parser::BlockConstruct &) {
+  /// Start the lexical scope of a BLOCK construct that has its own variables
+  /// or USE statements.
+  void startBlockScope(const Fortran::parser::BlockConstruct &blockConstruct,
+                       bool hasVariables) {
+    if (!getLoweringOptions().getPreserveUseDebugInfo())
+      return;
+    const auto &useStmts = std::get<std::list<Fortran::lower::pft::UseStmt>>(
+        std::get<Fortran::parser::BlockSpecificationPart>(blockConstruct.t)
+            .v.t);
+    llvm::SmallVector<fir::UseAttr> uses;
+    for (const Fortran::lower::pft::UseStmt &useStmt : useStmts)
+      if (fir::UseAttr use = genUseAttr(useStmt))
+        uses.push_back(use);
+    if (!hasVariables && uses.empty())
+      return;
+    startLexicalScope(uses);
+  }
+
+  void genFIR(const Fortran::parser::BlockConstruct &blockConstruct) {
     Fortran::lower::pft::Evaluation &eval = getEval();
     Fortran::lower::StatementContext stmtCtx;
     pushActiveConstruct(eval, stmtCtx);
@@ -4780,8 +4817,7 @@ private:
         scopeBlockIdMap.try_emplace(&scope, ++blockId);
         Fortran::lower::pft::VariableList variables =
             Fortran::lower::pft::getScopeVariableList(scope);
-        if (!variables.empty())
-          startLexicalScope();
+        startBlockScope(blockConstruct, !variables.empty());
         Fortran::lower::AggregateStoreMap storeMap;
         for (const Fortran::lower::pft::Variable &var : variables) {
           // Do no instantiate again variables from the block host

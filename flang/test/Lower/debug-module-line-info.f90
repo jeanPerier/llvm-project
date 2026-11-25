@@ -15,11 +15,11 @@
 ! NO_DEBUG-NOT: #fir.use
 
 ! WITH_DEBUG-LABEL: func.func @_QMno_use_modPtest_sub()
-! WITH_DEBUG: } loc(fused<#fir.scope<procedure "test_sub", parent = #fir.scope<module "no_use_mod", loc({{[^)]*}})>, loc({{[^)]*}})>>
+! WITH_DEBUG: } loc(fused<#fir.scope<procedure "test_sub", parent = #fir.scope<module "no_use_mod", exports = [<"mod_var">], loc({{[^)]*}})>, loc({{[^)]*}})>>
 ! WITH_DEBUG-LABEL: func.func @_QQmain()
 ! WITH_DEBUG: } loc(fused<#fir.scope<procedure "MAIN", uses = [#fir.use<"using_mod", loc({{[^)]*}})>], loc({{[^)]*}})>>
 
-! WITH_DEBUG: {{^}}} loc(fused<[#fir.scope<module "no_use_mod", loc("{{[^"]*}}":[[@LINE+1]]:1)>,
+! WITH_DEBUG: {{^}}} loc(fused<[#fir.scope<module "no_use_mod", exports = [<"mod_var">], loc("{{[^"]*}}":[[@LINE+1]]:1)>,
 module no_use_mod
   integer :: mod_var
 contains

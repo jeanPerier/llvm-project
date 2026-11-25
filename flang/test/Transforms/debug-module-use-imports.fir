@@ -1,7 +1,7 @@
 // RUN: fir-opt --add-debug-info --mlir-print-debuginfo %s | FileCheck %s
 
-// AddDebugInfo follows the USE statements in the module scope and attaches
-// the direct and transitive module imports to the consuming subprogram.
+// AddDebugInfo imports the public re-exports of the module into the
+// subprogram that uses it. Each re-export refers to the defining module.
 
 module {
   fir.global @_QMchildEx : i32 {
@@ -18,7 +18,7 @@ module {
 } loc(#loc_mod)
 
 #child = #fir.scope<module "child", loc("m.f90":1:1)>
-#parent = #fir.scope<module "parent", uses = [#fir.use<"child", loc("m.f90":5:3)>], loc("m.f90":4:1)>
+#parent = #fir.scope<module "parent", uses = [#fir.use<"child", loc("m.f90":5:3)>], exports = [<"x" from "child">, <"y">], loc("m.f90":4:1)>
 #main = #fir.scope<procedure "main_use", uses = [#fir.use<"parent", loc("m.f90":10:3)>], loc("m.f90":9:1)>
 #loc_mod = loc(fused<[#child, #parent]>["m.f90":0:0])
 #loc_main = loc(fused<#main>["m.f90":9:1])
@@ -26,8 +26,9 @@ module {
 // CHECK-DAG: #[[MOD_CHILD:.+]] = #llvm.di_module<{{.*}}name = "child"{{.*}}>
 // CHECK-DAG: #[[MOD_PARENT:.+]] = #llvm.di_module<{{.*}}name = "parent"{{.*}}>
 
-// Each import has the source line of its USE statement.
+// The re-exported variable and the module import are at the USE statement of the subprogram.
 // CHECK-DAG: #[[SP_REC:.+]] = #llvm.di_subprogram<recId = distinct[[[RECID:[0-9]+]]]<>, isRecSelf = true{{.*}}name = "main_use"
-// CHECK-DAG: #llvm.di_imported_entity<tag = DW_TAG_imported_module, scope = #[[SP_REC]], entity = #[[MOD_CHILD]], file = #{{.*}}, line = 5>
+// CHECK-DAG: #[[X:.+]] = #llvm.di_global_variable<scope = #[[MOD_CHILD]], name = "x"{{.*}}>
+// CHECK-DAG: #llvm.di_imported_entity<tag = DW_TAG_imported_declaration, scope = #[[SP_REC]], entity = #[[X]], file = #{{.*}}, line = 10>
 // CHECK-DAG: #llvm.di_imported_entity<tag = DW_TAG_imported_module, scope = #[[SP_REC]], entity = #[[MOD_PARENT]], file = #{{.*}}, line = 10>
 // CHECK-DAG: #llvm.di_subprogram<recId = distinct[[[RECID]]]<>{{.*}}name = "main_use"{{.*}}retainedNodes = {{.+}}>

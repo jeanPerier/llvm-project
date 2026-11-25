@@ -14,8 +14,8 @@ func.func private @g() attributes {scope = #fir.scope<module "m", parent = #f, l
 
 // -----
 
-// expected-error@+1 {{a USE entity must name its declaring module}}
-func.func private @g() attributes {use = #fir.use<"m", only [<"x" from "">], loc(unknown)>}
+// expected-error@+1 {{a USE entity names an identifier in the used module}}
+func.func private @g() attributes {use = #fir.use<"m", only [<"x" from "other">], loc(unknown)>}
 
 // -----
 
@@ -24,6 +24,21 @@ func.func private @g() attributes {use = #fir.use<"", loc(unknown)>}
 
 // -----
 
+// expected-error@+1 {{a re-export must name its declaring module}}
+func.func private @g() attributes {scope = #fir.scope<module "m", exports = [<"x" from "">], loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{only a module scope can have public exports}}
+func.func private @g() attributes {scope = #fir.scope<procedure "f", exports = [<"x">], loc(unknown)>}
+
+// -----
+
 #m = #fir.scope<module "m", loc(unknown)>
 // expected-error@+1 {{invalid lexical parent for this scope}}
 func.func private @g() attributes {scope = #fir.scope<construct, parent = #m, loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{the ONLY list of a USE statement cannot be empty}}
+func.func private @g() attributes {use = #fir.use<"m", only loc(unknown)>}

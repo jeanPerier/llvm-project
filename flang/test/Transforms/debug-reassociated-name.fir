@@ -223,11 +223,11 @@ module attributes {dlti.dl_spec = #dlti.dl_spec<>} {
 // CHECK-DAG: #[[X1:.+]] = #llvm.di_lexical_block<scope = #[[INC]], {{.*}}line = 43, column = 5>
 // CHECK-DAG: #[[X_INCLUDED]] = loc(fused<#[[X1]]>[#{{loc[0-9]+}}])
 
-// The scopes of the branches of a construct in an included file are distinct,
-// positioned in that file.
+// Branches in the included file share a parent at the INCLUDE statement.
 // CHECK-DAG: #[[B_FILE:.+]] = #llvm.di_file<"b.inc" in "">
-// CHECK-DAG: #[[Y1:.+]] = #llvm.di_lexical_block<scope = #[[INC]], file = #[[B_FILE]], line = 2, column = 3>
-// CHECK-DAG: #[[Y2:.+]] = #llvm.di_lexical_block<scope = #[[INC]], file = #[[B_FILE]], line = 4, column = 3>
+// CHECK-DAG: #[[INCLUDED:.+]] = #llvm.di_lexical_block<scope = #[[INC]], {{.*}}line = 47, column = 1>
+// CHECK-DAG: #[[Y1:.+]] = #llvm.di_lexical_block<scope = #[[INCLUDED]], file = #[[B_FILE]], line = 2, column = 3>
+// CHECK-DAG: #[[Y2:.+]] = #llvm.di_lexical_block<scope = #[[INCLUDED]], file = #[[B_FILE]], line = 4, column = 3>
 // CHECK-DAG: #llvm.di_local_variable<scope = #[[Y1]], name = "y"
 // CHECK-DAG: #llvm.di_local_variable<scope = #[[Y2]], name = "y"
 // CHECK-DAG: #[[Y_BRANCH1]] = loc(fused<#[[Y1]]>[#{{loc[0-9]+}}])

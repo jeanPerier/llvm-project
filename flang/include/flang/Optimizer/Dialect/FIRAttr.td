@@ -273,12 +273,14 @@ def fir_ScopeAttr : fir_Attr<"Scope",
 
     The procedure and construct scopes of executable code are fused into
     its locations. The compilation unit lists module scopes. A module read
-    from a module file has an unknown opening location. USE statements refer
-    to modules by Fortran name.
+    from a module file has an unknown opening location. A module's `exports`
+    list describes its public data objects under their accessible names,
+    including objects made accessible by use association. Each element can
+    name the ultimate declaring module. USE statements refer to modules by
+    Fortran name, so a chain of USE statements does not nest these lists.
 
     `parent` is the lexical host, or the parent of a submodule. `uses`
-    records a program unit's USE statements, including those in its BLOCK
-    constructs.
+    records the USE statements written in the scope.
 
     ```
     #scope_mod_m = #fir.scope<module "m", loc("a.f90":1:1)>
@@ -293,10 +295,12 @@ def fir_ScopeAttr : fir_Attr<"Scope",
       fir_OptionalStringParameter<>:$name,
       "mlir::LocationAttr":$loc,
       OptionalParameter<"::fir::ScopeAttr">:$parent,
-      OptionalArrayRefParameter<"::fir::UseAttr">:$uses);
+      OptionalArrayRefParameter<"::fir::UseAttr">:$uses,
+      OptionalArrayRefParameter<"::fir::UseEntityAttr">:$exports);
   let assemblyFormat = [{
     `<` $kind ($name^)? `,` (`parent` `=` qualified($parent)^ `,`)?
-    (`uses` `=` `[` qualified($uses)^ `]` `,`)? $loc `>`
+    (`uses` `=` `[` qualified($uses)^ `]` `,`)?
+    (`exports` `=` `[` $exports^ `]` `,`)? $loc `>`
   }];
   let genVerifyDecl = 1;
   let extraClassDeclaration = [{
@@ -310,10 +314,11 @@ def fir_UseEntityAttr : fir_Attr<"UseEntity"> {
   let mnemonic = "use_entity";
   let summary = "A data object that a Fortran USE statement makes visible";
   let description = [{
-    `local_name` is the name visible in the importing scope. `name` is the
-    name of the ultimate entity in its declaring module. Equal names are
-    spelled once. If the entity is declared in a different module from the
-    one in the USE statement, `from` identifies its declaring module.
+    In a USE statement, `local_name` and `name` are the local-name and
+    use-name. In a module's export list they are the public identifier
+    and the name of the ultimate entity in its declaring module.
+    Equal names are spelled once. A re-export names its declaring module
+    with `from`.
 
     ```
     #fir.use_entity<"x">                   // x
@@ -344,7 +349,9 @@ def fir_UseAttr : fir_Attr<"Use"> {
     `module` is the name of the module that the statement uses. With
     `only`, `entities` are all the data objects that the statement makes
     visible. Without it, the whole module is visible, and `entities` are
-    those that the statement renames. `loc` is the location of the statement.
+    those that the statement renames. A USE with an empty ONLY list makes
+    nothing visible and is not described. `loc` is the location of the
+    statement.
 
     ```
     #fir.use<"m", loc("a.f90":2:3)>                              // use m
@@ -364,7 +371,7 @@ def fir_UseAttr : fir_Attr<"Use"> {
     mlir::StringAttr getEntityName(UseEntityAttr entity) const {
       return entity.getName() ? entity.getName() : entity.getLocalName();
     }
-    /// The Fortran name of the defining module of \p entity.
+    /// The scope of the defining module of \p entity.
     mlir::StringAttr getEntityModule(UseEntityAttr entity) const {
       return entity.getModule() ? entity.getModule() : getModule();
     }

@@ -62,9 +62,9 @@ end subroutine
 ! WITH_DEBUG: } loc(#[[ONLY_RENAME_LOC:loc[0-9]+]])
 
 ! WITH_DEBUG-DAG: #[[MAIN_LOC]] = loc(fused<#[[MAIN:scope[0-9]*]]>[#{{loc[0-9]*}}])
-! WITH_DEBUG-DAG: #scope_mod_mod1 = #fir.scope<module "mod1", #{{loc[0-9]*}}>
-! WITH_DEBUG-DAG: #scope_mod_mod2 = #fir.scope<module "mod2", #{{loc[0-9]*}}>
-! WITH_DEBUG-DAG: #scope_mod_mod3 = #fir.scope<module "mod3", #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod1 = #fir.scope<module "mod1", exports = [<"a">, <"b">, <"c">], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod2 = #fir.scope<module "mod2", exports = [<"x">, <"y">, <"z">], #{{loc[0-9]*}}>
+! WITH_DEBUG-DAG: #scope_mod_mod3 = #fir.scope<module "mod3", exports = [<"flag">], #{{loc[0-9]*}}>
 ! WITH_DEBUG-DAG: #[[MAIN]] = #fir.scope<procedure "TEST_MAIN", uses = [#fir.use<"mod1", only [<"b">, <"c">], #[[MAIN_USE1:loc[0-9]+]]>, #fir.use<"mod2", [<"renamed_y" -> "y">], #[[MAIN_USE2:loc[0-9]+]]>], #{{loc[0-9]*}}>
 ! WITH_DEBUG-DAG: #[[MAIN_USE1]] = loc("{{.*}}debug-use-stmt.f90":19:3)
 ! WITH_DEBUG-DAG: #[[MAIN_USE2]] = loc("{{.*}}debug-use-stmt.f90":20:3)
