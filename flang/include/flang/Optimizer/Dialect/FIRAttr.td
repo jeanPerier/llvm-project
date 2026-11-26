@@ -270,6 +270,42 @@ class fir_KeywordFlagParameter<string keyword, string desc = "">
   let printer = [{ $_printer << "}] # keyword # [{" }];
 }
 
+def fir_ModuleVarAttr : fir_Attr<"ModuleVar"> {
+  let mnemonic = "module_var";
+  let summary = "A Fortran module variable stored in this global";
+  let description = [{
+    The `module_vars` attribute of a fir.global carries an array of these
+    descriptions. Each names the declaring module and the variable. A variable that
+    occupies the whole global takes its type and linkage from that global.
+    For storage association, the member type and byte offset describe the
+    variable's view of the storage. A COMMON member also names its block
+    (the empty string denotes blank COMMON). Different modules can describe
+    different views of the same storage.
+
+    `private` marks a variable that is not accessible by use association.
+    `lbounds` records explicit array bounds when a lower bound differs from
+    one. `loc` is the variable's declaration location.
+
+    ```
+    #fir.module_var<"m", "x", loc("m.f90":2:14)>
+    #fir.module_var<"m", "s", private, loc("m.f90":3:14)>
+    #fir.module_var<"m", "a", type i32, common "blk", offset 4, loc("m.f90":4:14)>
+    ```
+  }];
+  let parameters = (ins "mlir::StringAttr":$module, "mlir::StringAttr":$name,
+      fir_KeywordFlagParameter<"private">:$isPrivate,
+      OptionalParameter<"mlir::Type">:$type,
+      OptionalParameter<"mlir::StringAttr">:$common,
+      DefaultValuedParameter<"int64_t", "0">:$offset,
+      OptionalArrayRefParameter<"int64_t">:$lbounds, "mlir::LocationAttr":$loc);
+  let assemblyFormat = [{
+    `<` $module `,` $name `,` ($isPrivate^ `,`)? (`type` $type^ `,`)?
+    (`common` $common^ `,`)? (`offset` $offset^ `,`)?
+    (`lbounds` ` ` `[` $lbounds^ `]` `,`)? $loc `>`
+  }];
+  let genVerifyDecl = 1;
+}
+
 def fir_ScopeAttr : fir_Attr<"Scope",
     [DeclareAttrInterfaceMethods<OpAsmAttrInterface, ["getAlias"]>]> {
   let mnemonic = "scope";
@@ -310,6 +346,8 @@ def fir_ScopeAttr : fir_Attr<"Scope",
   }];
   let genVerifyDecl = 1;
   let extraClassDeclaration = [{
+    /// The name used in debug information for a module or submodule.
+    std::string getDebugModuleName() const;
     bool isModule() const { return getKind() == ScopeKind::Module; }
     bool isProcedure() const { return getKind() == ScopeKind::Procedure; }
     bool isConstruct() const { return getKind() == ScopeKind::Construct; }

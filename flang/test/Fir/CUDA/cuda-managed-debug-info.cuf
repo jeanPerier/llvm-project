@@ -1,0 +1,26 @@
+! A managed module variable is accessed through a companion pointer global.
+! Only the global holding the variable describes it.
+
+! RUN: %flang_fc1 -emit-fir -debug-info-kind=standalone -mmlir --mlir-print-debuginfo %s -o - \
+! RUN:   | fir-opt --cuf-device-global --cuf-add-constructor \
+! RUN:     --add-debug-info="debug-level=Full" --mlir-print-debuginfo -o %t.mlir
+! RUN: FileCheck %s --input-file=%t.mlir
+! RUN: FileCheck %s --input-file=%t.mlir --check-prefix=ONCE
+
+module cufm
+  real, managed :: mm(10)
+contains
+  attributes(global) subroutine kern()
+    mm(1) = mm(1) + 1.0
+  end subroutine
+end module
+
+! CHECK: fir.global @_QMcufmEmm <{alignment = 64 : i64, data_attr = #cuf.cuda<managed>}> : !fir.array<10xf32> {
+! CHECK: } loc(#[[MM_LOC:loc[0-9]+]])
+! CHECK: fir.global external @_QMcufmEmm.managed.ptr <{section = "__nv_managed_data__"}> : !fir.llvm_ptr<i8> {
+! CHECK-DAG: #[[MM:.*]] = #llvm.di_global_variable<scope = #{{.*}}, name = "mm", linkageName = "_QMcufmEmm",
+! CHECK-DAG: #[[MM_LOC]] = loc(fused<[#[[MM_EXPR:.*]]]>
+! CHECK-DAG: #[[MM_EXPR]] = #llvm.di_global_variable_expression<var = #[[MM]]>
+
+! ONCE: name = "mm",
+! ONCE-NOT: name = "mm",

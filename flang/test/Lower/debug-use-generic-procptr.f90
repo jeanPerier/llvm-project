@@ -3,6 +3,7 @@
 ! hides a subprogram or that has the name of a derived type.
 
 ! RUN: %flang_fc1 -emit-hlfir -debug-info-kind=standalone -mmlir --mlir-print-debuginfo %s -o - | FileCheck %s
+! RUN: %flang_fc1 -emit-llvm -debug-info-kind=standalone %s -o - | FileCheck %s --check-prefix=LLVM
 
 module mg
   procedure(proc2), pointer :: p
@@ -53,7 +54,16 @@ subroutine reexported
   call p(1.0)
 end subroutine
 
+! CHECK-DAG: fir.global @_QMmgEp <{module_vars = [#fir.module_var<"mg", "p", #{{.*}}>]}>
 ! CHECK-DAG: #fir.scope<module "mid", uses = [#fir.use<"mg", only [<"p">], #{{.*}}>], #{{.*}}>
 ! CHECK-DAG: #fir.use<"mg", only [<"p">, <"other">], #{{.*}}>
 ! CHECK-DAG: #fir.use<"mg", only [<"q" -> "p">], #{{.*}}>
 ! CHECK-DAG: #fir.use<"mid", only [<"p" from "mg">], #{{.*}}>
+
+! LLVM-DAG: ![[P:[0-9]+]] = distinct !DIGlobalVariable(name: "p", linkageName: "_QMmgEp",
+! LLVM-DAG: ![[DIRECT:[0-9]+]] = distinct !DISubprogram(name: "direct",
+! LLVM-DAG: ![[RENAMED:[0-9]+]] = distinct !DISubprogram(name: "renamed",
+! LLVM-DAG: ![[REEXPORTED:[0-9]+]] = distinct !DISubprogram(name: "reexported",
+! LLVM-DAG: !DIImportedEntity(tag: DW_TAG_imported_declaration, scope: ![[DIRECT]], entity: ![[P]],
+! LLVM-DAG: !DIImportedEntity(tag: DW_TAG_imported_declaration, name: "q", scope: ![[RENAMED]], entity: ![[P]],
+! LLVM-DAG: !DIImportedEntity(tag: DW_TAG_imported_declaration, scope: ![[REEXPORTED]], entity: ![[P]],

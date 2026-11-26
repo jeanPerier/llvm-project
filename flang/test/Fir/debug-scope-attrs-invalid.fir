@@ -57,3 +57,28 @@ func.func private @g() attributes {entity = #fir.use_entity<"x" -> "">}
 
 // expected-error@+1 {{a USE entity must have a declared name}}
 func.func private @g() attributes {entity = #fir.use_entity<"x" from "m" named "">}
+
+// -----
+
+// expected-error@+1 {{a module variable must name its module and variable}}
+func.func private @g() attributes {var = #fir.module_var<"", "x", loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a module variable offset cannot be negative}}
+func.func private @g() attributes {var = #fir.module_var<"m", "x", type i32, offset -4, loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a COMMON member or an offset requires a member type}}
+func.func private @g() attributes {var = #fir.module_var<"m", "x", common "blk", loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{a COMMON member or an offset requires a member type}}
+func.func private @g() attributes {var = #fir.module_var<"m", "x", offset 4, loc(unknown)>}
+
+// -----
+
+// expected-error@+1 {{'fir.global' op attribute 'module_vars' failed to satisfy constraint: module variable array}}
+fir.global @x <{module_vars = [#fir.scope<module "m", loc(unknown)>]}> : i32

@@ -6,10 +6,17 @@
 // RUN: fir-opt --strip-debuginfo --mlir-print-debuginfo %s | FileCheck %s --check-prefix=STRIP --implicit-check-not='#fir.scope' --implicit-check-not='#fir.use'
 // RUN: fir-opt --symbol-dce --mlir-print-debuginfo %s | FileCheck %s --check-prefix=DCE --implicit-check-not='fir.global'
 
+// The module variables of a global are not location information.
+// STRIP: fir.global private @_QMpEd <{module_vars = [#fir.module_var<"p", "d",
+// STRIP: fir.global private @_QMpEs <{module_vars = [#fir.module_var<"p", "s", private,
 // STRIP: func.func @f()
 // DCE: func.func @f()
 // DCE: #fir.scope<module "o", uses = [#fir.use<"p", only [<"d">]
 
+// CHECK-DAG: #[[DLOC:loc[0-9]*]] = loc("test.f90":4:14)
+// CHECK-DAG: #[[SLOC:loc[0-9]*]] = loc("test.f90":5:14)
+// CHECK: fir.global private @_QMpEd <{module_vars = [#fir.module_var<"p", "d", #[[DLOC]]>]}> : i32
+// CHECK: fir.global private @_QMpEs <{module_vars = [#fir.module_var<"p", "s", private, #[[SLOC]]>]}> : i32
 // CHECK-LABEL: func.func @f()
 // CHECK: fir.call @g() : () -> () loc(#[[CALL1:.*]])
 // CHECK: fir.call @g() : () -> () loc(#[[CALL2:.*]])
@@ -39,7 +46,8 @@
 #c = #fir.scope<construct, parent = #b, loc("test.f90":16:7)>
 
 module {
-  fir.global private @_QMpEd : i32
+  fir.global private @_QMpEd <{module_vars = [#fir.module_var<"p", "d", loc("test.f90":4:14)>]}> : i32 loc(unknown)
+  fir.global private @_QMpEs <{module_vars = [#fir.module_var<"p", "s", private, loc("test.f90":5:14)>]}> : i32 loc(unknown)
   func.func private @g()
   func.func @f() {
     fir.call @g() : () -> () loc(fused<#b>["test.f90":15:7])

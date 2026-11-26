@@ -2981,6 +2981,9 @@ def fir_GlobalOp : fir_Op<"global", [IsolatedFromAbove, SymbolName,
         fir.has_value %5 : tuple<i32, f32>
       }
     ```
+
+    The optional `module_vars` attribute describes, for debug information,
+    the Fortran module variables that the global stores.
   }];
 
   let arguments = (ins
@@ -2994,7 +2997,9 @@ def fir_GlobalOp : fir_Op<"global", [IsolatedFromAbove, SymbolName,
     OptionalAttr<cuf_DataAttributeAttr>:$data_attr,
     OptionalAttr<I64Attr>:$alignment,
     OptionalAttr<StrAttr>:$section,
-    OptionalAttr<StrAttr>:$sym_visibility
+    OptionalAttr<StrAttr>:$sym_visibility,
+    OptionalAttr<TypedArrayAttrBase<fir_ModuleVarAttr,
+                                    "module variable array">>:$module_vars
   );
 
   let regions = (region AtMostRegion<1>:$region);

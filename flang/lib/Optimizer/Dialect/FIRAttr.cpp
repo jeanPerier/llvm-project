@@ -353,6 +353,30 @@ mlir::OpAsmAliasResult fir::ScopeAttr::getAlias(llvm::raw_ostream &os) const {
   return mlir::OpAsmAliasResult::OverridableAlias;
 }
 
+std::string fir::ScopeAttr::getDebugModuleName() const {
+  assert(isModule() && "expected a module scope");
+  if (!getParent())
+    return getName().str();
+  ScopeAttr ancestor = getParent();
+  while (ancestor.getParent())
+    ancestor = ancestor.getParent();
+  return (ancestor.getName().getValue() + "." + getName().getValue()).str();
+}
+
+llvm::LogicalResult fir::ModuleVarAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+    mlir::StringAttr module, mlir::StringAttr name, bool, mlir::Type type,
+    mlir::StringAttr common, int64_t offset, llvm::ArrayRef<int64_t>,
+    mlir::LocationAttr) {
+  if (module.getValue().empty() || name.getValue().empty())
+    return emitError() << "a module variable must name its module and variable";
+  if (offset < 0)
+    return emitError() << "a module variable offset cannot be negative";
+  if ((common || offset) && !type)
+    return emitError() << "a COMMON member or an offset requires a member type";
+  return mlir::success();
+}
+
 //===----------------------------------------------------------------------===//
 // FIROpsDialect
 //===----------------------------------------------------------------------===//

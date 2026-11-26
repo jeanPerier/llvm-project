@@ -79,13 +79,13 @@
 #include "mlir/Transforms/RegionUtils.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/IR/Assumptions.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/SaveAndRestore.h"
 #include "llvm/TargetParser/Triple.h"
 #include <optional>
 #include <set>
@@ -229,6 +229,12 @@ static mlir::FlatSymbolRefAttr gatherComponentInit(
   return mlir::FlatSymbolRefAttr::get(mlirContext, name);
 }
 
+static bool isDebugDataObject(const Fortran::semantics::Symbol &symbol) {
+  return symbol.has<Fortran::semantics::ObjectEntityDetails>() ||
+         (symbol.has<Fortran::semantics::ProcEntityDetails>() &&
+          Fortran::semantics::IsPointer(symbol));
+}
+
 /// A procedure pointer can be hidden by a generic of the same name.
 static const Fortran::semantics::Symbol &
 getDebugDataSymbol(const Fortran::semantics::Symbol &ultimate) {
@@ -243,9 +249,7 @@ getDebugDataSymbol(const Fortran::semantics::Symbol &ultimate) {
 /// module, which is what a debugger can import.
 static const Fortran::semantics::Symbol *
 getModuleOfDataObject(const Fortran::semantics::Symbol &ultimate) {
-  if (!ultimate.has<Fortran::semantics::ObjectEntityDetails>() &&
-      !(ultimate.has<Fortran::semantics::ProcEntityDetails>() &&
-        Fortran::semantics::IsPointer(ultimate)))
+  if (!isDebugDataObject(ultimate))
     return nullptr;
   const Fortran::semantics::Scope &owner = ultimate.owner();
   return owner.IsModule() ? owner.symbol() : nullptr;
@@ -718,6 +722,7 @@ public:
 
     // Keep one description for each module used or defined in the unit.
     if (!moduleScopes.empty()) {
+      createBuilderOutsideOfFuncOpAndDo([&]() { attachModuleVariableInfo(); });
       llvm::SmallVector<mlir::Attribute> scopes;
       for (auto &entry : moduleScopes)
         scopes.push_back(entry.second);
@@ -1470,7 +1475,9 @@ public:
                         Fortran::lower::SymbolRef typeInfoSym,
                         const Fortran::semantics::DerivedTypeSpec &typeSpec,
                         fir::RecordType type) override final {
-    typeInfoConverter.registerTypeInfo(*this, loc, typeInfoSym, typeSpec, type);
+    if (!describingModuleVariables)
+      typeInfoConverter.registerTypeInfo(*this, loc, typeInfoSym, typeSpec,
+                                         type);
   }
 
   llvm::StringRef
@@ -2173,6 +2180,102 @@ private:
     return moduleScope;
   }
 
+  /// Describe module objects on the global that supplies their storage. The
+  /// same COMMON global can hold members from more than one module.
+  void attachModuleVariableInfo() {
+    // The member types are only translated for debug information, so they must
+    // not add runtime type information to the program.
+    llvm::SaveAndRestore describing(describingModuleVariables, true);
+    llvm::DenseMap<fir::GlobalOp, llvm::SmallVector<mlir::Attribute>> members;
+    for (auto &[scope, module] : moduleScopes)
+      collectModuleVariables(*scope, module, members);
+    for (auto &[global, variables] : members)
+      global.setModuleVarsAttr(builder->getArrayAttr(variables));
+  }
+
+  void collectModuleVariables(
+      const Fortran::semantics::Scope &scope, fir::ScopeAttr module,
+      llvm::DenseMap<fir::GlobalOp, llvm::SmallVector<mlir::Attribute>>
+          &members) {
+    auto moduleName = builder->getStringAttr(module.getDebugModuleName());
+    bool isDefined = !mlir::isa<mlir::UnknownLoc>(module.getLoc());
+    // The variable after which the storage of each EQUIVALENCE'd variable is
+    // named, and the offset of the variable in it.
+    llvm::DenseMap<const Fortran::semantics::Symbol *,
+                   std::pair<const Fortran::semantics::Symbol *, std::size_t>>
+        equivalences;
+    if (!scope.equivalenceSets().empty()) {
+      // The list also holds the variables of the modules this one uses, whose
+      // storage offsets are unrelated to the ones of this module.
+      Fortran::lower::pft::VariableList vars =
+          Fortran::lower::pft::getScopeVariableList(scope);
+      llvm::DenseMap<std::size_t, const Fortran::semantics::Symbol *>
+          storageByOffset;
+      for (const Fortran::lower::pft::Variable &var : vars)
+        if (var.isAggregateStore() &&
+            &var.getAggregateStore().getOwningScope() == &scope)
+          storageByOffset[var.getAggregateStore().getOffset()] =
+              &var.getAggregateStore().getNamingSymbol();
+      for (const Fortran::lower::pft::Variable &var : vars)
+        if (var.isAlias() && &var.getSymbol().owner() == &scope)
+          if (const Fortran::semantics::Symbol *storage =
+                  storageByOffset.lookup(var.getAliasOffset()))
+            equivalences[&var.getSymbol()] = {
+                storage, var.getSymbol().offset() - var.getAliasOffset()};
+    }
+    for (const auto &[name, entry] : scope) {
+      const Fortran::semantics::Symbol *symbol = &getDebugDataSymbol(*entry);
+      if (!isDebugDataObject(*symbol) || &symbol->owner() != &scope ||
+          symbol->test(Fortran::semantics::Symbol::Flag::CompilerCreated))
+        continue;
+
+      const Fortran::semantics::Symbol *storage = nullptr;
+      mlir::StringAttr common;
+      std::size_t offset = 0;
+      if (const auto *block =
+              Fortran::semantics::FindCommonBlockContaining(*symbol)) {
+        common = builder->getStringAttr(toStringRef(block->name()));
+        storage = block;
+        offset = symbol->offset();
+      } else if (auto iter = equivalences.find(&*symbol);
+                 iter != equivalences.end()) {
+        std::tie(storage, offset) = iter->second;
+      }
+      fir::GlobalOp global =
+          builder->getNamedGlobal(mangleName(storage ? *storage : *symbol));
+      if (!global)
+        continue;
+
+      llvm::SmallVector<int64_t> lbounds;
+      bool hasNonDefaultLbounds = false;
+      if (const auto *details =
+              symbol->detailsIf<Fortran::semantics::ObjectEntityDetails>();
+          details &&
+          !Fortran::semantics::IsAllocatableOrObjectPointer(&*symbol))
+        for (const Fortran::semantics::ShapeSpec &bounds : details->shape()) {
+          std::optional<std::int64_t> lbound;
+          if (const auto &explicitLbound = bounds.lbound().GetExplicit())
+            lbound = Fortran::evaluate::ToInt64(*explicitLbound);
+          if (!lbound) {
+            hasNonDefaultLbounds = false;
+            break;
+          }
+          hasNonDefaultLbounds |= *lbound != 1;
+          lbounds.push_back(*lbound);
+        }
+      if (!hasNonDefaultLbounds)
+        lbounds.clear();
+      members[global].push_back(fir::ModuleVarAttr::get(
+          &getMLIRContext(), moduleName,
+          builder->getStringAttr(toStringRef(name)),
+          symbol->attrs().test(Fortran::semantics::Attr::PRIVATE),
+          storage ? genType(*symbol) : mlir::Type{}, common,
+          static_cast<int64_t>(offset), lbounds,
+          isDefined ? genSourceLocation(symbol->name())
+                    : mlir::UnknownLoc::get(&getMLIRContext())));
+    }
+  }
+
   fir::ScopeAttr genModuleScope(const Fortran::semantics::Scope &scope,
                                 mlir::Location loc,
                                 llvm::ArrayRef<fir::UseAttr> uses) {
@@ -2183,7 +2286,7 @@ private:
       if (const Fortran::semantics::Scope *parentScope = details->parent())
         parent = getModuleScope(*parentScope);
     // Describe the modules that declare the objects this one obtains by use
-    // association.
+    // association, so that their storage describes them too.
     for (const auto &[name, sym] : scope) {
       const auto &ultimate = getDebugDataSymbol(sym->GetUltimate());
       if (&ultimate.owner() != &scope && getModuleOfDataObject(ultimate))
@@ -7614,6 +7717,9 @@ private:
   /// A USE references one of these module descriptions by source name.
   llvm::MapVector<const Fortran::semantics::Scope *, fir::ScopeAttr>
       moduleScopes;
+
+  /// Whether module variables are being described on their storage.
+  bool describingModuleVariables = false;
 
   /// Debug information scope of the procedure being lowered.
   fir::ScopeAttr procedureScope;
