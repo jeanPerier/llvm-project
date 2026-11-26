@@ -34,6 +34,10 @@ contains
   end function
 end module
 
+module mid
+  use mg, only: p
+end module
+
 subroutine direct
   use mg, only: p, other, f, t
   call p(1.0)
@@ -44,5 +48,12 @@ subroutine renamed
   call q(1.0)
 end subroutine
 
+subroutine reexported
+  use mid, only: p
+  call p(1.0)
+end subroutine
+
+! CHECK-DAG: #fir.scope<module "mid", uses = [#fir.use<"mg", only [<"p">], #{{.*}}>], #{{.*}}>
 ! CHECK-DAG: #fir.use<"mg", only [<"p">, <"other">], #{{.*}}>
 ! CHECK-DAG: #fir.use<"mg", only [<"q" -> "p">], #{{.*}}>
+! CHECK-DAG: #fir.use<"mid", only [<"p" from "mg">], #{{.*}}>

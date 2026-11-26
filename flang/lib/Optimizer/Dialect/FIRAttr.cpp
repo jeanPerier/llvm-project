@@ -300,9 +300,31 @@ fir::UseAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
                      mlir::LocationAttr) {
   if (module.getValue().empty())
     return emitError() << "a USE statement must name a module";
-  for (UseEntityAttr entity : entities)
-    if (auto owner = entity.getModule(); owner && owner.getValue().empty())
-      return emitError() << "a USE entity must name its declaring module";
+  if (only && entities.empty())
+    return emitError() << "the ONLY list of a USE statement cannot be empty";
+  if (!only)
+    for (UseEntityAttr entity : entities)
+      if (!entity.getName())
+        return emitError()
+               << "an entity in a USE statement without ONLY must be renamed";
+  return mlir::success();
+}
+
+llvm::LogicalResult fir::UseEntityAttr::verify(
+    llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+    mlir::StringAttr localName, mlir::StringAttr name, mlir::StringAttr module,
+    mlir::StringAttr declaredName) {
+  if (localName.getValue().empty())
+    return emitError() << "a USE entity must have a local name";
+  if (name && name.getValue().empty())
+    return emitError() << "a renamed USE entity must have a use name";
+  if (module && module.getValue().empty())
+    return emitError() << "a USE entity must name its declaring module";
+  if (declaredName && !module)
+    return emitError()
+           << "only an entity declared in another module can be renamed there";
+  if (declaredName && declaredName.getValue().empty())
+    return emitError() << "a USE entity must have a declared name";
   return mlir::success();
 }
 

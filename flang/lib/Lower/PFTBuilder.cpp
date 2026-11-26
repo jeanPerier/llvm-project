@@ -223,12 +223,13 @@ public:
     exitConstructOrDirective();
   }
 
-  /// Record USE statements from specification parts for the debug information
-  /// of the enclosing program unit, including specifications of BLOCK
-  /// constructs.
+  /// Record a USE statement of the specification part of a program unit,
+  /// to describe the unit scope in the debug information. Statements of BLOCK
+  /// constructs are found through the construct, and those of interface bodies
+  /// do not belong to the unit.
   void addUseStmt(const lower::pft::UseStmt &useStmt) {
     if (!loweringOptions.getPreserveUseDebugInfo() || interfaceBodyLevel > 0 ||
-        (currentFunctionUnit && specificationPartLevel == 0))
+        pftParentStack.back().isA<lower::pft::Evaluation>())
       return;
     if (currentFunctionUnit)
       currentFunctionUnit->useStmts.push_back(&useStmt);

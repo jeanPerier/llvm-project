@@ -260,6 +260,16 @@ class fir_OptionalStringParameter<string desc = "">
   }];
 }
 
+// A flag printed as a keyword when set.
+class fir_KeywordFlagParameter<string keyword, string desc = "">
+    : DefaultValuedParameter<"bool", "false", desc> {
+  let parser = [{
+    ::mlir::FailureOr<bool>(
+        ::mlir::succeeded($_parser.parseOptionalKeyword("}] # keyword # [{")))
+  }];
+  let printer = [{ $_printer << "}] # keyword # [{" }];
+}
+
 def fir_ScopeAttr : fir_Attr<"Scope",
     [DeclareAttrInterfaceMethods<OpAsmAttrInterface, ["getAlias"]>]> {
   let mnemonic = "scope";
@@ -273,12 +283,12 @@ def fir_ScopeAttr : fir_Attr<"Scope",
 
     The procedure and construct scopes of executable code are fused into
     its locations. The compilation unit lists module scopes. A module read
-    from a module file has an unknown opening location. USE statements refer
-    to modules by Fortran name.
+    from a module file has an unknown opening location and no USE
+    statements. USE statements refer to modules by Fortran name, so a chain
+    of USE statements does not nest module scopes.
 
     `parent` is the lexical host, or the parent of a submodule. `uses`
-    records a program unit's USE statements, including those in its BLOCK
-    constructs.
+    records the USE statements written in the scope.
 
     ```
     #scope_mod_m = #fir.scope<module "m", loc("a.f90":1:1)>
@@ -310,33 +320,34 @@ def fir_UseEntityAttr : fir_Attr<"UseEntity"> {
   let mnemonic = "use_entity";
   let summary = "A data object that a Fortran USE statement makes visible";
   let description = [{
-    `local_name` is the name visible in the importing scope. `name` is the
-    name of the ultimate entity in its declaring module. Equal names are
-    spelled once. If the entity is declared in a different module from the
-    one in the USE statement, `from` identifies its declaring module.
+    `local_name` and `name` are the local-name and the use-name. Equal
+    names are spelled once. When the used module obtains the entity by use
+    association, `from` names the module that declares it, and `named` its
+    name there if it differs from the use-name.
 
     ```
-    #fir.use_entity<"x">                   // x
-    #fir.use_entity<"y" -> "z">            // y => z
-    #fir.use_entity<"y" -> "z" from "m1">   // y => z, z is declared in m1
+    #fir.use_entity<"x">                              // x
+    #fir.use_entity<"y" -> "z">                       // y => z
+    #fir.use_entity<"y" -> "z" from "m1">             // y => z, z is m1's z
+    #fir.use_entity<"y" -> "z" from "m1" named "w">   // y => z, z is m1's w
     ```
   }];
   let parameters = (ins "mlir::StringAttr":$local_name,
                         OptionalParameter<"mlir::StringAttr">:$name,
-                        OptionalParameter<"mlir::StringAttr">:$module);
-  let assemblyFormat = "`<` $local_name (`->` $name^)? (`from` $module^)? `>`";
-}
-
-// The ONLY flag of a USE statement, printed as the `only` keyword when set.
-class fir_OnlyParameter<string desc = "">
-    : DefaultValuedParameter<"bool", "false", desc> {
-  let parser = [{
-    ::mlir::FailureOr<bool>(
-        ::mlir::succeeded($_parser.parseOptionalKeyword("only")))
+                        OptionalParameter<"mlir::StringAttr">:$module,
+                        OptionalParameter<"mlir::StringAttr">:$declared_name);
+  let assemblyFormat = [{
+    `<` $local_name (`->` $name^)? (`from` $module^)?
+    (`named` $declared_name^)? `>`
   }];
-  let printer = [{ $_printer << "only" }];
+  let genVerifyDecl = 1;
+  let extraClassDeclaration = [{
+    /// The name of the entity in the used module.
+    mlir::StringAttr getUseName() const {
+      return getName() ? getName() : getLocalName();
+    }
+  }];
 }
-
 def fir_UseAttr : fir_Attr<"Use"> {
   let mnemonic = "use";
   let summary = "A Fortran USE statement, for debug information";
@@ -344,7 +355,9 @@ def fir_UseAttr : fir_Attr<"Use"> {
     `module` is the name of the module that the statement uses. With
     `only`, `entities` are all the data objects that the statement makes
     visible. Without it, the whole module is visible, and `entities` are
-    those that the statement renames. `loc` is the location of the statement.
+    those that the statement renames. A USE with an empty ONLY list makes
+    nothing visible and is not described. `loc` is the location of the
+    statement.
 
     ```
     #fir.use<"m", loc("a.f90":2:3)>                              // use m
@@ -352,7 +365,8 @@ def fir_UseAttr : fir_Attr<"Use"> {
     #fir.use<"m", [<"y" -> "z">], loc("a.f90":4:3)>              // use m, y => z
     ```
   }];
-  let parameters = (ins "mlir::StringAttr":$module, fir_OnlyParameter<>:$only,
+  let parameters = (ins "mlir::StringAttr":$module,
+      fir_KeywordFlagParameter<"only">:$only,
       OptionalArrayRefParameter<"::fir::UseEntityAttr">:$entities,
       "mlir::LocationAttr":$loc);
   let assemblyFormat = [{
@@ -362,9 +376,10 @@ def fir_UseAttr : fir_Attr<"Use"> {
   let extraClassDeclaration = [{
     /// The Fortran name of \p entity in its defining module.
     mlir::StringAttr getEntityName(UseEntityAttr entity) const {
-      return entity.getName() ? entity.getName() : entity.getLocalName();
+      return entity.getDeclaredName() ? entity.getDeclaredName()
+                                      : entity.getUseName();
     }
-    /// The Fortran name of the defining module of \p entity.
+    /// The scope of the defining module of \p entity.
     mlir::StringAttr getEntityModule(UseEntityAttr entity) const {
       return entity.getModule() ? entity.getModule() : getModule();
     }

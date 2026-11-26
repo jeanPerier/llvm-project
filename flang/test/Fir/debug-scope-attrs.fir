@@ -8,7 +8,7 @@
 
 // STRIP: func.func @f()
 // DCE: func.func @f()
-// DCE: #fir.scope<module "o", uses = [#fir.use<"n", only [<"d" from "p">]
+// DCE: #fir.scope<module "o", uses = [#fir.use<"p", only [<"d">]
 
 // CHECK-LABEL: func.func @f()
 // CHECK: fir.call @g() : () -> () loc(#[[CALL1:.*]])
@@ -18,10 +18,10 @@
 
 // CHECK-DAG: #scope_mod_p = #fir.scope<module "p", #{{.*}}>
 // CHECK-DAG: #scope_mod_n = #fir.scope<module "n", uses = [#fir.use<"p", only [<"x">], #{{.*}}>], #{{.*}}>
-// CHECK-DAG: #scope_mod_o = #fir.scope<module "o", uses = [#fir.use<"n", only [<"d" from "p">], #{{.*}}>], #{{.*}}>
-// CHECK-DAG: #scope_mod_m = #fir.scope<module "m", uses = [#fir.use<"n", #{{.*}}>, #fir.use<"o", [<"a" -> "b">, <"c" -> "d">], #{{.*}}>], #{{.*}}>
+// CHECK-DAG: #scope_mod_o = #fir.scope<module "o", uses = [#fir.use<"p", only [<"d">], #{{.*}}>], #{{.*}}>
+// CHECK-DAG: #scope_mod_m = #fir.scope<module "m", uses = [#fir.use<"n", #{{.*}}>, #fir.use<"o", [<"a" -> "b">, <"c" -> "d" from "p">], #{{.*}}>], #{{.*}}>
 // CHECK-DAG: #scope_mod_s = #fir.scope<module "s", parent = #scope_mod_m, #{{.*}}>
-// CHECK-DAG: #[[PROC:.*]] = #fir.scope<procedure "f", parent = #scope_mod_s, uses = [#fir.use<"m", #{{.*}}>, #fir.use<"n", only [<"x">, <"y" -> "z">, <"w">], #{{.*}}>], #{{.*}}>
+// CHECK-DAG: #[[PROC:.*]] = #fir.scope<procedure "f", parent = #scope_mod_s, uses = [#fir.use<"m", #{{.*}}>, #fir.use<"n", only [<"x">, <"y" -> "z">, <"w" from "p" named "v">], #{{.*}}>], #{{.*}}>
 // CHECK-DAG: #[[BLOCK:.*]] = #fir.scope<construct, parent = #[[PROC]], uses = [#fir.use<"o", #{{.*}}>], #{{.*}}>
 // CHECK-DAG: #[[BRANCH:.*]] = #fir.scope<construct, parent = #[[BLOCK]], #{{.*}}>
 // CHECK-DAG: #[[CALL1]] = loc(fused<#[[BLOCK]]>[
@@ -31,10 +31,10 @@
 
 #p = #fir.scope<module "p", loc(unknown)>
 #n = #fir.scope<module "n", uses = [#fir.use<"p", only [<"x">], loc(unknown)>], loc(unknown)>
-#o = #fir.scope<module "o", uses = [#fir.use<"n", only [<"d" from "p">], loc(unknown)>], loc(unknown)>
-#m = #fir.scope<module "m", uses = [#fir.use<"n", loc("test.f90":2:3)>, #fir.use<"o", [<"a" -> "b">, <"c" -> "d">], loc("test.f90":3:3)>], loc("test.f90":1:1)>
+#o = #fir.scope<module "o", uses = [#fir.use<"p", only [<"d">], loc(unknown)>], loc(unknown)>
+#m = #fir.scope<module "m", uses = [#fir.use<"n", loc("test.f90":2:3)>, #fir.use<"o", [<"a" -> "b">, <"c" -> "d" from "p">], loc("test.f90":3:3)>], loc("test.f90":1:1)>
 #s = #fir.scope<module "s", parent = #m, loc("test.f90":10:1)>
-#f = #fir.scope<procedure "f", parent = #s, uses = [#fir.use<"m", loc("test.f90":13:5)>, #fir.use<"n", only [<"x">, <"y" -> "z">, <"w">], loc("test.f90":14:5)>], loc("test.f90":12:3)>
+#f = #fir.scope<procedure "f", parent = #s, uses = [#fir.use<"m", loc("test.f90":13:5)>, #fir.use<"n", only [<"x">, <"y" -> "z">, <"w" from "p" named "v">], loc("test.f90":14:5)>], loc("test.f90":12:3)>
 #b = #fir.scope<construct, parent = #f, uses = [#fir.use<"o", loc("test.f90":15:7)>], loc("test.f90":14:5)>
 #c = #fir.scope<construct, parent = #b, loc("test.f90":16:7)>
 
