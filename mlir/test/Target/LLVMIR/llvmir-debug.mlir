@@ -785,6 +785,67 @@ llvm.func @test() {
 // CHECK: ![[FILE]] = !DIFile(filename: "test.f90"{{.*}})
 // -----
 
+// Test that a variable of a common block in a module is a global variable of
+// its compile unit.
+#bt = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "int", sizeInBits = 32>
+#file = #llvm.di_file<"test.f90" in "">
+#cu = #llvm.di_compile_unit<id = distinct[0]<>, sourceLanguage = DW_LANG_Fortran95,
+ file = #file, isOptimized = false, emissionKind = Full>
+#module = #llvm.di_module<file = #file, scope = #cu, name = "m", line = 1>
+#di_common_block = #llvm.di_common_block<scope = #module, name = "block",
+ file = #file, line = 3>
+#global_var = #llvm.di_global_variable<scope = #di_common_block, name = "a",
+ file = #file, line = 2, type = #bt, isDefined = true>
+#var_expression = #llvm.di_global_variable_expression<var = #global_var,
+ expr = <>>
+
+llvm.mlir.global common @block_(dense<0> : tensor<8xi8>)
+  {dbg_exprs = [#var_expression]} : !llvm.array<8 x i8>
+
+// CHECK: @block_ = common global [8 x i8] zeroinitializer, !dbg ![[EXPR:[0-9]+]]
+// CHECK: ![[EXPR]] = !DIGlobalVariableExpression(var: ![[VAR:[0-9]+]], expr: !DIExpression())
+// CHECK: ![[VAR]] = distinct !DIGlobalVariable(name: "a", scope: ![[BLOCK:[0-9]+]]
+// CHECK: ![[BLOCK]] = !DICommonBlock(scope: ![[MODULE:[0-9]+]], declaration: null, name: "block"
+// CHECK: ![[MODULE]] = !DIModule(scope: ![[CU:[0-9]+]], name: "m"
+// CHECK: ![[CU]] = distinct !DICompileUnit({{.*}}globals: ![[GLOBALS:[0-9]+]]
+// CHECK: ![[GLOBALS]] = !{![[EXPR]]}
+// -----
+
+// Test that a variable of a common block nested in a lexical block and a
+// variable of an external module declaration are added to the compile unit's
+// globals rather than to DISubprogram retainedNodes.
+#bt = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "int", sizeInBits = 32>
+#file = #llvm.di_file<"test.f90" in "">
+#cu = #llvm.di_compile_unit<id = distinct[0]<>, sourceLanguage = DW_LANG_Fortran95,
+ file = #file, isOptimized = false, emissionKind = Full>
+#subroutine_ty = #llvm.di_subroutine_type<callingConvention = DW_CC_normal>
+#sp = #llvm.di_subprogram<id = distinct[1]<>, compileUnit = #cu, scope = #file,
+ name = "sub", file = #file, line = 1, scopeLine = 1,
+ subprogramFlags = Definition, type = #subroutine_ty>
+#lb = #llvm.di_lexical_block<scope = #sp, file = #file, line = 2, column = 3>
+#cb_in_lb = #llvm.di_common_block<scope = #lb, name = "cblk", file = #file, line = 3>
+#cb_var = #llvm.di_global_variable<scope = #cb_in_lb, name = "x", file = #file,
+ line = 3, type = #bt, isDefined = true>
+#cb_expr = #llvm.di_global_variable_expression<var = #cb_var, expr = <>>
+#ext_mod = #llvm.di_module<name = "ext_m", isDecl = true>
+#ext_var = #llvm.di_global_variable<scope = #ext_mod, name = "y",
+ linkageName = "_QMext_mEy", file = #file, line = 4, type = #bt>
+#ext_expr = #llvm.di_global_variable_expression<var = #ext_var, expr = <>>
+
+llvm.mlir.global common @cblk_(dense<0> : tensor<4xi8>)
+  {dbg_exprs = [#cb_expr]} : !llvm.array<4 x i8>
+llvm.mlir.global external @_QMext_mEy() {dbg_exprs = [#ext_expr]} : i32
+llvm.func @sub() {
+  llvm.return
+} loc(fused<#sp>["test.f90":1:1])
+
+// CHECK: @cblk_ = common global [4 x i8] zeroinitializer, !dbg ![[CB_EXPR:[0-9]+]]
+// CHECK: @_QMext_mEy = external global i32, !dbg ![[EXT_EXPR:[0-9]+]]
+// CHECK-DAG: ![[CU:[0-9]+]] = distinct !DICompileUnit({{.*}}globals: ![[GLOBALS:[0-9]+]]
+// CHECK-DAG: ![[GLOBALS]] = !{![[CB_EXPR]], ![[EXT_EXPR]]}
+// CHECK-DAG: distinct !DISubprogram(name: "sub", scope: !{{[0-9]+}}, file: !{{[0-9]+}}, line: 1, type: !{{[0-9]+}}, scopeLine: 1, spFlags: DISPFlagDefinition, unit: ![[CU]])
+// -----
+
 // Test multiple DIGlobalVariableExpression on a global.
 #bt = #llvm.di_basic_type<tag = DW_TAG_base_type, name = "int", sizeInBits = 32>
 #file = #llvm.di_file<"test.f90" in "">

@@ -1206,6 +1206,9 @@ convertMLIRAttributesToLLVM(Location loc, llvm::LLVMContext &ctx,
 LogicalResult ModuleTranslation::convertGlobalsAndAliases() {
   // Mapping from compile unit to its respective set of global variables.
   DenseMap<llvm::DICompileUnit *, SmallVector<llvm::Metadata *>> globalGVars;
+  // Global variables scoped in external module declarations have no compile
+  // unit link on their DIModule; attach them when the module has a single unit.
+  SmallVector<llvm::Metadata *> externalModuleGVars;
   // Mapping from subprogram to its respective set of static local variables.
   DenseMap<llvm::DISubprogram *, SmallVector<llvm::Metadata *>> staticLocals;
 
@@ -1294,30 +1297,41 @@ LogicalResult ModuleTranslation::convertGlobalsAndAliases() {
         // be variable -> DIModule -> DICompileUnit
         //
         // 2. For the Fortran common block variable, the scope hierarchy can
-        // be variable -> DICommonBlock -> DISubprogram -> DICompileUnit
+        // be variable -> DICommonBlock (-> DILocalScope)* -> DISubprogram ->
+        // DICompileUnit, or variable -> DICommonBlock -> DIModule ->
+        // DICompileUnit
         //
         // 3. For entities like static local variables in C or variable with
         // SAVE attribute in Fortran, the scope hierarchy can be
         // variable (-> DILocalScope)* -> DISubprogram
         llvm::DIScope *scope = diGlobalVar->getScope();
-        if (auto *mod = dyn_cast_if_present<llvm::DIModule>(scope))
+        bool inExternalModule = false;
+        if (auto *cb = dyn_cast_if_present<llvm::DICommonBlock>(scope)) {
+          scope = cb->getScope();
+          if (auto *local = dyn_cast_if_present<llvm::DILocalScope>(scope))
+            if (llvm::DISubprogram *sp = local->getSubprogram())
+              scope = sp->getUnit();
+          if (auto *mod = dyn_cast_if_present<llvm::DIModule>(scope)) {
+            scope = mod->getScope();
+            inExternalModule = !scope;
+          }
+        } else if (auto *mod = dyn_cast_if_present<llvm::DIModule>(scope)) {
           scope = mod->getScope();
-        else if (auto *cb = dyn_cast_if_present<llvm::DICommonBlock>(scope)) {
-          if (auto *sp =
-                  dyn_cast_if_present<llvm::DISubprogram>(cb->getScope()))
-            scope = sp->getUnit();
+          inExternalModule = !scope;
         } else if (auto *lbb =
                        dyn_cast_if_present<llvm::DILexicalBlockBase>(scope)) {
           scope = lbb->getSubprogram();
         }
 
-        // Get the compile unit (scope) of the the global variable, or the
+        // Get the compile unit (scope) of the global variable, or the
         // subprogram of the static local variable.
         if (llvm::DICompileUnit *compileUnit =
                 dyn_cast_if_present<llvm::DICompileUnit>(scope)) {
           // Update the compile unit with this incoming global variable
           // expression during the finalizing step later.
           globalGVars[compileUnit].push_back(diGlobalExpr);
+        } else if (inExternalModule) {
+          externalModuleGVars.push_back(diGlobalExpr);
         } else if (llvm::DISubprogram *sp =
                        dyn_cast_if_present<llvm::DISubprogram>(scope)) {
           // Update the subprogram with this incoming static local variable
@@ -1508,6 +1522,25 @@ LogicalResult ModuleTranslation::convertGlobalsAndAliases() {
   for (auto op : getModuleBody(mlirModule).getOps<LLVM::GlobalOp>())
     if (failed(convertDialectAttributes(op, {})))
       return failure();
+
+  if (!externalModuleGVars.empty()) {
+    llvm::SmallPtrSet<llvm::DICompileUnit *, 2> units;
+    for (const auto &[compileUnit, _] : globalGVars)
+      units.insert(compileUnit);
+    for (auto func : getModuleBody(mlirModule).getOps<LLVM::LLVMFuncOp>()) {
+      if (auto spLoc =
+              func.getLoc()
+                  ->findInstanceOf<FusedLocWith<LLVM::DISubprogramAttr>>())
+        if (LLVM::DICompileUnitAttr cuAttr =
+                spLoc.getMetadata().getCompileUnit())
+          if (llvm::DICompileUnit *cu = debugTranslation->translate(cuAttr))
+            units.insert(cu);
+      if (units.size() > 1)
+        break;
+    }
+    if (units.size() == 1)
+      llvm::append_range(globalGVars[*units.begin()], externalModuleGVars);
+  }
 
   // Finally, update the compile units their respective sets of global variables
   // created earlier.
