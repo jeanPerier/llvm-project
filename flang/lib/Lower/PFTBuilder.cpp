@@ -1710,6 +1710,31 @@ struct SymbolDependenceAnalysis {
       analyze(iter.second.get());
     finalize();
   }
+  /// Analyze the symbols of a subprogram or construct \p scope, skipping the
+  /// use associated symbols whose ultimate symbols are not in
+  /// \p referencedSymbols. Any \p commonBlockMembers from referenced
+  /// use-associated COMMON blocks that were not brought into \p scope by name
+  /// (e.g. PRIVATE members or ONLY clauses) are also analyzed so the COMMON
+  /// block storage is instantiated.
+  explicit SymbolDependenceAnalysis(
+      const semantics::Scope &scope,
+      const llvm::SetVector<const semantics::Symbol *> &referencedSymbols,
+      llvm::ArrayRef<const semantics::Symbol *> commonBlockMembers = {})
+      : referencedSymbols{&referencedSymbols} {
+    analyzeEquivalenceSets(scope);
+    llvm::SmallPtrSet<const semantics::Symbol *, 16> analyzedUltimates;
+    for (const auto &iter : scope) {
+      const semantics::Symbol &sym = iter.second.get();
+      if (!isUnreferencedUseAssociated(sym)) {
+        analyzedUltimates.insert(&sym.GetUltimate());
+        analyze(sym);
+      }
+    }
+    for (const semantics::Symbol *member : commonBlockMembers)
+      if (analyzedUltimates.insert(&member->GetUltimate()).second)
+        analyze(*member);
+    finalize();
+  }
   explicit SymbolDependenceAnalysis(const semantics::Symbol &symbol) {
     analyzeEquivalenceSets(symbol.owner());
     analyze(symbol);
@@ -1752,9 +1777,20 @@ private:
         analyzeLocalEquivalenceSets(*scp);
     // Analyze local, USEd, and host procedure scope equivalences.
     for (const auto &iter : scope) {
-      const semantics::Symbol &ultimate = iter.second.get().GetUltimate();
-      if (!skipSymbol(ultimate))
+      const semantics::Symbol &sym = iter.second.get();
+      if (isUnreferencedUseAssociated(sym))
+        continue;
+      const semantics::Symbol &ultimate = sym.GetUltimate();
+      if (const auto *namelist =
+              ultimate.detailsIf<semantics::NamelistDetails>()) {
+        for (const semantics::SymbolRef &obj : namelist->objects()) {
+          const semantics::Symbol &objUlt = obj->GetUltimate();
+          if (!skipSymbol(objUlt))
+            analyzeLocalEquivalenceSets(objUlt.owner());
+        }
+      } else if (!skipSymbol(ultimate)) {
         analyzeLocalEquivalenceSets(ultimate.owner());
+      }
     }
     // Add all aggregate stores to the front of the variable list.
     adjustSize(1);
@@ -1919,6 +1955,21 @@ private:
     return depth;
   }
 
+  /// Is \p sym a use associated symbol that is not referenced in the
+  /// subprogram being analyzed? Such symbols do not need to be instantiated.
+  bool isUnreferencedUseAssociated(const semantics::Symbol &sym) const {
+    if (!referencedSymbols || !sym.has<semantics::UseDetails>())
+      return false;
+    const semantics::Symbol &ultimate = sym.GetUltimate();
+    if (referencedSymbols->contains(&ultimate))
+      return false;
+    // Procedure pointers may be hidden behind a generic with the same name.
+    if (const auto *generic = ultimate.detailsIf<semantics::GenericDetails>())
+      if (const semantics::Symbol *specific = generic->specific())
+        return !referencedSymbols->contains(&specific->GetUltimate());
+    return true;
+  }
+
   /// Skip symbol in alias analysis.
   bool skipSymbol(const semantics::Symbol &sym) {
     // Common block equivalences are largely managed by the front end.
@@ -1987,6 +2038,9 @@ private:
   /// Set of scopes that have been analyzed for aliases.
   llvm::SmallPtrSet<const semantics::Scope *, 4> analyzedScopes;
   std::vector<Fortran::lower::pft::Variable::AggregateStore> stores;
+  /// Ultimate symbols referenced in the analyzed subprogram, if the analysis
+  /// is restricted to referenced use associated symbols.
+  const llvm::SetVector<const semantics::Symbol *> *referencedSymbols = nullptr;
 };
 } // namespace
 
@@ -2238,6 +2292,88 @@ lower::pft::getScopeVariableList(const semantics::Scope &scope) {
                    << &scope << "> " << scope.GetName() << "\n");
   SymbolDependenceAnalysis sda(scope);
   return sda.getVariableList();
+}
+
+/// Record \p sym's ultimate symbol in \p referencedSymbols, expanding namelist
+/// groups to their objects and use-associated COMMON blocks of \p scope (e.g.
+/// in OpenACC or OpenMP directives) to the objects in their storage.
+static void recordReferencedSymbol(
+    const Fortran::semantics::Scope &scope,
+    const Fortran::semantics::Symbol &sym,
+    llvm::SetVector<const Fortran::semantics::Symbol *> &referencedSymbols,
+    llvm::SetVector<const Fortran::semantics::Symbol *> &commonBlockMembers) {
+  const Fortran::semantics::Symbol &ultimate = sym.GetUltimate();
+  referencedSymbols.insert(&ultimate);
+  if (const auto *namelist =
+          ultimate.detailsIf<Fortran::semantics::NamelistDetails>()) {
+    for (const auto &obj : namelist->objects())
+      referencedSymbols.insert(&obj->GetUltimate());
+    return;
+  }
+  if (ultimate.has<Fortran::semantics::CommonBlockDetails>()) {
+    const Fortran::semantics::Symbol *useCB =
+        scope.FindCommonBlockUse(ultimate.name());
+    bool isUseAssociatedHere = useCB && &useCB->GetUltimate() == &ultimate;
+    for (const Fortran::semantics::Symbol *member :
+         Fortran::lower::getCommonBlockStorageMembers(ultimate)) {
+      const Fortran::semantics::Symbol &memberUlt = member->GetUltimate();
+      referencedSymbols.insert(&memberUlt);
+      if (isUseAssociatedHere)
+        commonBlockMembers.insert(&memberUlt);
+    }
+  }
+}
+
+/// Create an ordered list of equivalences and variables in \p scope, the scope
+/// of the construct \p eval. Use associated variables that are not referenced
+/// in \p eval are left out. The result is not cached.
+lower::pft::VariableList
+lower::pft::getScopeVariableList(const semantics::Scope &scope,
+                                 const Evaluation &eval) {
+  LLVM_DEBUG(llvm::dbgs() << "\ngetScopeVariableList of construct scope <"
+                          << &scope << "> " << scope.GetName() << "\n");
+  llvm::SetVector<const semantics::Symbol *> referencedSymbols;
+  llvm::SetVector<const semantics::Symbol *> commonBlockMembers;
+  Fortran::lower::pft::visitAllSymbols(
+      eval, [&](const Fortran::semantics::Symbol &sym) {
+        recordReferencedSymbol(scope, sym, referencedSymbols,
+                               commonBlockMembers);
+      });
+  SymbolDependenceAnalysis sda(scope, referencedSymbols,
+                               commonBlockMembers.getArrayRef());
+  return sda.getVariableList();
+}
+
+/// Create an ordered list of equivalences and variables in the scope of \p
+/// funit. Use associated variables that are not referenced in \p funit are
+/// left out. The result is not cached.
+lower::pft::VariableList
+lower::pft::getScopeVariableList(const FunctionLikeUnit &funit) {
+  const semantics::Scope &scope = funit.getScope();
+  LLVM_DEBUG(llvm::dbgs() << "\ngetScopeVariableList of [sub]program scope <"
+                          << &scope << "> " << scope.GetName() << "\n");
+  llvm::SetVector<const semantics::Symbol *> referencedSymbols;
+  llvm::SetVector<const semantics::Symbol *> commonBlockMembers;
+  Fortran::lower::pft::visitAllSymbols(
+      funit, [&](const Fortran::semantics::Symbol &sym) {
+        recordReferencedSymbol(scope, sym, referencedSymbols,
+                               commonBlockMembers);
+      });
+  SymbolDependenceAnalysis sda(scope, referencedSymbols,
+                               commonBlockMembers.getArrayRef());
+  return sda.getVariableList();
+}
+
+/// Find or create the list of equivalences and variables in the scope of \p
+/// funit that leaves out unreferenced use associated variables. The result is
+/// cached in \p map.
+const lower::pft::VariableList &
+lower::pft::getScopeVariableList(const FunctionLikeUnit &funit,
+                                 ScopeVariableListMap &map) {
+  auto iter = map.find(&funit.getScope());
+  if (iter == map.end())
+    iter = map.emplace(&funit.getScope(), getScopeVariableList(funit)).first;
+  return iter->second;
 }
 
 /// Create an ordered list of equivalences and variables that \p symbol

@@ -5016,7 +5016,7 @@ private:
             bridge.getSemanticsContext().FindScope(endPosition);
         scopeBlockIdMap.try_emplace(&scope, ++blockId);
         Fortran::lower::pft::VariableList variables =
-            Fortran::lower::pft::getScopeVariableList(scope);
+            Fortran::lower::pft::getScopeVariableList(scope, eval);
         startBlockScope(blockConstruct, !variables.empty());
         Fortran::lower::AggregateStoreMap storeMap;
         for (const Fortran::lower::pft::Variable &var : variables) {
@@ -7060,7 +7060,8 @@ private:
            Fortran::lower::pft::getHostModuleVariableList(funit))
         instantiateVar(var, storeMap);
 
-    // Map function equivalences and variables.
+    // Map function equivalences and variables. Use associated variables that
+    // are not referenced in the function-like unit are not instantiated.
     mlir::Value primaryFuncResultStorage;
     {
       // Reuse the host list to avoid repeating dependency analysis.
@@ -7068,9 +7069,9 @@ private:
       const Fortran::lower::pft::VariableList *variables;
       if (funit.getHostAssoc().hasGlobalAssociations()) {
         variables = &Fortran::lower::pft::getScopeVariableList(
-            scope, Fortran::lower::pft::getScopeVariableListMap(funit));
+            funit, Fortran::lower::pft::getScopeVariableListMap(funit));
       } else {
-        localVariables = Fortran::lower::pft::getScopeVariableList(scope);
+        localVariables = Fortran::lower::pft::getScopeVariableList(funit);
         variables = &localVariables;
       }
       for (const Fortran::lower::pft::Variable &var : *variables) {

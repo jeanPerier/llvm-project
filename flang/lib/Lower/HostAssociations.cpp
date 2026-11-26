@@ -562,8 +562,8 @@ void Fortran::lower::HostAssociations::prepareGlobalBindings(
     const pft::FunctionLikeUnit &host) {
   assert(!globalSymbols.empty() && globalBindings.empty() &&
          "expected captured globals without prepared bindings");
-  const auto &variables = pft::getScopeVariableList(
-      host.getScope(), pft::getScopeVariableListMap(host));
+  const auto &variables =
+      pft::getScopeVariableList(host, pft::getScopeVariableListMap(host));
   // EQUIVALENCE variables use offsets into aggregate storage.
   // All aggregate stores precede the variable entries in the list,
   // so scan backwards to select variables before their storage.

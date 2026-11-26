@@ -669,6 +669,12 @@ const VariableList &getScopeVariableList(const Fortran::semantics::Scope &scope,
 /// \p scope. The result is not cached.
 VariableList getScopeVariableList(const Fortran::semantics::Scope &scope);
 
+/// Create an ordered list of the equivalence sets and variables that appear in
+/// \p scope, the scope of the construct \p eval. Use associated variables that
+/// are not referenced in \p eval are left out. The result is not cached.
+VariableList getScopeVariableList(const Fortran::semantics::Scope &scope,
+                                  const Evaluation &eval);
+
 /// Create an ordered list of the equivalence sets and variables that \p symbol
 /// depends on. \p symbol itself will be the last variable in the list.
 VariableList getDependentVariableList(const Fortran::semantics::Symbol &);
@@ -679,6 +685,17 @@ struct FunctionLikeUnit;
 /// used by lowering of module procedures (and their internal subprograms) to
 /// only instantiate referenced host module variables rather than all of them.
 VariableList getHostModuleVariableList(const FunctionLikeUnit &funit);
+
+/// Create an ordered list of the equivalence sets and variables that appear in
+/// the scope of \p funit. Use associated variables that are not referenced in
+/// \p funit are left out to avoid instantiating unused module variables. The
+/// result is not cached.
+VariableList getScopeVariableList(const FunctionLikeUnit &funit);
+
+/// Find or create the list of \p funit described above. The result is cached
+/// in \p map.
+const VariableList &getScopeVariableList(const FunctionLikeUnit &funit,
+                                         ScopeVariableListMap &map);
 
 void dump(VariableList &, std::string s = {}); // `s` is an optional dump label
 

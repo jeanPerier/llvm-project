@@ -743,9 +743,9 @@ subroutine sub42()
 end subroutine
 
 ! CHECK-LABEL: func.func @_QPsub42()
-! CHECK: %[[C1:.*]]:2 = hlfir.declare %4 uniq_name("_QMmod1Ec1") data_attr(#cuf.cuda<constant>) : (!fir.ref<f32>) -> (!fir.ref<f32>, !fir.ref<f32>)
-! CHECK: %[[TMP:.*]]:2 = hlfir.declare %0 uniq_name(".tmp") : (!fir.ref<f32>) -> (!fir.ref<f32>, !fir.ref<f32>)
-! CHECK: %[[TMP_C1:.*]]:2 = hlfir.declare %19#0 uniq_name("_QMmod1Ec1") data_attr(#cuf.cuda<constant>) : (!fir.ref<f32>) -> (!fir.ref<f32>, !fir.ref<f32>)
+! CHECK: %[[C1:.*]]:2 = hlfir.declare %{{.*}} uniq_name("_QMmod1Ec1") data_attr(#cuf.cuda<constant>) : (!fir.ref<f32>) -> (!fir.ref<f32>, !fir.ref<f32>)
+! CHECK: %[[TMP:.*]]:2 = hlfir.declare %{{.*}} uniq_name(".tmp") : (!fir.ref<f32>) -> (!fir.ref<f32>, !fir.ref<f32>)
+! CHECK: %[[TMP_C1:.*]]:2 = hlfir.declare %[[TMP]]#0 uniq_name("_QMmod1Ec1") data_attr(#cuf.cuda<constant>) : (!fir.ref<f32>) -> (!fir.ref<f32>, !fir.ref<f32>)
 ! CHECK: cuf.data_transfer %[[C1]]#0 to %[[TMP]]#0 transfer_kind(device_host) : !fir.ref<f32>, !fir.ref<f32>
 ! CHECK: %[[LHS:.*]] = fir.load %[[TMP_C1]]#0 : !fir.ref<f32>
 ! CHECK: %[[RHS:.*]] = fir.load %[[TMP_C1]]#0 : !fir.ref<f32>
