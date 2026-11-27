@@ -11,4 +11,4 @@ program p
   print *, 'hello'
 end program p
 
-! CHECK: !DIModule(scope: null, name: "iso_fortran_env", isDecl: true)
+! CHECK: !DIModule(scope: null, name: "__fortran_intrinsic__iso_fortran_env", isDecl: true)

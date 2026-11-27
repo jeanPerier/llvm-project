@@ -245,6 +245,20 @@ getDebugDataSymbol(const Fortran::semantics::Symbol &ultimate) {
   return ultimate;
 }
 
+static constexpr llvm::StringLiteral intrinsicModuleDebugPrefix =
+    "__fortran_intrinsic__";
+
+static mlir::StringAttr
+getDebugModuleNameAttr(mlir::MLIRContext *context,
+                       const Fortran::semantics::Symbol &moduleSymbol) {
+  llvm::StringRef name = toStringRef(moduleSymbol.name());
+  if (moduleSymbol.owner().IsIntrinsicModules() &&
+      !name.starts_with("__fortran_"))
+    return mlir::StringAttr::get(context,
+                                 (intrinsicModuleDebugPrefix + name).str());
+  return mlir::StringAttr::get(context, name);
+}
+
 /// Return the module that declares \p ultimate if it is a data object of a
 /// module, which is what a debugger can import.
 static const Fortran::semantics::Symbol *
@@ -267,8 +281,8 @@ genUseEntityAttr(mlir::MLIRContext *context, mlir::StringAttr usedModule,
     return value == implied ? mlir::StringAttr{}
                             : mlir::StringAttr::get(context, value);
   };
-  llvm::StringRef module = toStringRef(declaringModule.name());
-  mlir::StringAttr from = getOptionalName(module, usedModule.getValue());
+  mlir::StringAttr module = getDebugModuleNameAttr(context, declaringModule);
+  mlir::StringAttr from = module == usedModule ? mlir::StringAttr{} : module;
   return fir::UseEntityAttr::get(
       context, mlir::StringAttr::get(context, local),
       getOptionalName(name, local), from,
@@ -2152,10 +2166,14 @@ private:
     mlir::MLIRContext *context = &getMLIRContext();
     if (stmt.moduleName.symbol && stmt.moduleName.symbol->scope())
       getModuleScope(*stmt.moduleName.symbol->scope());
-    return ::genUseAttr(
-        context, stmt,
-        mlir::StringAttr::get(context, toStringRef(stmt.moduleName.source)),
-        genSourceLocation(useStmt.source), modScope, expandedWholeUses);
+    mlir::StringAttr usedModule =
+        stmt.moduleName.symbol
+            ? getDebugModuleNameAttr(context, *stmt.moduleName.symbol)
+            : mlir::StringAttr::get(context,
+                                    toStringRef(stmt.moduleName.source));
+    return ::genUseAttr(context, stmt, usedModule,
+                        genSourceLocation(useStmt.source), modScope,
+                        expandedWholeUses);
   }
 
   llvm::SmallVector<fir::UseAttr>
@@ -2293,10 +2311,9 @@ private:
         getModuleScope(ultimate.owner());
     }
     mlir::MLIRContext *context = &getMLIRContext();
-    return fir::ScopeAttr::get(
-        context, fir::ScopeKind::Module,
-        mlir::StringAttr::get(context, toStringRef(symbol.name())), loc, parent,
-        uses);
+    return fir::ScopeAttr::get(context, fir::ScopeKind::Module,
+                               getDebugModuleNameAttr(context, symbol), loc,
+                               parent, uses);
   }
 
   /// Describe a module defined in this unit for the debug information.

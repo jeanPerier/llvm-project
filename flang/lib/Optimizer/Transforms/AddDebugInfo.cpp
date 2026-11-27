@@ -339,9 +339,11 @@ static fir::GlobalOp getBackingGlobal(fir::cg::XDeclareOp declOp,
 static bool describesDeclaredVariable(fir::ModuleVarAttr source,
                                       fir::cg::XDeclareOp declOp) {
   auto [kind, name] = fir::NameUniquer::deconstruct(declOp.getUniqName());
+  llvm::StringRef sourceMod = source.getModule().getValue();
+  sourceMod.consume_front("__fortran_intrinsic__");
   return isModuleLevelName(name) && isDataObjectName(kind) &&
          source.getName().getValue() == name.name &&
-         source.getModule().getValue() == getDebugModuleName(name.modules);
+         sourceMod == getDebugModuleName(name.modules);
 }
 
 // Give the array type \p type the lower bounds \p lbounds, which its FIR type
@@ -563,14 +565,16 @@ void AddDebugInfoPass::handleDeclareOp(fir::cg::XDeclareOp declOp,
     return;
 
   if (fir::GlobalOp backingGlobal = getBackingGlobal(declOp, *symbolTable)) {
-    if (isModuleLevelName(result.second)) {
-      mlir::Builder builder(&getContext());
-      ModuleVariable variable = moduleVariables.lookup(
-          {builder.getStringAttr(getDebugModuleName(result.second.modules)),
-           builder.getStringAttr(result.second.name)});
-      if (variable.storage == backingGlobal) {
-        globalToGlobalExprsMap[backingGlobal].insert(variable.expression);
-        return;
+    if (auto varsAttr = backingGlobal.getModuleVarsAttr()) {
+      for (auto modVar : varsAttr.getAsRange<fir::ModuleVarAttr>()) {
+        if (!describesDeclaredVariable(modVar, declOp))
+          continue;
+        ModuleVariable variable =
+            moduleVariables.lookup({modVar.getModule(), modVar.getName()});
+        if (variable.storage == backingGlobal) {
+          globalToGlobalExprsMap[backingGlobal].insert(variable.expression);
+          return;
+        }
       }
     }
   }
